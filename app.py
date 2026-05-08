@@ -8,6 +8,7 @@ import re as _re
 import streamlit as st
 import pandas as pd
 import numpy as np
+import plotly.graph_objects as go
 
 from utils.fetcher import fetch_app_data, refresh_app_data, APP_QUERY_IDS, fetch_creative_data, CREATIVE_QUERY_IDS
 from utils.metrics import (
@@ -202,6 +203,29 @@ st.markdown("""
                    padding:2px 8px; border-radius:5px; background:rgba(29,158,117,.15); color:#1D9E75; }
   .dod-pill-neu  { display:inline-flex; align-items:center; font-size:0.68rem;
                    padding:2px 8px; border-radius:5px; background:#141414; color:#333; }
+
+  /* ── Clickable row name buttons ── */
+  .camp-name-btn button, .adset-name-btn button {
+    background:transparent !important; border:none !important;
+    box-shadow:none !important; padding:6px 4px !important;
+    text-align:left !important; width:100% !important;
+    color:#ccc !important; font-size:0.82rem !important;
+    font-weight:500 !important; border-radius:0 !important;
+    white-space:nowrap !important; overflow:hidden !important;
+    text-overflow:ellipsis !important; display:block !important;
+  }
+  .adset-name-btn button { font-size:0.78rem !important; color:#aaa !important; padding:5px 4px !important; }
+  .camp-name-btn button:hover, .adset-name-btn button:hover {
+    background:rgba(255,255,255,0.04) !important; color:#fff !important;
+  }
+  /* ── Chart popover trigger ── */
+  .chart-pop-btn button {
+    background:transparent !important; border:1px solid #1e1e1e !important;
+    color:#444 !important; font-size:0.75rem !important;
+    padding:4px 7px !important; border-radius:6px !important;
+    box-shadow:none !important; width:100% !important;
+  }
+  .chart-pop-btn button:hover { border-color:#333 !important; color:#888 !important; }
 
   /* ── Header strip ── */
   .strip-card { background:#0d0d0d; border:1px solid #161616; border-radius:10px;
@@ -1078,6 +1102,41 @@ def morning_pulse_view(df: pd.DataFrame, app: str, color: str, mode: str = "unin
     # ── Drill-down ──
     st.markdown("<div class='section-hdr'><div class='section-hdr-line'></div><div class='section-hdr-text'>Drill Down — Campaign → Ad Set → Creative</div><div class='section-hdr-line'></div></div>", unsafe_allow_html=True)
 
+    def _trend_chart(filter_df, label: str, *, n_days: int = 14):
+        """Render a compact CAC + uninstall-rate dual-line chart inside a popover."""
+        if filter_df is None or filter_df.empty or "date_tz" not in filter_df.columns:
+            st.caption("No trend data"); return
+        daily = (filter_df.groupby("date_tz")
+                 .agg(spend=("total_cost","sum"),
+                      orders=("D0_paid_users","sum"),
+                      unin=("p0_unin_users","sum"))
+                 .reset_index().sort_values("date_tz").tail(n_days))
+        daily["cac"]      = daily["spend"]  / daily["orders"].clip(lower=1)
+        daily["unin_rate"]= daily["unin"]   / daily["orders"].clip(lower=1) * 100
+        st.caption(f"**{label[:60]}** — last {len(daily)}d")
+        fig = go.Figure()
+        fig.add_trace(go.Scatter(
+            x=daily["date_tz"].astype(str), y=daily["cac"],
+            name="CAC (₹)", line=dict(color="#E24B4A", width=2),
+            hovertemplate="%{x}<br>CAC ₹%{y:.0f}<extra></extra>"))
+        fig.add_trace(go.Scatter(
+            x=daily["date_tz"].astype(str), y=daily["unin_rate"],
+            name="Unin%", line=dict(color="#378ADD", width=2, dash="dot"),
+            yaxis="y2",
+            hovertemplate="%{x}<br>Unin %{y:.1f}%<extra></extra>"))
+        fig.update_layout(
+            height=220, margin=dict(l=0, r=0, t=10, b=30),
+            paper_bgcolor="#0d0d0d", plot_bgcolor="#0d0d0d",
+            font=dict(color="#666", size=10),
+            legend=dict(orientation="h", y=1.15, x=0, font=dict(size=9)),
+            xaxis=dict(showgrid=False, tickfont=dict(size=8), tickangle=-30),
+            yaxis=dict(title="CAC ₹", showgrid=True, gridcolor="#151515",
+                       tickfont=dict(size=8), tickprefix="₹"),
+            yaxis2=dict(title="Unin%", overlaying="y", side="right",
+                        showgrid=False, tickfont=dict(size=8), ticksuffix="%"),
+        )
+        st.plotly_chart(fig, use_container_width=True, config={"displayModeBar": False})
+
     # session state keys
     camp_key  = f"dd_camp_{app}_{mode}"
     adset_key = f"dd_adset_{app}_{mode}"
@@ -1261,17 +1320,27 @@ def morning_pulse_view(df: pd.DataFrame, app: str, color: str, mode: str = "unin
                       f"border-radius:4px;padding:1px 5px;color:#444;flex-shrink:0'>{conc_n}cr·90%</span>"
                       ) if conc_n is not None else ""
 
-        camp_display = (camp_name[:44] + "…") if len(camp_name) > 45 else camp_name
+        camp_display = (camp_name[:38] + "…") if len(camp_name) > 39 else camp_name
 
-        r0, r1, r2, r3, r4, r5, r6 = st.columns([5, 1.6, 1.1, 1.2, 1.2, 1.6, 0.7])
+        r0, r1, r2, r3, r4, r5, r6 = st.columns([5, 1.6, 1.1, 1.2, 1.2, 1.6, 0.55])
         with r0:
-            st.markdown(
-                f"<div style='{_TD};display:flex;align-items:center;gap:7px'>"
+            # dot + badges rendered before button; button = click-to-expand
+            prefix_html = (
+                f"<div style='display:flex;align-items:center;gap:6px;pointer-events:none;"
+                f"position:absolute;left:6px;top:50%;transform:translateY(-50%);z-index:0'>"
                 f"<span class='src-dot' style='background:{dot_col}'></span>"
-                f"<span style='flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;"
-                f"white-space:nowrap' title='{camp_name}'>{camp_display}</span>"
                 f"{src_badge}{conc_badge}"
-                f"</div>", unsafe_allow_html=True)
+                f"</div>")
+            st.markdown(
+                f"<div style='position:relative;border-bottom:1px solid #111;background:{row_bg}'>",
+                unsafe_allow_html=True)
+            st.markdown("<div class='camp-name-btn'>", unsafe_allow_html=True)
+            if st.button(camp_display, key=f"dd_btn_camp_{app}_{mode}_{ci}",
+                         use_container_width=True, help=camp_name):
+                st.session_state[camp_key]  = None if is_open else camp_name
+                st.session_state[adset_key] = None
+                st.rerun()
+            st.markdown("</div></div>", unsafe_allow_html=True)
         with r1:
             st.markdown(f"<div style='{_TD};text-align:right'>{spend_str}</div>", unsafe_allow_html=True)
         with r2:
@@ -1283,10 +1352,11 @@ def morning_pulse_view(df: pd.DataFrame, app: str, color: str, mode: str = "unin
         with r5:
             st.markdown(f"<div style='{_TD};text-align:right'>{dod_html}</div>", unsafe_allow_html=True)
         with r6:
-            if st.button("▾" if is_open else "›", key=f"dd_btn_camp_{app}_{mode}_{ci}", use_container_width=True):
-                st.session_state[camp_key]  = None if is_open else camp_name
-                st.session_state[adset_key] = None
-                st.rerun()
+            st.markdown("<div class='chart-pop-btn'>", unsafe_allow_html=True)
+            with st.popover("📈", use_container_width=True):
+                camp_df = df_sel[df_sel["campaign"] == camp_name] if "campaign" in df_sel.columns else pd.DataFrame()
+                _trend_chart(camp_df, camp_name)
+            st.markdown("</div>", unsafe_allow_html=True)
 
         # inline ad sets immediately below the selected campaign
         if is_open and adset_contrib is not None:
@@ -1331,22 +1401,32 @@ def morning_pulse_view(df: pd.DataFrame, app: str, color: str, mode: str = "unin
                     else:
                         unin_pill = ""
 
-                    a0, a1, a2, a3, a4, a5, a6 = st.columns([5, 1.6, 1.1, 1.2, 1.2, 1.6, 0.7])
-                    with a0:
-                        aname_disp = (aname[:44] + "…") if len(aname) > 45 else aname
-                        st.markdown(
-                            f"<div style='{_ATD};display:flex;align-items:center;gap:6px'>"
-                            f"<span style='font-size:0.65rem;padding:1px 5px;border-radius:4px;flex-shrink:0;"
-                            f"background:{b_col}22;color:{b_col}'>{sig.split()[0]}</span>"
-                            f"<span style='flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#ccc' title='{aname}'>{aname_disp}</span>"
-                            f"{a_conc_badge}"
-                            f"</div>", unsafe_allow_html=True)
                     _a_spend  = f"{arow['spend_pct']:.1f}%"  if pd.notna(arow.get('spend_pct'))  else "—"
                     _a_orders = f"{arow['orders_pct']:.1f}%" if pd.notna(arow.get('orders_pct')) else "—"
                     _a_unin   = f"{arow['unin_pct']:.1f}%"  if pd.notna(arow.get('unin_pct'))   else "—"
-                    # unin share color: red if disproportionately high vs orders share
                     _a_unin_col = "#E24B4A" if (pd.notna(arow.get('unin_pct')) and pd.notna(arow.get('orders_pct'))
                                                 and arow['unin_pct'] > arow['orders_pct'] + 5) else "#999"
+
+                    a0, a1, a2, a3, a4, a5, a6 = st.columns([5, 1.6, 1.1, 1.2, 1.2, 1.6, 0.55])
+                    with a0:
+                        aname_disp = (aname[:38] + "…") if len(aname) > 39 else aname
+                        sig_badge = (f"<span style='font-size:0.6rem;padding:1px 5px;border-radius:4px;"
+                                     f"background:{b_col}22;color:{b_col};pointer-events:none'>{sig.split()[0]}</span>")
+                        st.markdown(
+                            f"<div style='position:relative;border-bottom:1px solid #0e0e0e;"
+                            f"border-left:2px solid {b_col};background:{'#0d0d18' if is_aopen else '#080808'}'>"
+                            f"<div style='padding:2px 0 2px 8px'>{sig_badge} {a_conc_badge}</div>",
+                            unsafe_allow_html=True)
+                        st.markdown("<div class='adset-name-btn'>", unsafe_allow_html=True)
+                        if app in CREATIVE_QUERY_IDS:
+                            if st.button(aname_disp, key=f"dd_btn_adset_{app}_{mode}_{ci}_{ai}",
+                                         use_container_width=True, help=aname):
+                                st.session_state[adset_key] = None if is_aopen else aname
+                                st.rerun()
+                        else:
+                            st.markdown(f"<div style='font-size:0.78rem;color:#aaa;padding:4px 4px'>{aname_disp}</div>",
+                                        unsafe_allow_html=True)
+                        st.markdown("</div></div>", unsafe_allow_html=True)
                     with a1:
                         st.markdown(f"<div style='{_ATD};text-align:right'>{_a_spend}</div>", unsafe_allow_html=True)
                     with a2:
@@ -1358,10 +1438,13 @@ def morning_pulse_view(df: pd.DataFrame, app: str, color: str, mode: str = "unin
                     with a5:
                         st.markdown(f"<div style='{_ATD};text-align:right'>{adod_html} {unin_pill}</div>", unsafe_allow_html=True)
                     with a6:
-                        if app in CREATIVE_QUERY_IDS:
-                            if st.button("▾" if is_aopen else "›", key=f"dd_btn_adset_{app}_{mode}_{ci}_{ai}", use_container_width=True):
-                                st.session_state[adset_key] = None if is_aopen else aname
-                                st.rerun()
+                        st.markdown("<div class='chart-pop-btn'>", unsafe_allow_html=True)
+                        with st.popover("📈", use_container_width=True):
+                            adset_df = (df_sel[(df_sel.get("campaign", pd.Series()) == sel_camp) &
+                                               (df_sel.get("ad_set", pd.Series()) == aname)]
+                                        if "ad_set" in df_sel.columns else pd.DataFrame())
+                            _trend_chart(adset_df, aname)
+                        st.markdown("</div>", unsafe_allow_html=True)
 
                     # inline creatives immediately below the selected ad set
                     if is_aopen and cr_sel is not None:
