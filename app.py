@@ -204,28 +204,40 @@ st.markdown("""
   .dod-pill-neu  { display:inline-flex; align-items:center; font-size:0.68rem;
                    padding:2px 8px; border-radius:5px; background:#141414; color:#333; }
 
-  /* ── Clickable row name buttons ── */
-  .camp-name-btn button, .adset-name-btn button {
-    background:transparent !important; border:none !important;
-    box-shadow:none !important; padding:6px 4px !important;
-    text-align:left !important; width:100% !important;
-    color:#ccc !important; font-size:0.82rem !important;
-    font-weight:500 !important; border-radius:0 !important;
-    white-space:nowrap !important; overflow:hidden !important;
-    text-overflow:ellipsis !important; display:block !important;
+  /* ── Clickable row name buttons — invisible text style ── */
+  section[data-testid="stMain"] .camp-name-btn button,
+  section[data-testid="stMain"] .adset-name-btn button {
+    all: unset !important;
+    display: block !important;
+    width: 100% !important;
+    padding: 7px 4px !important;
+    font-size: 0.82rem !important;
+    font-weight: 500 !important;
+    color: #ccc !important;
+    text-align: left !important;
+    cursor: pointer !important;
+    white-space: nowrap !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+    border-bottom: 1px solid transparent !important;
   }
-  .adset-name-btn button { font-size:0.78rem !important; color:#aaa !important; padding:5px 4px !important; }
-  .camp-name-btn button:hover, .adset-name-btn button:hover {
-    background:rgba(255,255,255,0.04) !important; color:#fff !important;
+  section[data-testid="stMain"] .adset-name-btn button {
+    font-size: 0.76rem !important; color: #aaa !important; padding: 5px 4px !important;
   }
-  /* ── Chart popover trigger ── */
-  .chart-pop-btn button {
-    background:transparent !important; border:1px solid #1e1e1e !important;
-    color:#444 !important; font-size:0.75rem !important;
-    padding:4px 7px !important; border-radius:6px !important;
-    box-shadow:none !important; width:100% !important;
+  section[data-testid="stMain"] .camp-name-btn button:hover {
+    color: #fff !important; text-decoration: underline !important; text-decoration-color: #333 !important;
   }
-  .chart-pop-btn button:hover { border-color:#333 !important; color:#888 !important; }
+  section[data-testid="stMain"] .adset-name-btn button:hover {
+    color: #ccc !important; text-decoration: underline !important; text-decoration-color: #222 !important;
+  }
+  /* ── Chart icon button ── */
+  section[data-testid="stMain"] .chart-pop-btn button {
+    all: unset !important;
+    display: block !important; width: 100% !important; text-align: center !important;
+    font-size: 1rem !important; cursor: pointer !important; padding: 4px 0 !important;
+    opacity: 0.35 !important;
+  }
+  section[data-testid="stMain"] .chart-pop-btn button:hover { opacity: 0.9 !important; }
 
   /* ── Header strip ── */
   .strip-card { background:#0d0d0d; border:1px solid #161616; border-radius:10px;
@@ -258,6 +270,65 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 APPS = list(APP_QUERY_IDS.keys())
+
+# ════════════════════════════════════════════════════════════════════════════
+#  Trend chart dialog (module-level for @st.dialog)
+# ════════════════════════════════════════════════════════════════════════════
+
+def _build_trend_fig(filter_df: pd.DataFrame, label: str, n_days: int = 14):
+    if filter_df is None or filter_df.empty or "date_tz" not in filter_df.columns:
+        return None, None
+    daily = (filter_df.groupby("date_tz")
+             .agg(spend=("total_cost", "sum"),
+                  orders=("D0_paid_users", "sum"),
+                  unin=("p0_unin_users", "sum"))
+             .reset_index().sort_values("date_tz").tail(n_days))
+    daily["cac"]       = daily["spend"]  / daily["orders"].clip(lower=1)
+    daily["unin_rate"] = daily["unin"]   / daily["orders"].clip(lower=1) * 100
+    fig = go.Figure()
+    fig.add_trace(go.Scatter(
+        x=daily["date_tz"].astype(str), y=daily["cac"],
+        name="CAC (₹)", line=dict(color="#E24B4A", width=2.5),
+        hovertemplate="%{x}<br>CAC ₹%{y:.0f}<extra></extra>"))
+    fig.add_trace(go.Scatter(
+        x=daily["date_tz"].astype(str), y=daily["unin_rate"],
+        name="Unin %", line=dict(color="#378ADD", width=2.5, dash="dot"),
+        yaxis="y2",
+        hovertemplate="%{x}<br>Unin %{y:.1f}%<extra></extra>"))
+    fig.update_layout(
+        height=320, margin=dict(l=0, r=0, t=24, b=40),
+        paper_bgcolor="#0d0d0d", plot_bgcolor="#0d0d0d",
+        font=dict(color="#777", size=11),
+        legend=dict(orientation="h", y=1.12, x=0, font=dict(size=10)),
+        xaxis=dict(showgrid=False, tickfont=dict(size=9), tickangle=-30),
+        yaxis=dict(title="CAC ₹", showgrid=True, gridcolor="#181818",
+                   tickfont=dict(size=9), tickprefix="₹"),
+        yaxis2=dict(title="Unin %", overlaying="y", side="right",
+                    showgrid=False, tickfont=dict(size=9), ticksuffix="%"),
+    )
+    return fig, daily
+
+
+@st.dialog("📈 CAC & Uninstall Trend", width="large")
+def show_trend_dialog(label: str, filter_df: pd.DataFrame):
+    st.markdown(f"<div style='font-size:0.82rem;color:#888;margin-bottom:12px'>{label}</div>",
+                unsafe_allow_html=True)
+    fig, daily = _build_trend_fig(filter_df, label)
+    if fig is None:
+        st.info("No historical data available for this selection.")
+        return
+    st.plotly_chart(fig, use_container_width=True, config={"displayModeBar": False})
+    # summary row
+    if daily is not None and not daily.empty:
+        last = daily.iloc[-1]
+        prev = daily.iloc[-2] if len(daily) > 1 else last
+        c1, c2, c3 = st.columns(3)
+        c1.metric("CAC (YD)", f"₹{last['cac']:.0f}", f"₹{last['cac']-prev['cac']:.0f}")
+        c2.metric("Unin% (YD)", f"{last['unin_rate']:.1f}%",
+                  f"{last['unin_rate']-prev['unin_rate']:.2f}pp")
+        c3.metric("Orders (YD)", f"{int(last['orders']):,}",
+                  f"{int(last['orders']-prev['orders']):+,}")
+
 
 # ════════════════════════════════════════════════════════════════════════════
 #  helpers
@@ -1102,41 +1173,6 @@ def morning_pulse_view(df: pd.DataFrame, app: str, color: str, mode: str = "unin
     # ── Drill-down ──
     st.markdown("<div class='section-hdr'><div class='section-hdr-line'></div><div class='section-hdr-text'>Drill Down — Campaign → Ad Set → Creative</div><div class='section-hdr-line'></div></div>", unsafe_allow_html=True)
 
-    def _trend_chart(filter_df, label: str, *, n_days: int = 14):
-        """Render a compact CAC + uninstall-rate dual-line chart inside a popover."""
-        if filter_df is None or filter_df.empty or "date_tz" not in filter_df.columns:
-            st.caption("No trend data"); return
-        daily = (filter_df.groupby("date_tz")
-                 .agg(spend=("total_cost","sum"),
-                      orders=("D0_paid_users","sum"),
-                      unin=("p0_unin_users","sum"))
-                 .reset_index().sort_values("date_tz").tail(n_days))
-        daily["cac"]      = daily["spend"]  / daily["orders"].clip(lower=1)
-        daily["unin_rate"]= daily["unin"]   / daily["orders"].clip(lower=1) * 100
-        st.caption(f"**{label[:60]}** — last {len(daily)}d")
-        fig = go.Figure()
-        fig.add_trace(go.Scatter(
-            x=daily["date_tz"].astype(str), y=daily["cac"],
-            name="CAC (₹)", line=dict(color="#E24B4A", width=2),
-            hovertemplate="%{x}<br>CAC ₹%{y:.0f}<extra></extra>"))
-        fig.add_trace(go.Scatter(
-            x=daily["date_tz"].astype(str), y=daily["unin_rate"],
-            name="Unin%", line=dict(color="#378ADD", width=2, dash="dot"),
-            yaxis="y2",
-            hovertemplate="%{x}<br>Unin %{y:.1f}%<extra></extra>"))
-        fig.update_layout(
-            height=220, margin=dict(l=0, r=0, t=10, b=30),
-            paper_bgcolor="#0d0d0d", plot_bgcolor="#0d0d0d",
-            font=dict(color="#666", size=10),
-            legend=dict(orientation="h", y=1.15, x=0, font=dict(size=9)),
-            xaxis=dict(showgrid=False, tickfont=dict(size=8), tickangle=-30),
-            yaxis=dict(title="CAC ₹", showgrid=True, gridcolor="#151515",
-                       tickfont=dict(size=8), tickprefix="₹"),
-            yaxis2=dict(title="Unin%", overlaying="y", side="right",
-                        showgrid=False, tickfont=dict(size=8), ticksuffix="%"),
-        )
-        st.plotly_chart(fig, use_container_width=True, config={"displayModeBar": False})
-
     # session state keys
     camp_key  = f"dd_camp_{app}_{mode}"
     adset_key = f"dd_adset_{app}_{mode}"
@@ -1353,9 +1389,9 @@ def morning_pulse_view(df: pd.DataFrame, app: str, color: str, mode: str = "unin
             st.markdown(f"<div style='{_TD};text-align:right'>{dod_html}</div>", unsafe_allow_html=True)
         with r6:
             st.markdown("<div class='chart-pop-btn'>", unsafe_allow_html=True)
-            with st.popover("📈", use_container_width=True):
+            if st.button("📈", key=f"chart_camp_{app}_{mode}_{ci}", use_container_width=True):
                 camp_df = df_sel[df_sel["campaign"] == camp_name] if "campaign" in df_sel.columns else pd.DataFrame()
-                _trend_chart(camp_df, camp_name)
+                show_trend_dialog(camp_name, camp_df)
             st.markdown("</div>", unsafe_allow_html=True)
 
         # inline ad sets immediately below the selected campaign
@@ -1439,11 +1475,11 @@ def morning_pulse_view(df: pd.DataFrame, app: str, color: str, mode: str = "unin
                         st.markdown(f"<div style='{_ATD};text-align:right'>{adod_html} {unin_pill}</div>", unsafe_allow_html=True)
                     with a6:
                         st.markdown("<div class='chart-pop-btn'>", unsafe_allow_html=True)
-                        with st.popover("📈", use_container_width=True):
-                            adset_df = (df_sel[(df_sel.get("campaign", pd.Series()) == sel_camp) &
-                                               (df_sel.get("ad_set", pd.Series()) == aname)]
-                                        if "ad_set" in df_sel.columns else pd.DataFrame())
-                            _trend_chart(adset_df, aname)
+                        if st.button("📈", key=f"chart_adset_{app}_{mode}_{ci}_{ai}", use_container_width=True):
+                            adset_df = (df_sel[
+                                (df_sel["campaign"] == sel_camp) & (df_sel["ad_set"] == aname)
+                            ] if "ad_set" in df_sel.columns else pd.DataFrame())
+                            show_trend_dialog(aname, adset_df)
                         st.markdown("</div>", unsafe_allow_html=True)
 
                     # inline creatives immediately below the selected ad set
