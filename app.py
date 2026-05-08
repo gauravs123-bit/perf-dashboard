@@ -1208,7 +1208,7 @@ def morning_pulse_view(df: pd.DataFrame, app: str, color: str, mode: str = "unin
     with h2: st.markdown(f"<div style='{_TH};text-align:right'>Orders</div>", unsafe_allow_html=True)
     with h3: st.markdown(f"<div style='{_TH};text-align:right'>CAC</div>", unsafe_allow_html=True)
     with h4: st.markdown(f"<div style='{_TH};text-align:right'>Unin%</div>", unsafe_allow_html=True)
-    with h5: st.markdown(f"<div style='{_TH};text-align:right'>DoD CAC</div>", unsafe_allow_html=True)
+    with h5: st.markdown(f"<div style='{_TH};text-align:right'>DoD CAC · Unin</div>", unsafe_allow_html=True)
     with h6: st.markdown(f"<div style='{_TH}'></div>", unsafe_allow_html=True)
 
     for ci, camp_name in enumerate(all_camps):
@@ -1240,14 +1240,20 @@ def morning_pulse_view(df: pd.DataFrame, app: str, color: str, mode: str = "unin
         cac_col    = "#E24B4A" if cac_val  is not None and pd.notna(cac_val)  and cac_val  > 500 else "#999"
         unin_col   = "#E24B4A" if unin_val is not None and pd.notna(unin_val) and unin_val > 25  else "#999"
 
-        # DoD CAC pill
-        c_cac_row = camp_cac_map.get(camp_name)
+        # DoD pills — CAC contribution + unin contribution
+        c_cac_row  = camp_cac_map.get(camp_name)
+        c_unin_row = camp_unin_map.get(camp_name)
         if c_cac_row is not None and c_cac_row["contribution"] != 0:
             cv = c_cac_row["contribution"]
-            dod_cls  = "dod-pill-bad" if cv > 0 else "dod-pill-good"
-            dod_html = f"<span class='{dod_cls}'>{'▲' if cv > 0 else '▼'}₹{abs(cv):.0f}</span>"
+            dod_cac = f"<span class='{'dod-pill-bad' if cv>0 else 'dod-pill-good'}'>{'▲' if cv>0 else '▼'}₹{abs(cv):.0f}</span>"
         else:
-            dod_html = "<span class='dod-pill-neu'>—</span>"
+            dod_cac = "<span class='dod-pill-neu'>—</span>"
+        if c_unin_row is not None and c_unin_row["contribution"] != 0:
+            uv = c_unin_row["contribution"]
+            dod_unin = f"<span class='{'dod-pill-bad' if uv>0 else 'dod-pill-good'}'>{'▲' if uv>0 else '▼'}{abs(uv):.2f}pp</span>"
+        else:
+            dod_unin = ""
+        dod_html = f"<div style='display:flex;flex-direction:column;align-items:flex-end;gap:2px'>{dod_cac}{dod_unin}</div>"
 
         # conc badge (small, appended after name)
         conc_n = camp_conc.get(camp_name)
