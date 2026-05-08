@@ -122,20 +122,24 @@ st.markdown("""
 
   /* ── Morning Pulse KPI cards ── */
   .pulse-card {
-      background:#0d0d0d; border:1px solid #161616; border-radius:14px;
-      padding:20px 18px; height:100%; position:relative; overflow:hidden;
+      background:#0d0d0d; border:1px solid #181818; border-radius:14px;
+      padding:18px 16px; height:100%; position:relative; overflow:hidden;
+      transition: border-color .15s;
   }
+  .pulse-card:hover { border-color:#242424; }
   .pulse-card::after {
       content:''; position:absolute; top:0; left:0; right:0; height:2px;
       border-radius:14px 14px 0 0;
   }
-  .pulse-card-red::after   { background:linear-gradient(90deg,#E24B4A,#ff7b7b44); }
-  .pulse-card-green::after { background:linear-gradient(90deg,#1D9E75,#4cdf9644); }
-  .pulse-card-grey::after  { background:#1e1e1e; }
-  .pulse-label { font-size:0.62rem; color:#444; text-transform:uppercase;
-                 letter-spacing:.12em; margin-bottom:10px; font-weight:600; }
-  .pulse-value { font-size:1.65rem; font-weight:700; color:#f0f0f0;
-                 letter-spacing:-.03em; line-height:1; margin-bottom:10px; }
+  .pulse-card-red::after   { background:linear-gradient(90deg,#E24B4A,transparent); }
+  .pulse-card-green::after { background:linear-gradient(90deg,#1D9E75,transparent); }
+  .pulse-card-grey::after  { background:linear-gradient(90deg,#2a2a2a,transparent); }
+  .pulse-label { font-size:0.6rem; color:#3a3a3a; text-transform:uppercase;
+                 letter-spacing:.14em; margin-bottom:8px; font-weight:700; }
+  .pulse-value { font-size:1.7rem; font-weight:700; color:#f0f0f0;
+                 letter-spacing:-.03em; line-height:1; margin-bottom:6px; }
+  .pulse-yday  { font-size:0.68rem; color:#333; margin-bottom:8px; }
+  .pulse-delta-row { display:flex; align-items:center; justify-content:space-between; }
   .pulse-delta-bad  { display:inline-flex; align-items:center; gap:3px; font-size:0.7rem;
                       font-weight:700; padding:3px 9px; border-radius:20px;
                       background:rgba(226,75,74,.12); color:#E24B4A;
@@ -147,6 +151,19 @@ st.markdown("""
   .pulse-delta-neu  { display:inline-flex; align-items:center; gap:3px; font-size:0.7rem;
                       padding:3px 9px; border-radius:20px;
                       background:#111; color:#3a3a3a; border:1px solid #1a1a1a; }
+  .pulse-pct { font-size:0.65rem; color:#333; margin-left:4px; }
+
+  /* ── Campaign metric chips ── */
+  .camp-chip { display:inline-flex; align-items:center; gap:3px; font-size:0.65rem;
+               background:#141414; border:1px solid #1e1e1e; border-radius:6px;
+               padding:2px 8px; color:#555; white-space:nowrap; }
+  .camp-chip-val { color:#888; font-weight:600; margin-left:3px; }
+
+  /* ── Section header ── */
+  .section-hdr { display:flex; align-items:center; gap:10px; margin:24px 0 12px; }
+  .section-hdr-line { flex:1; height:1px; background:#141414; }
+  .section-hdr-text { font-size:0.6rem; font-weight:700; letter-spacing:.14em;
+                      text-transform:uppercase; color:#333; white-space:nowrap; }
 
   /* ── Alert pills ── */
   .alert-pill { display:inline-flex; align-items:center; gap:5px; padding:5px 13px;
@@ -834,38 +851,42 @@ def morning_pulse_view(df: pd.DataFrame, app: str, color: str, mode: str = "unin
     # ── KPI cards ──
     d1 = pulse["d1"]
 
-    def _kpi_card(label, today_val, yday_val, abs_delta, delta_fmt, higher_is_bad=False):
+    def _kpi_card(label, today_val, yday_val, abs_delta, delta_fmt, higher_is_bad=False, base_val=None):
         is_bad  = (abs_delta > 0 and higher_is_bad) or (abs_delta < 0 and not higher_is_bad)
         d_class = "pulse-delta-bad" if is_bad else ("pulse-delta-good" if abs_delta != 0 else "pulse-delta-neu")
         arrow   = "▲" if abs_delta > 0 else ("▼" if abs_delta < 0 else "—")
         c_class = "pulse-card-red" if is_bad else ("pulse-card-green" if not is_bad and abs_delta != 0 else "pulse-card-grey")
         sign    = "+" if abs_delta > 0 else ""
         delta_str = f"{arrow} {sign}{delta_fmt(abs(abs_delta))}"
+        pct_str = ""
+        if base_val and base_val != 0 and abs_delta != 0:
+            pct = abs_delta / abs(base_val) * 100
+            pct_str = f"<span class='pulse-pct'>{'+' if pct>0 else ''}{pct:.1f}%</span>"
         return (
             f"<div class='pulse-card {c_class}'>"
             f"<div class='pulse-label'>{label}</div>"
             f"<div class='pulse-value'>{today_val}</div>"
-            f"<div style='font-size:0.7rem;color:#444;margin-bottom:4px'>yday {yday_val}</div>"
-            f"<div class='{d_class}'>{delta_str}</div>"
+            f"<div class='pulse-yday'>yday {yday_val}</div>"
+            f"<div class='pulse-delta-row'><div class='{d_class}'>{delta_str}</div>{pct_str}</div>"
             f"</div>"
         )
 
     cols = st.columns(5)
     cards = [
         ("Spend",          f"₹{yd['spend']:,.0f}",            f"₹{d1['spend']:,.0f}",
-         yd['spend'] - d1['spend'],              lambda v: f"₹{v:,.0f}",     False),
+         yd['spend'] - d1['spend'],              lambda v: f"₹{v:,.0f}",     False,  d1['spend']),
         ("D0 Orders",      f"{yd['orders']:,.0f}",             f"{d1['orders']:,.0f}",
-         yd['orders'] - d1['orders'],            lambda v: f"{v:,.0f}",      False),
+         yd['orders'] - d1['orders'],            lambda v: f"{v:,.0f}",      False,  d1['orders']),
         ("D0 CAC",         f"₹{yd['cac']:,.0f}",              f"₹{d1['cac']:,.0f}",
-         yd['cac'] - d1['cac'],                  lambda v: f"₹{v:.0f}",      True),
-        ("Uninstall Rate", f"{yd['unin_rate']:.1f}%",         f"{d1['unin_rate']:.1f}%",
-         yd['unin_rate'] - d1['unin_rate'],      lambda v: f"{v:.1f}pp",     True),
-        ("Cancel Rate",    f"{yd.get('cancel_rate',0):.1f}%", f"{d1.get('cancel_rate',0):.1f}%",
-         yd.get('cancel_rate',0)-d1.get('cancel_rate',0), lambda v: f"{v:.1f}pp", True),
+         yd['cac'] - d1['cac'],                  lambda v: f"₹{v:.0f}",      True,   d1['cac']),
+        ("Uninstall %",    f"{yd['unin_rate']:.1f}%",         f"{d1['unin_rate']:.1f}%",
+         yd['unin_rate'] - d1['unin_rate'],      lambda v: f"{v:.1f}pp",     True,   d1['unin_rate']),
+        ("Cancel %",       f"{yd.get('cancel_rate',0):.1f}%", f"{d1.get('cancel_rate',0):.1f}%",
+         yd.get('cancel_rate',0)-d1.get('cancel_rate',0), lambda v: f"{v:.1f}pp", True, d1.get('cancel_rate',0)),
     ]
-    for col, (label, today_val, yday_val, abs_delta, delta_fmt, hib) in zip(cols, cards):
+    for col, (label, today_val, yday_val, abs_delta, delta_fmt, hib, base_val) in zip(cols, cards):
         with col:
-            st.markdown(_kpi_card(label, today_val, yday_val, abs_delta, delta_fmt, hib), unsafe_allow_html=True)
+            st.markdown(_kpi_card(label, today_val, yday_val, abs_delta, delta_fmt, hib, base_val), unsafe_allow_html=True)
 
     st.markdown("<div style='height:16px'></div>", unsafe_allow_html=True)
 
@@ -947,7 +968,7 @@ def morning_pulse_view(df: pd.DataFrame, app: str, color: str, mode: str = "unin
         unsafe_allow_html=True,
     )
 
-    st.markdown("<hr style='border-color:#1e1e1e;margin:4px 0 20px'>", unsafe_allow_html=True)
+    st.markdown("<div class='section-hdr'><div class='section-hdr-line'></div><div class='section-hdr-text'>Campaign Contributors</div><div class='section-hdr-line'></div></div>", unsafe_allow_html=True)
 
     # ── Top Contributors (Kitagawa) — always show both CAC + Uninstall ──
     kit_cac   = kitagawa_cac(df_sel,       level="campaign")
@@ -1039,8 +1060,7 @@ def morning_pulse_view(df: pd.DataFrame, app: str, color: str, mode: str = "unin
     kit_df = kit_cac if not kit_cac.empty else kit_unin
 
     # ── Drill-down ──
-    st.markdown("<hr style='border-color:#1e1e1e;margin:20px 0 16px'>", unsafe_allow_html=True)
-    st.markdown("<div class='section-label'>Drill down — Campaign → Ad Set → Creative</div>", unsafe_allow_html=True)
+    st.markdown("<div class='section-hdr'><div class='section-hdr-line'></div><div class='section-hdr-text'>Drill Down — Campaign → Ad Set → Creative</div><div class='section-hdr-line'></div></div>", unsafe_allow_html=True)
 
     # session state keys
     camp_key  = f"dd_camp_{app}_{mode}"
@@ -1158,16 +1178,22 @@ def morning_pulse_view(df: pd.DataFrame, app: str, color: str, mode: str = "unin
     camp_conc  = _conc90(cr_sel, "campaign") if cr_sel is not None else {}
     adset_conc = _conc90(cr_sel, "ad_set")   if cr_sel is not None else {}
 
+    # build camp metrics lookup from pulse campaigns df
+    camps_metrics = {}
+    if not camps.empty:
+        for _, crow in camps.iterrows():
+            camps_metrics[crow["campaign"]] = crow
+
     for ci, camp_name in enumerate(all_camps):
         is_open  = sel_camp == camp_name
-        accent   = color if is_open else "#222"
-        bg       = "#181824" if is_open else "#141414"
+        accent   = color if is_open else "#1e1e1e"
+        bg       = "#181824" if is_open else "#111"
         chevron  = "▾" if is_open else "›"
         ch_col   = color if is_open else "#444"
 
         src_str  = camp_source_map.get(camp_name, "")
-        src_html = (f"<span style='font-size:0.65rem;background:#1a1a1a;border:1px solid #242424;"
-                    f"border-radius:6px;padding:2px 7px;color:#555;margin-left:6px;flex-shrink:0'>{src_str}</span>"
+        src_html = (f"<span style='font-size:0.63rem;background:#181818;border:1px solid #222;"
+                    f"border-radius:5px;padding:1px 7px;color:#444;flex-shrink:0'>{src_str}</span>"
                     if src_str else "")
 
         # contribution pills for this campaign
@@ -1181,26 +1207,46 @@ def morning_pulse_view(df: pd.DataFrame, app: str, color: str, mode: str = "unin
 
         conc_n = camp_conc.get(camp_name)
         conc_html = (
-            f"<span style='font-size:0.65rem;background:#1a1a22;border:1px solid #2a2a3a;"
-            f"border-radius:6px;padding:2px 7px;color:#666;margin-left:4px;flex-shrink:0'>"
-            f"{conc_n} cr → 90% spend</span>"
+            f"<span style='font-size:0.63rem;background:#12121a;border:1px solid #252535;"
+            f"border-radius:5px;padding:1px 7px;color:#555;flex-shrink:0'>"
+            f"{conc_n} cr → 90%</span>"
         ) if conc_n is not None else ""
+
+        # inline metric chips
+        cm = camps_metrics.get(camp_name)
+        metric_chips = ""
+        if cm is not None:
+            sp   = cm.get("spend_yd", 0)
+            ord_ = cm.get("orders_yd", 0)
+            cac_ = cm.get("cac_yd", 0)
+            unin_= cm.get("unin_rate_yd", 0)
+            cac_col  = "#E24B4A" if (cac_  and pd.notna(cac_)  and cac_  > 500) else "#555"
+            unin_col = "#E24B4A" if (unin_ and pd.notna(unin_) and unin_ > 25)  else "#555"
+            cac_str  = f"₹{cac_:,.0f}"  if (cac_  and pd.notna(cac_))  else "—"
+            unin_str = f"{unin_:.1f}%"   if (unin_ and pd.notna(unin_)) else "—"
+            metric_chips = (
+                f"<span class='camp-chip'>Spend <span class='camp-chip-val'>₹{sp:,.0f}</span></span>"
+                f"<span class='camp-chip'>Orders <span class='camp-chip-val'>{int(ord_):,}</span></span>"
+                f"<span class='camp-chip'>CAC <span class='camp-chip-val' style='color:{cac_col}'>{cac_str}</span></span>"
+                f"<span class='camp-chip'>Unin <span class='camp-chip-val' style='color:{unin_col}'>{unin_str}</span></span>"
+            )
 
         c_left, c_btn = st.columns([11, 1])
         with c_left:
             st.markdown(
                 f"<div style='background:{bg};border:1px solid {accent};border-radius:10px;"
-                f"padding:10px 16px;margin-bottom:4px;display:flex;align-items:center;gap:8px'>"
+                f"padding:10px 16px;margin-bottom:4px'>"
+                f"<div style='display:flex;align-items:center;gap:8px;margin-bottom:6px'>"
                 f"<span style='color:{ch_col};font-size:1.1rem;width:14px;flex-shrink:0'>{chevron}</span>"
-                f"<div style='flex:1;min-width:0'>"
-                f"<div style='display:flex;align-items:center;gap:4px;flex-wrap:wrap;margin-bottom:2px'>"
-                f"{camp_contrib_pills}"
-                f"{conc_html}"
-                f"</div>"
-                f"<span style='font-weight:600;font-size:0.88rem;color:#e0e0e0;white-space:nowrap;"
-                f"overflow:hidden;text-overflow:ellipsis;display:block'>{camp_name}</span>"
-                f"</div>"
+                f"<span style='font-weight:600;font-size:0.88rem;color:#e0e0e0;flex:1;min-width:0;"
+                f"white-space:nowrap;overflow:hidden;text-overflow:ellipsis'>{camp_name}</span>"
                 f"{src_html}"
+                f"</div>"
+                f"<div style='display:flex;align-items:center;gap:5px;flex-wrap:wrap;padding-left:22px'>"
+                f"{metric_chips}"
+                f"{conc_html}"
+                f"{camp_contrib_pills}"
+                f"</div>"
                 f"</div>",
                 unsafe_allow_html=True)
         with c_btn:
