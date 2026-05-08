@@ -1335,14 +1335,20 @@ def morning_pulse_view(df: pd.DataFrame, app: str, color: str, mode: str = "unin
                             f"<span style='flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#ccc' title='{aname}'>{aname_disp}</span>"
                             f"{a_conc_badge}"
                             f"</div>", unsafe_allow_html=True)
+                    _a_spend  = f"{arow['spend_pct']:.1f}%"  if pd.notna(arow.get('spend_pct'))  else "—"
+                    _a_orders = f"{arow['orders_pct']:.1f}%" if pd.notna(arow.get('orders_pct')) else "—"
+                    _a_unin   = f"{arow['unin_pct']:.1f}%"  if pd.notna(arow.get('unin_pct'))   else "—"
+                    # unin share color: red if disproportionately high vs orders share
+                    _a_unin_col = "#E24B4A" if (pd.notna(arow.get('unin_pct')) and pd.notna(arow.get('orders_pct'))
+                                                and arow['unin_pct'] > arow['orders_pct'] + 5) else "#999"
                     with a1:
-                        st.markdown(f"<div style='{_ATD};text-align:right'>{arow['spend_pct']:.1f}%</div>", unsafe_allow_html=True)
+                        st.markdown(f"<div style='{_ATD};text-align:right'>{_a_spend}</div>", unsafe_allow_html=True)
                     with a2:
-                        st.markdown(f"<div style='{_ATD};text-align:right'>{arow['orders_pct']:.1f}%</div>", unsafe_allow_html=True)
+                        st.markdown(f"<div style='{_ATD};text-align:right'>{_a_orders}</div>", unsafe_allow_html=True)
                     with a3:
                         st.markdown(f"<div style='{_ATD};text-align:right'>—</div>", unsafe_allow_html=True)
                     with a4:
-                        st.markdown(f"<div style='{_ATD};text-align:right'>{arow['unin_pct']:.1f}%</div>", unsafe_allow_html=True)
+                        st.markdown(f"<div style='{_ATD};text-align:right;color:{_a_unin_col}'>{_a_unin}</div>", unsafe_allow_html=True)
                     with a5:
                         st.markdown(f"<div style='{_ATD};text-align:right'>{adod_html} {unin_pill}</div>", unsafe_allow_html=True)
                     with a6:
