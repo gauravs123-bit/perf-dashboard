@@ -1826,11 +1826,11 @@ def category_mix_view():
 
             sp_d   = _delta_html(row["spend"],    row.get("spend_pr"),    lambda v: f"₹{v:,.0f}",  False)
             ord_d  = _delta_html(row["orders"],   row.get("orders_pr"),   lambda v: f"{v:,.0f}",   False)
-            cac_d  = _delta_html(cac_now  or 0,   cac_pr,                 lambda v: f"₹{v:.0f}",   True)  if cac_now  else ""
-            unin_d = _delta_html(unin_now or 0,   unin_pr,                lambda v: f"{v:.1f}pp",  True)  if unin_now else ""
+            cac_d  = _delta_html(cac_now,  cac_pr,  lambda v: f"₹{v:.0f}",  True)  if (cac_now  and pd.notna(cac_now))  else ""
+            unin_d = _delta_html(unin_now, unin_pr, lambda v: f"{v:.1f}pp", True)  if (unin_now and pd.notna(unin_now)) else ""
 
-            cac_str  = f"₹{int(cac_now)}"  if cac_now  else "—"
-            unin_str = f"{unin_now:.1f}%"  if unin_now else "—"
+            cac_str  = f"₹{int(cac_now)}"   if (cac_now  and pd.notna(cac_now))  else "—"
+            unin_str = f"{unin_now:.1f}%"   if (unin_now and pd.notna(unin_now)) else "—"
 
             st.markdown(
                 f"<div style='background:#0f0f0f;border:1px solid #1a1a1a;border-radius:8px;"
