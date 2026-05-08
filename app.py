@@ -1313,13 +1313,17 @@ def morning_pulse_view(df: pd.DataFrame, app: str, color: str, mode: str = "unin
                         f"<span style='font-size:0.58rem;background:#161616;border:1px solid #1e1e1e;"
                         f"border-radius:4px;padding:1px 5px;color:#444;flex-shrink:0'>{a_conc_n}cr·90%</span>"
                     ) if a_conc_n is not None else ""
-                    unin_pill = (f"<span style='font-size:0.68rem;font-weight:700;"
-                                 f"color:{'#E24B4A' if unin_row and unin_row['contribution']>0 else '#1D9E75' if unin_row and unin_row['contribution']<0 else '#444'};"
-                                 f"background:rgba({'226,75,74' if unin_row and unin_row['contribution']>0 else '29,158,117' if unin_row and unin_row['contribution']<0 else '30,30,30'},.12);"
-                                 f"border-radius:8px;padding:1px 6px'>"
-                                 f"{'▲' if unin_row and unin_row['contribution']>0 else '▼' if unin_row and unin_row['contribution']<0 else ''}"
-                                 f"{f'{abs(unin_row[\"contribution\"]):.2f}pp unin' if unin_row else '—'}</span>"
-                                 ) if unin_row is not None and unin_row["contribution"] != 0 else ""
+                    if unin_row is not None and unin_row["contribution"] != 0:
+                        _uv = unin_row["contribution"]
+                        _uc = "#E24B4A" if _uv > 0 else "#1D9E75"
+                        _ubg = "226,75,74" if _uv > 0 else "29,158,117"
+                        _uarrow = "▲" if _uv > 0 else "▼"
+                        _uval = f"{abs(_uv):.2f}pp unin"
+                        unin_pill = (f"<span style='font-size:0.68rem;font-weight:700;color:{_uc};"
+                                     f"background:rgba({_ubg},.12);border-radius:8px;padding:1px 6px'>"
+                                     f"{_uarrow}{_uval}</span>")
+                    else:
+                        unin_pill = ""
 
                     a0, a1, a2, a3, a4, a5, a6 = st.columns([5, 1.6, 1.1, 1.2, 1.2, 1.6, 0.7])
                     with a0:
