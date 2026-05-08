@@ -1801,7 +1801,7 @@ def category_mix_view():
                 f"<div style='display:flex;gap:16px;font-size:0.75rem;color:#777'>"
                 f"<span>₹{cat_row['spend']:,.0f}{sp_delta}</span>"
                 f"<span>{int(cat_row['orders'])} orders</span>"
-                f"<span>{'₹'+str(int(cat_row['cac'])) if cat_row['cac'] else '—'} CAC</span>"
+                f"<span>{'₹'+str(int(cat_row['cac'])) if (cat_row['cac'] and pd.notna(cat_row['cac'])) else '—'} CAC</span>"
                 f"</div>"
                 f"</div></div>",
                 unsafe_allow_html=True,
