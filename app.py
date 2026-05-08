@@ -122,48 +122,42 @@ st.markdown("""
 
   /* ── Morning Pulse KPI cards ── */
   .pulse-card {
-      background:#0d0d0d; border:1px solid #181818; border-radius:14px;
-      padding:18px 16px; height:100%; position:relative; overflow:hidden;
-      transition: border-color .15s;
+      background:#0d0d0d; border:1px solid #181818; border-radius:12px;
+      padding:16px 16px; height:100%; position:relative; overflow:hidden;
+      transition: border-color .15s, background .15s;
   }
-  .pulse-card:hover { border-color:#242424; }
+  .pulse-card:hover { border-color:#252525; background:#0f0f0f; }
   .pulse-card::after {
       content:''; position:absolute; top:0; left:0; right:0; height:2px;
-      border-radius:14px 14px 0 0;
+      border-radius:12px 12px 0 0;
   }
   .pulse-card-red::after   { background:linear-gradient(90deg,#E24B4A,transparent); }
   .pulse-card-green::after { background:linear-gradient(90deg,#1D9E75,transparent); }
   .pulse-card-grey::after  { background:linear-gradient(90deg,#2a2a2a,transparent); }
-  .pulse-label { font-size:0.6rem; color:#3a3a3a; text-transform:uppercase;
-                 letter-spacing:.14em; margin-bottom:8px; font-weight:700; }
-  .pulse-value { font-size:1.7rem; font-weight:700; color:#f0f0f0;
-                 letter-spacing:-.03em; line-height:1; margin-bottom:6px; }
-  .pulse-yday  { font-size:0.68rem; color:#333; margin-bottom:8px; }
+  .pulse-label { font-size:0.58rem; color:#3a3a3a; text-transform:uppercase;
+                 letter-spacing:.16em; margin-bottom:10px; font-weight:700; }
+  .pulse-value { font-size:1.75rem; font-weight:700; color:#f2f2f2;
+                 letter-spacing:-.03em; line-height:1; margin-bottom:4px; }
+  .pulse-yday  { font-size:0.66rem; color:#2e2e2e; margin-bottom:10px; }
   .pulse-delta-row { display:flex; align-items:center; justify-content:space-between; }
-  .pulse-delta-bad  { display:inline-flex; align-items:center; gap:3px; font-size:0.7rem;
-                      font-weight:700; padding:3px 9px; border-radius:20px;
+  .pulse-delta-bad  { display:inline-flex; align-items:center; gap:3px; font-size:0.68rem;
+                      font-weight:700; padding:3px 10px; border-radius:20px;
                       background:rgba(226,75,74,.12); color:#E24B4A;
-                      border:1px solid rgba(226,75,74,.2); }
-  .pulse-delta-good { display:inline-flex; align-items:center; gap:3px; font-size:0.7rem;
-                      font-weight:700; padding:3px 9px; border-radius:20px;
+                      border:1px solid rgba(226,75,74,.18); }
+  .pulse-delta-good { display:inline-flex; align-items:center; gap:3px; font-size:0.68rem;
+                      font-weight:700; padding:3px 10px; border-radius:20px;
                       background:rgba(29,158,117,.12); color:#1D9E75;
-                      border:1px solid rgba(29,158,117,.2); }
-  .pulse-delta-neu  { display:inline-flex; align-items:center; gap:3px; font-size:0.7rem;
-                      padding:3px 9px; border-radius:20px;
-                      background:#111; color:#3a3a3a; border:1px solid #1a1a1a; }
-  .pulse-pct { font-size:0.65rem; color:#333; margin-left:4px; }
-
-  /* ── Campaign metric chips ── */
-  .camp-chip { display:inline-flex; align-items:center; gap:3px; font-size:0.65rem;
-               background:#141414; border:1px solid #1e1e1e; border-radius:6px;
-               padding:2px 8px; color:#555; white-space:nowrap; }
-  .camp-chip-val { color:#888; font-weight:600; margin-left:3px; }
+                      border:1px solid rgba(29,158,117,.18); }
+  .pulse-delta-neu  { display:inline-flex; align-items:center; gap:3px; font-size:0.68rem;
+                      padding:3px 10px; border-radius:20px;
+                      background:#111; color:#333; border:1px solid #1a1a1a; }
+  .pulse-pct { font-size:0.62rem; color:#2e2e2e; }
 
   /* ── Section header ── */
-  .section-hdr { display:flex; align-items:center; gap:10px; margin:24px 0 12px; }
-  .section-hdr-line { flex:1; height:1px; background:#141414; }
-  .section-hdr-text { font-size:0.6rem; font-weight:700; letter-spacing:.14em;
-                      text-transform:uppercase; color:#333; white-space:nowrap; }
+  .section-hdr { display:flex; align-items:center; gap:10px; margin:28px 0 14px; }
+  .section-hdr-line { flex:1; height:1px; background:#131313; }
+  .section-hdr-text { font-size:0.58rem; font-weight:700; letter-spacing:.16em;
+                      text-transform:uppercase; color:#2e2e2e; white-space:nowrap; }
 
   /* ── Alert pills ── */
   .alert-pill { display:inline-flex; align-items:center; gap:5px; padding:5px 13px;
@@ -183,9 +177,31 @@ st.markdown("""
                   background:#131313; padding:3px 9px; border-radius:10px;
                   border:1px solid #1c1c1c; margin-right:4px; }
 
-  /* ── Drill-down tree ── */
-  .camp-card { background:#0d0d0d; border:1px solid #161616; border-radius:12px;
-               padding:12px 16px; margin-bottom:5px; }
+  /* ── Campaign table ── */
+  .camp-table { width:100%; border-collapse:collapse; }
+  .camp-table th {
+      font-size:0.58rem; color:#2e2e2e; text-transform:uppercase; letter-spacing:.12em;
+      font-weight:700; padding:8px 12px; text-align:right; border-bottom:1px solid #161616;
+      background:#090909;
+  }
+  .camp-table th:first-child { text-align:left; }
+  .camp-table td {
+      padding:9px 12px; font-size:0.78rem; color:#999; border-bottom:1px solid #0f0f0f;
+      text-align:right; white-space:nowrap;
+  }
+  .camp-table td:first-child { text-align:left; }
+  .camp-table tr:hover td { background:#0d0d0d; }
+  .camp-table tr:last-child td { border-bottom:none; }
+  .src-dot { display:inline-block; width:7px; height:7px; border-radius:50%;
+             margin-right:6px; flex-shrink:0; }
+  .src-badge { font-size:0.6rem; background:#161616; border:1px solid #1e1e1e;
+               border-radius:4px; padding:1px 6px; color:#444; margin-left:5px; }
+  .dod-pill-bad  { display:inline-flex; align-items:center; font-size:0.68rem; font-weight:700;
+                   padding:2px 8px; border-radius:5px; background:rgba(226,75,74,.15); color:#E24B4A; }
+  .dod-pill-good { display:inline-flex; align-items:center; font-size:0.68rem; font-weight:700;
+                   padding:2px 8px; border-radius:5px; background:rgba(29,158,117,.15); color:#1D9E75; }
+  .dod-pill-neu  { display:inline-flex; align-items:center; font-size:0.68rem;
+                   padding:2px 8px; border-radius:5px; background:#141414; color:#333; }
 
   /* ── Header strip ── */
   .strip-card { background:#0d0d0d; border:1px solid #161616; border-radius:10px;
@@ -1184,73 +1200,84 @@ def morning_pulse_view(df: pd.DataFrame, app: str, color: str, mode: str = "unin
         for _, crow in camps.iterrows():
             camps_metrics[crow["campaign"]] = crow
 
+    # ── table header ──
+    _TH = "font-size:0.58rem;text-transform:uppercase;letter-spacing:0.08em;color:#444;padding:5px 0 5px 0;border-bottom:1px solid #1a1a1a;"
+    h0, h1, h2, h3, h4, h5, h6 = st.columns([5, 1.6, 1.1, 1.2, 1.2, 1.6, 0.7])
+    with h0: st.markdown(f"<div style='{_TH}'>Campaign</div>", unsafe_allow_html=True)
+    with h1: st.markdown(f"<div style='{_TH};text-align:right'>Spend</div>", unsafe_allow_html=True)
+    with h2: st.markdown(f"<div style='{_TH};text-align:right'>Orders</div>", unsafe_allow_html=True)
+    with h3: st.markdown(f"<div style='{_TH};text-align:right'>CAC</div>", unsafe_allow_html=True)
+    with h4: st.markdown(f"<div style='{_TH};text-align:right'>Unin%</div>", unsafe_allow_html=True)
+    with h5: st.markdown(f"<div style='{_TH};text-align:right'>DoD CAC</div>", unsafe_allow_html=True)
+    with h6: st.markdown(f"<div style='{_TH}'></div>", unsafe_allow_html=True)
+
     for ci, camp_name in enumerate(all_camps):
         is_open  = sel_camp == camp_name
-        accent   = color if is_open else "#1e1e1e"
-        bg       = "#181824" if is_open else "#111"
-        chevron  = "▾" if is_open else "›"
-        ch_col   = color if is_open else "#444"
+        row_bg   = f"color-mix(in srgb, {color} 6%, transparent)" if is_open else "transparent"
+        _TD      = f"font-size:0.78rem;color:#bbb;padding:8px 0;border-bottom:1px solid #111;background:{row_bg};"
 
-        src_str  = camp_source_map.get(camp_name, "")
-        src_html = (f"<span style='font-size:0.63rem;background:#181818;border:1px solid #222;"
-                    f"border-radius:5px;padding:1px 7px;color:#444;flex-shrink:0'>{src_str}</span>"
-                    if src_str else "")
+        # source dot + badge
+        src_str   = camp_source_map.get(camp_name, "")
+        src_lower = src_str.lower()
+        if "facebook" in src_lower or "meta" in src_lower:
+            dot_col = "#378ADD"
+        elif "google" in src_lower:
+            dot_col = "#34A853"
+        elif "snap" in src_lower:
+            dot_col = "#F5A623"
+        else:
+            dot_col = "#555"
+        src_badge = (f"<span class='src-badge'>{src_str}</span>") if src_str else ""
 
-        # contribution pills for this campaign
-        camp_contrib_pills = ""
-        c_cac_row  = camp_cac_map.get(camp_name)
-        c_unin_row = camp_unin_map.get(camp_name)
-        if c_cac_row is not None:
-            camp_contrib_pills += _contrib_pill(c_cac_row["contribution"], lambda v: f"₹{v:.0f} CAC", good_is_negative=True)
-        if c_unin_row is not None:
-            camp_contrib_pills += _contrib_pill(c_unin_row["contribution"], lambda v: f"{v:.2f}pp unin", good_is_negative=True)
+        # metrics
+        cm       = camps_metrics.get(camp_name)
+        spend_str  = f"₹{cm['spend_yd']:,.0f}"  if cm is not None and pd.notna(cm.get('spend_yd',  None)) else "—"
+        orders_str = f"{int(cm['orders_yd']):,}" if cm is not None and pd.notna(cm.get('orders_yd', None)) else "—"
+        cac_val    = cm.get('cac_yd')            if cm is not None else None
+        unin_val   = cm.get('unin_rate_yd')      if cm is not None else None
+        cac_str    = f"₹{cac_val:,.0f}"          if cac_val  is not None and pd.notna(cac_val)  else "—"
+        unin_str   = f"{unin_val:.1f}%"          if unin_val is not None and pd.notna(unin_val) else "—"
+        cac_col    = "#E24B4A" if cac_val  is not None and pd.notna(cac_val)  and cac_val  > 500 else "#999"
+        unin_col   = "#E24B4A" if unin_val is not None and pd.notna(unin_val) and unin_val > 25  else "#999"
 
+        # DoD CAC pill
+        c_cac_row = camp_cac_map.get(camp_name)
+        if c_cac_row is not None and c_cac_row["contribution"] != 0:
+            cv = c_cac_row["contribution"]
+            dod_cls  = "dod-pill-bad" if cv > 0 else "dod-pill-good"
+            dod_html = f"<span class='{dod_cls}'>{'▲' if cv > 0 else '▼'}₹{abs(cv):.0f}</span>"
+        else:
+            dod_html = "<span class='dod-pill-neu'>—</span>"
+
+        # conc badge (small, appended after name)
         conc_n = camp_conc.get(camp_name)
-        conc_html = (
-            f"<span style='font-size:0.63rem;background:#12121a;border:1px solid #252535;"
-            f"border-radius:5px;padding:1px 7px;color:#555;flex-shrink:0'>"
-            f"{conc_n} cr → 90%</span>"
-        ) if conc_n is not None else ""
+        conc_badge = (f"<span style='font-size:0.58rem;background:#161616;border:1px solid #1e1e1e;"
+                      f"border-radius:4px;padding:1px 5px;color:#444;flex-shrink:0'>{conc_n}cr·90%</span>"
+                      ) if conc_n is not None else ""
 
-        # inline metric chips
-        cm = camps_metrics.get(camp_name)
-        metric_chips = ""
-        if cm is not None:
-            sp   = cm.get("spend_yd", 0)
-            ord_ = cm.get("orders_yd", 0)
-            cac_ = cm.get("cac_yd", 0)
-            unin_= cm.get("unin_rate_yd", 0)
-            cac_col  = "#E24B4A" if (cac_  and pd.notna(cac_)  and cac_  > 500) else "#555"
-            unin_col = "#E24B4A" if (unin_ and pd.notna(unin_) and unin_ > 25)  else "#555"
-            cac_str  = f"₹{cac_:,.0f}"  if (cac_  and pd.notna(cac_))  else "—"
-            unin_str = f"{unin_:.1f}%"   if (unin_ and pd.notna(unin_)) else "—"
-            metric_chips = (
-                f"<span class='camp-chip'>Spend <span class='camp-chip-val'>₹{sp:,.0f}</span></span>"
-                f"<span class='camp-chip'>Orders <span class='camp-chip-val'>{int(ord_):,}</span></span>"
-                f"<span class='camp-chip'>CAC <span class='camp-chip-val' style='color:{cac_col}'>{cac_str}</span></span>"
-                f"<span class='camp-chip'>Unin <span class='camp-chip-val' style='color:{unin_col}'>{unin_str}</span></span>"
-            )
+        camp_display = (camp_name[:44] + "…") if len(camp_name) > 45 else camp_name
 
-        c_left, c_btn = st.columns([11, 1])
-        with c_left:
+        r0, r1, r2, r3, r4, r5, r6 = st.columns([5, 1.6, 1.1, 1.2, 1.2, 1.6, 0.7])
+        with r0:
             st.markdown(
-                f"<div style='background:{bg};border:1px solid {accent};border-radius:10px;"
-                f"padding:10px 16px;margin-bottom:4px'>"
-                f"<div style='display:flex;align-items:center;gap:8px;margin-bottom:6px'>"
-                f"<span style='color:{ch_col};font-size:1.1rem;width:14px;flex-shrink:0'>{chevron}</span>"
-                f"<span style='font-weight:600;font-size:0.88rem;color:#e0e0e0;flex:1;min-width:0;"
-                f"white-space:nowrap;overflow:hidden;text-overflow:ellipsis'>{camp_name}</span>"
-                f"{src_html}"
-                f"</div>"
-                f"<div style='display:flex;align-items:center;gap:5px;flex-wrap:wrap;padding-left:22px'>"
-                f"{metric_chips}"
-                f"{conc_html}"
-                f"{camp_contrib_pills}"
-                f"</div>"
-                f"</div>",
-                unsafe_allow_html=True)
-        with c_btn:
-            if st.button("⋯", key=f"dd_btn_camp_{app}_{mode}_{ci}", use_container_width=True):
+                f"<div style='{_TD};display:flex;align-items:center;gap:7px'>"
+                f"<span class='src-dot' style='background:{dot_col}'></span>"
+                f"<span style='flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;"
+                f"white-space:nowrap' title='{camp_name}'>{camp_display}</span>"
+                f"{src_badge}{conc_badge}"
+                f"</div>", unsafe_allow_html=True)
+        with r1:
+            st.markdown(f"<div style='{_TD};text-align:right'>{spend_str}</div>", unsafe_allow_html=True)
+        with r2:
+            st.markdown(f"<div style='{_TD};text-align:right'>{orders_str}</div>", unsafe_allow_html=True)
+        with r3:
+            st.markdown(f"<div style='{_TD};text-align:right;color:{cac_col}'>{cac_str}</div>", unsafe_allow_html=True)
+        with r4:
+            st.markdown(f"<div style='{_TD};text-align:right;color:{unin_col}'>{unin_str}</div>", unsafe_allow_html=True)
+        with r5:
+            st.markdown(f"<div style='{_TD};text-align:right'>{dod_html}</div>", unsafe_allow_html=True)
+        with r6:
+            if st.button("▾" if is_open else "›", key=f"dd_btn_camp_{app}_{mode}_{ci}", use_container_width=True):
                 st.session_state[camp_key]  = None if is_open else camp_name
                 st.session_state[adset_key] = None
                 st.rerun()
@@ -1258,61 +1285,65 @@ def morning_pulse_view(df: pd.DataFrame, app: str, color: str, mode: str = "unin
         # inline ad sets immediately below the selected campaign
         if is_open and adset_contrib is not None:
             with st.container():
-                st.markdown("<div style='padding-left:18px;border-left:2px solid #222;margin-left:6px;margin-bottom:4px'>", unsafe_allow_html=True)
                 if adset_contrib.empty:
-                    st.markdown("<div style='color:#444;font-size:0.8rem;padding:6px'>No ad set data</div>", unsafe_allow_html=True)
+                    st.markdown("<div style='color:#444;font-size:0.8rem;padding:8px 0 8px 12px'>No ad set data</div>", unsafe_allow_html=True)
                 for ai, (_, arow) in enumerate(adset_contrib.iterrows()):
-                    aname   = arow["ad_set"]
-                    is_aopen= sel_adset == aname
-                    sig     = arow["signal"]
-                    b_col   = "#E24B4A" if sig == "🔴 High Risk" else ("#1D9E75" if sig == "🟢 Efficient" else "#2a2a2a")
-                    abg     = "#13131e" if is_aopen else "#111"
-                    achev   = "▾" if is_aopen else "›"
-                    ach_col = b_col if is_aopen else "#333"
+                    aname    = arow["ad_set"]
+                    is_aopen = sel_adset == aname
+                    sig      = arow["signal"]
+                    b_col    = "#E24B4A" if sig == "🔴 High Risk" else ("#1D9E75" if sig == "🟢 Efficient" else "#555")
 
                     # Kitagawa contribution for this adset
                     cac_row  = adset_cac_map.get(aname)
                     unin_row = adset_unin_map.get(aname)
-                    contrib_pills = ""
-                    if cac_row is not None:
-                        contrib_pills += _contrib_pill(cac_row["contribution"], lambda v: f"₹{v:.0f} CAC", good_is_negative=True)
-                    if unin_row is not None:
-                        contrib_pills += _contrib_pill(unin_row["contribution"], lambda v: f"{v:.2f}pp unin", good_is_negative=True)
-
                     a_conc_n = adset_conc.get(aname)
-                    a_conc_html = (
-                        f"<span style='font-size:0.63rem;background:#1a1a22;border:1px solid #2a2a3a;"
-                        f"border-radius:6px;padding:1px 6px;color:#555;flex-shrink:0'>"
-                        f"{a_conc_n} cr → 90%</span>"
-                    ) if a_conc_n is not None else ""
 
-                    a_left, a_btn = st.columns([11, 1])
-                    with a_left:
-                        _border = b_col if is_aopen else '#1e1e1e'
+                    # adset DoD pill
+                    if cac_row is not None and cac_row["contribution"] != 0:
+                        acv = cac_row["contribution"]
+                        adod_cls  = "dod-pill-bad" if acv > 0 else "dod-pill-good"
+                        adod_html = f"<span class='{adod_cls}'>{'▲' if acv > 0 else '▼'}₹{abs(acv):.0f}</span>"
+                    else:
+                        adod_html = "<span class='dod-pill-neu'>—</span>"
+
+                    _ATD = (f"font-size:0.75rem;color:#999;padding:7px 0 7px 16px;"
+                            f"border-bottom:1px solid #0e0e0e;border-left:2px solid {b_col};"
+                            f"background:{'#0d0d18' if is_aopen else '#080808'};")
+                    a_conc_badge = (
+                        f"<span style='font-size:0.58rem;background:#161616;border:1px solid #1e1e1e;"
+                        f"border-radius:4px;padding:1px 5px;color:#444;flex-shrink:0'>{a_conc_n}cr·90%</span>"
+                    ) if a_conc_n is not None else ""
+                    unin_pill = (f"<span style='font-size:0.68rem;font-weight:700;"
+                                 f"color:{'#E24B4A' if unin_row and unin_row['contribution']>0 else '#1D9E75' if unin_row and unin_row['contribution']<0 else '#444'};"
+                                 f"background:rgba({'226,75,74' if unin_row and unin_row['contribution']>0 else '29,158,117' if unin_row and unin_row['contribution']<0 else '30,30,30'},.12);"
+                                 f"border-radius:8px;padding:1px 6px'>"
+                                 f"{'▲' if unin_row and unin_row['contribution']>0 else '▼' if unin_row and unin_row['contribution']<0 else ''}"
+                                 f"{f'{abs(unin_row[\"contribution\"]):.2f}pp unin' if unin_row else '—'}</span>"
+                                 ) if unin_row is not None and unin_row["contribution"] != 0 else ""
+
+                    a0, a1, a2, a3, a4, a5, a6 = st.columns([5, 1.6, 1.1, 1.2, 1.2, 1.6, 0.7])
+                    with a0:
+                        aname_disp = (aname[:44] + "…") if len(aname) > 45 else aname
                         st.markdown(
-                            f"<div style='background:{abg};border:1px solid {_border};"
-                            f"border-left:3px solid {b_col};border-radius:9px;padding:8px 14px;margin-bottom:3px'>"
-                            f"<div style='display:flex;justify-content:space-between;align-items:center'>"
-                            f"<div style='display:flex;align-items:center;gap:8px;flex:1;min-width:0'>"
-                            f"<span style='color:{ach_col};font-size:0.9rem;width:12px;flex-shrink:0'>{achev}</span>"
-                            f"<div style='min-width:0'>"
-                            f"<div style='display:flex;align-items:center;gap:4px;flex-wrap:wrap;margin-bottom:2px'>"
-                            f"<span style='font-size:0.68rem;color:#444'>{sig} · Spend {arow['spend_pct']:.1f}%</span>"
-                            f"{a_conc_html}"
-                            f"{contrib_pills}"
-                            f"</div>"
-                            f"<div style='font-weight:600;font-size:0.83rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:#ccc'>{aname}</div>"
-                            f"</div>"
-                            f"</div>"
-                            f"<div style='text-align:right;font-size:0.72rem;color:#444;flex-shrink:0;margin-left:10px'>"
-                            f"<div>Orders {arow['orders_pct']:.1f}%</div>"
-                            f"<div>Unin {arow['unin_pct']:.1f}%</div>"
-                            f"</div>"
-                            f"</div></div>",
-                            unsafe_allow_html=True)
-                    with a_btn:
+                            f"<div style='{_ATD};display:flex;align-items:center;gap:6px'>"
+                            f"<span style='font-size:0.65rem;padding:1px 5px;border-radius:4px;flex-shrink:0;"
+                            f"background:{b_col}22;color:{b_col}'>{sig.split()[0]}</span>"
+                            f"<span style='flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#ccc' title='{aname}'>{aname_disp}</span>"
+                            f"{a_conc_badge}"
+                            f"</div>", unsafe_allow_html=True)
+                    with a1:
+                        st.markdown(f"<div style='{_ATD};text-align:right'>{arow['spend_pct']:.1f}%</div>", unsafe_allow_html=True)
+                    with a2:
+                        st.markdown(f"<div style='{_ATD};text-align:right'>{arow['orders_pct']:.1f}%</div>", unsafe_allow_html=True)
+                    with a3:
+                        st.markdown(f"<div style='{_ATD};text-align:right'>—</div>", unsafe_allow_html=True)
+                    with a4:
+                        st.markdown(f"<div style='{_ATD};text-align:right'>{arow['unin_pct']:.1f}%</div>", unsafe_allow_html=True)
+                    with a5:
+                        st.markdown(f"<div style='{_ATD};text-align:right'>{adod_html} {unin_pill}</div>", unsafe_allow_html=True)
+                    with a6:
                         if app in CREATIVE_QUERY_IDS:
-                            if st.button("⋯", key=f"dd_btn_adset_{app}_{mode}_{ci}_{ai}", use_container_width=True):
+                            if st.button("▾" if is_aopen else "›", key=f"dd_btn_adset_{app}_{mode}_{ci}_{ai}", use_container_width=True):
                                 st.session_state[adset_key] = None if is_aopen else aname
                                 st.rerun()
 
@@ -1341,7 +1372,6 @@ def morning_pulse_view(df: pd.DataFrame, app: str, color: str, mode: str = "unin
                                     cac_contrib=cac_c,
                                     unin_contrib=unin_c,
                                 ), unsafe_allow_html=True)
-                        st.markdown("</div>", unsafe_allow_html=True)
 
 
 
