@@ -1625,6 +1625,231 @@ def cac_scatter(df: pd.DataFrame, app_color: str, app: str = ""):
 
 
 # ════════════════════════════════════════════════════════════════════════════
+#  Category Mix view
+# ════════════════════════════════════════════════════════════════════════════
+
+def category_mix_view():
+    """Cross-app creative category breakdown: Category → Campaign, with YD + DBY metrics."""
+
+    # ── date selector (same logic as morning pulse) ──
+    # load all apps data to find common date range
+    all_dfs = {}
+    all_cr  = {}
+    for a in APPS:
+        d = safe_fetch(a)
+        if not d.empty:
+            all_dfs[a] = d
+        if a in CREATIVE_QUERY_IDS:
+            try:
+                cr = add_derived_metrics(fetch_creative_data(a))
+                if not cr.empty:
+                    all_cr[a] = cr
+            except Exception:
+                pass
+
+    if not all_cr:
+        st.warning("No creative data available for any app.")
+        return
+
+    # find selectable dates (last 7, must have prior day)
+    all_dates_combined = sorted(set().union(*[set(d["date_tz"].unique()) for d in all_dfs.values()]))
+    avail_dates = all_dates_combined[-7:]
+    selectable  = [d for d in avail_dates if all_dates_combined.index(d) > 0]
+    if not selectable:
+        st.warning("Need at least 2 days of data.")
+        return
+
+    date_key = "catmix_date"
+    if date_key not in st.session_state or st.session_state[date_key] not in selectable:
+        st.session_state[date_key] = selectable[-1]
+
+    # pill date buttons
+    btn_cols = st.columns(len(selectable) + 4)
+    for i, d in enumerate(reversed(selectable)):
+        label  = "Today" if d == selectable[-1] else str(d)
+        is_sel = st.session_state[date_key] == d
+        with btn_cols[i]:
+            if is_sel:
+                st.markdown(
+                    f"<div style='background:#1a1a1a;border:1px solid #444;border-radius:20px;"
+                    f"padding:5px 0;text-align:center;font-size:0.72rem;color:#ddd;font-weight:700'>{label}</div>",
+                    unsafe_allow_html=True,
+                )
+            else:
+                if st.button(label, key=f"catmix_date_{d}", use_container_width=True):
+                    st.session_state[date_key] = d
+                    st.rerun()
+
+    sel_date = st.session_state[date_key]
+    prior_date = all_dates_combined[all_dates_combined.index(sel_date) - 1]
+
+    st.markdown(
+        f"<div style='font-size:0.72rem;color:#444;margin:6px 0 20px'>"
+        f"Showing <b style='color:#888'>{sel_date}</b> vs <b style='color:#555'>{prior_date}</b></div>",
+        unsafe_allow_html=True,
+    )
+
+    def _parse_category(name: str) -> str:
+        if not isinstance(name, str):
+            return "Unknown"
+        seg = name.split("_")[0].strip().lower()
+        return seg.title() if seg else "Unknown"
+
+    def _agg(cr_df, date):
+        d = cr_df[cr_df["date_tz"] == date] if "date_tz" in cr_df.columns else cr_df
+        if d.empty:
+            return pd.DataFrame()
+        d = d.copy()
+        d["category"] = d["ad_creative"].apply(_parse_category)
+        g = d.groupby(["category", "campaign"], as_index=False).agg(
+            spend=("total_cost", "sum"),
+            orders=("D0_paid_users", "sum"),
+            uninstalls=("p0_unin_users", "sum"),
+        )
+        g["cac"]      = g.apply(lambda r: r["spend"] / r["orders"] if r["orders"] > 0 else None, axis=1)
+        g["unin_rate"]= g.apply(lambda r: r["uninstalls"] / r["orders"] * 100 if r["orders"] > 0 else None, axis=1)
+        return g
+
+    # aggregate across all apps for sel_date and prior_date
+    frames_yd, frames_pr = [], []
+    for a, cr in all_cr.items():
+        yd = _agg(cr, sel_date);   yd["app"] = a if not yd.empty else None
+        pr = _agg(cr, prior_date); pr["app"] = a if not pr.empty else None
+        if not yd.empty: frames_yd.append(yd)
+        if not pr.empty: frames_pr.append(pr)
+
+    if not frames_yd:
+        st.info("No creative data for selected date.")
+        return
+
+    yd_all = pd.concat(frames_yd, ignore_index=True)
+    pr_all = pd.concat(frames_pr, ignore_index=True) if frames_pr else pd.DataFrame()
+
+    # roll up to category → campaign across apps
+    yd_grp = yd_all.groupby(["category", "campaign"], as_index=False).agg(
+        spend=("spend", "sum"), orders=("orders", "sum"), uninstalls=("uninstalls", "sum"),
+    )
+    yd_grp["cac"]       = yd_grp.apply(lambda r: r["spend"] / r["orders"]       if r["orders"] > 0 else None, axis=1)
+    yd_grp["unin_rate"] = yd_grp.apply(lambda r: r["uninstalls"] / r["orders"] * 100 if r["orders"] > 0 else None, axis=1)
+
+    pr_grp = pd.DataFrame()
+    if not pr_all.empty:
+        pr_grp = pr_all.groupby(["category", "campaign"], as_index=False).agg(
+            spend_pr=("spend", "sum"), orders_pr=("orders", "sum"), uninstalls_pr=("uninstalls", "sum"),
+        )
+        pr_grp["cac_pr"]       = pr_grp.apply(lambda r: r["spend_pr"] / r["orders_pr"]           if r["orders_pr"] > 0 else None, axis=1)
+        pr_grp["unin_rate_pr"] = pr_grp.apply(lambda r: r["uninstalls_pr"] / r["orders_pr"] * 100 if r["orders_pr"] > 0 else None, axis=1)
+
+    # merge yd + prior
+    if not pr_grp.empty:
+        merged = yd_grp.merge(pr_grp[["category","campaign","spend_pr","orders_pr","cac_pr","unin_rate_pr"]],
+                              on=["category","campaign"], how="left")
+    else:
+        merged = yd_grp.copy()
+        for c in ["spend_pr","orders_pr","cac_pr","unin_rate_pr"]:
+            merged[c] = None
+
+    # category-level rollup
+    cat_totals = merged.groupby("category", as_index=False).agg(
+        spend=("spend","sum"), orders=("orders","sum"), uninstalls=("uninstalls","sum"),
+        spend_pr=("spend_pr","sum"),
+    )
+    cat_totals["cac"] = cat_totals.apply(lambda r: r["spend"]/r["orders"] if r["orders"]>0 else None, axis=1)
+    cat_totals = cat_totals.sort_values("spend", ascending=False)
+
+    def _delta_html(now, prev, fmt, higher_is_bad=True):
+        if prev is None or pd.isna(prev) or prev == 0:
+            return ""
+        diff = now - prev
+        if diff == 0:
+            return ""
+        is_bad  = (diff > 0 and higher_is_bad) or (diff < 0 and not higher_is_bad)
+        col     = "#E24B4A" if is_bad else "#1D9E75"
+        arrow   = "▲" if diff > 0 else "▼"
+        return (f"<span style='font-size:0.65rem;color:{col};font-weight:700;"
+                f"background:rgba({'226,75,74' if is_bad else '29,158,117'},.1);"
+                f"border-radius:6px;padding:1px 5px;margin-left:4px'>{arrow}{fmt(abs(diff))}</span>")
+
+    # ── render ──
+    cat_open_key = "catmix_open"
+    if cat_open_key not in st.session_state:
+        st.session_state[cat_open_key] = None
+
+    for _, cat_row in cat_totals.iterrows():
+        cat     = cat_row["category"]
+        is_open = st.session_state[cat_open_key] == cat
+        bg      = "#181824" if is_open else "#111"
+        chevron = "▾" if is_open else "›"
+        ch_col  = "#ddd" if is_open else "#444"
+
+        # category header
+        sp_delta  = _delta_html(cat_row["spend"],  cat_row.get("spend_pr"),  lambda v: f"₹{v:,.0f}", higher_is_bad=False)
+        n_camps   = len(merged[merged["category"] == cat])
+
+        ch_left, ch_btn = st.columns([11, 1])
+        with ch_left:
+            st.markdown(
+                f"<div style='background:{bg};border:1px solid {'#333' if is_open else '#1a1a1a'};"
+                f"border-left:3px solid #333;border-radius:10px;padding:10px 16px;margin-bottom:3px'>"
+                f"<div style='display:flex;align-items:center;justify-content:space-between'>"
+                f"<div style='display:flex;align-items:center;gap:8px'>"
+                f"<span style='color:{ch_col};font-size:1rem'>{chevron}</span>"
+                f"<span style='font-weight:700;font-size:0.9rem;color:#e0e0e0'>{cat}</span>"
+                f"<span style='font-size:0.65rem;color:#444;background:#1a1a1a;border:1px solid #222;"
+                f"border-radius:6px;padding:1px 6px'>{n_camps} campaigns</span>"
+                f"</div>"
+                f"<div style='display:flex;gap:16px;font-size:0.75rem;color:#777'>"
+                f"<span>₹{cat_row['spend']:,.0f}{sp_delta}</span>"
+                f"<span>{int(cat_row['orders'])} orders</span>"
+                f"<span>{'₹'+str(int(cat_row['cac'])) if cat_row['cac'] else '—'} CAC</span>"
+                f"</div>"
+                f"</div></div>",
+                unsafe_allow_html=True,
+            )
+        with ch_btn:
+            if st.button("⋯", key=f"catmix_btn_{cat}", use_container_width=True):
+                st.session_state[cat_open_key] = None if is_open else cat
+                st.rerun()
+
+        if not is_open:
+            continue
+
+        # campaign rows within category
+        camp_rows = merged[merged["category"] == cat].sort_values("spend", ascending=False)
+        st.markdown("<div style='padding-left:16px;border-left:2px solid #1e1e1e;margin-left:6px;margin-bottom:6px'>", unsafe_allow_html=True)
+
+        for _, row in camp_rows.iterrows():
+            cac_now  = row["cac"]
+            cac_pr   = row.get("cac_pr")
+            unin_now = row["unin_rate"]
+            unin_pr  = row.get("unin_rate_pr")
+
+            sp_d   = _delta_html(row["spend"],    row.get("spend_pr"),    lambda v: f"₹{v:,.0f}",  False)
+            ord_d  = _delta_html(row["orders"],   row.get("orders_pr"),   lambda v: f"{v:,.0f}",   False)
+            cac_d  = _delta_html(cac_now  or 0,   cac_pr,                 lambda v: f"₹{v:.0f}",   True)  if cac_now  else ""
+            unin_d = _delta_html(unin_now or 0,   unin_pr,                lambda v: f"{v:.1f}pp",  True)  if unin_now else ""
+
+            cac_str  = f"₹{int(cac_now)}"  if cac_now  else "—"
+            unin_str = f"{unin_now:.1f}%"  if unin_now else "—"
+
+            st.markdown(
+                f"<div style='background:#0f0f0f;border:1px solid #1a1a1a;border-radius:8px;"
+                f"padding:8px 14px;margin-bottom:3px;display:flex;justify-content:space-between;align-items:center'>"
+                f"<span style='font-size:0.82rem;color:#ccc;flex:1;min-width:0;white-space:nowrap;"
+                f"overflow:hidden;text-overflow:ellipsis'>{row['campaign']}</span>"
+                f"<div style='display:flex;gap:14px;font-size:0.72rem;color:#666;flex-shrink:0;margin-left:12px;align-items:center'>"
+                f"<span>₹{row['spend']:,.0f}{sp_d}</span>"
+                f"<span>{int(row['orders'])} ord{ord_d}</span>"
+                f"<span>{cac_str}{cac_d}</span>"
+                f"<span>{unin_str}{unin_d}</span>"
+                f"</div></div>",
+                unsafe_allow_html=True,
+            )
+
+        st.markdown("</div>", unsafe_allow_html=True)
+
+
+# ════════════════════════════════════════════════════════════════════════════
 #  main navigation
 # ════════════════════════════════════════════════════════════════════════════
 
@@ -1700,8 +1925,14 @@ def main():
                 st.rerun()
             st.markdown("</div>", unsafe_allow_html=True)
 
-        st.session_state["sb_section"] = "🌅 Morning Pulse"
-        section = "🌅 Morning Pulse"
+        # ── Section picker ──
+        st.markdown("<div class='sb-group-label'>Section</div>", unsafe_allow_html=True)
+        section_options = ["🌅 Morning Pulse", "📊 Category Mix"]
+        if st.session_state.get("sb_section") not in section_options:
+            st.session_state["sb_section"] = section_options[0]
+        for opt in section_options:
+            _nav_btn(opt, f"sec_{opt}", "sb_section")
+        section = st.session_state["sb_section"]
 
         # ── Refresh ──
         st.markdown("<hr style='border-color:#111;margin:18px 0 10px'>", unsafe_allow_html=True)
@@ -1727,6 +1958,10 @@ def main():
         f"<div style='height:1px;background:#141414;margin-bottom:18px'></div>",
         unsafe_allow_html=True,
     )
+
+    if section == "📊 Category Mix":
+        category_mix_view()
+        return
 
     df = safe_fetch(app)
     if df.empty:
