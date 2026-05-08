@@ -1138,6 +1138,26 @@ def morning_pulse_view(df: pd.DataFrame, app: str, color: str, mode: str = "unin
     camp_cac_map  = {r["group"]: r for _, r in kit_cac.iterrows()}  if not kit_cac.empty  else {}
     camp_unin_map = {r["group"]: r for _, r in kit_unin.iterrows()} if not kit_unin.empty else {}
 
+    # creative concentration: how many creatives = 90% of spend per campaign / adset
+    def _conc90(cr_df, group_col):
+        """Returns {group: n_creatives_for_90pct_spend}"""
+        if cr_df is None or cr_df.empty or group_col not in cr_df.columns:
+            return {}
+        result = {}
+        yd_cr = cr_df[cr_df["date_tz"] == sel_date] if "date_tz" in cr_df.columns else cr_df
+        for grp, gdf in yd_cr.groupby(group_col):
+            spend_by_cr = gdf.groupby("ad_creative")["total_cost"].sum().sort_values(ascending=False)
+            total = spend_by_cr.sum()
+            if total == 0:
+                result[grp] = 0
+                continue
+            cumsum = spend_by_cr.cumsum()
+            result[grp] = int((cumsum < total * 0.9).sum()) + 1
+        return result
+
+    camp_conc  = _conc90(cr_sel, "campaign") if cr_sel is not None else {}
+    adset_conc = _conc90(cr_sel, "ad_set")   if cr_sel is not None else {}
+
     for ci, camp_name in enumerate(all_camps):
         is_open  = sel_camp == camp_name
         accent   = color if is_open else "#222"
@@ -1159,6 +1179,13 @@ def morning_pulse_view(df: pd.DataFrame, app: str, color: str, mode: str = "unin
         if c_unin_row is not None:
             camp_contrib_pills += _contrib_pill(c_unin_row["contribution"], lambda v: f"{v:.2f}pp unin", good_is_negative=True)
 
+        conc_n = camp_conc.get(camp_name)
+        conc_html = (
+            f"<span style='font-size:0.65rem;background:#1a1a22;border:1px solid #2a2a3a;"
+            f"border-radius:6px;padding:2px 7px;color:#666;margin-left:4px;flex-shrink:0'>"
+            f"{conc_n} cr → 90% spend</span>"
+        ) if conc_n is not None else ""
+
         c_left, c_btn = st.columns([11, 1])
         with c_left:
             st.markdown(
@@ -1168,6 +1195,7 @@ def morning_pulse_view(df: pd.DataFrame, app: str, color: str, mode: str = "unin
                 f"<div style='flex:1;min-width:0'>"
                 f"<div style='display:flex;align-items:center;gap:4px;flex-wrap:wrap;margin-bottom:2px'>"
                 f"{camp_contrib_pills}"
+                f"{conc_html}"
                 f"</div>"
                 f"<span style='font-weight:600;font-size:0.88rem;color:#e0e0e0;white-space:nowrap;"
                 f"overflow:hidden;text-overflow:ellipsis;display:block'>{camp_name}</span>"
@@ -1205,6 +1233,13 @@ def morning_pulse_view(df: pd.DataFrame, app: str, color: str, mode: str = "unin
                     if unin_row is not None:
                         contrib_pills += _contrib_pill(unin_row["contribution"], lambda v: f"{v:.2f}pp unin", good_is_negative=True)
 
+                    a_conc_n = adset_conc.get(aname)
+                    a_conc_html = (
+                        f"<span style='font-size:0.63rem;background:#1a1a22;border:1px solid #2a2a3a;"
+                        f"border-radius:6px;padding:1px 6px;color:#555;flex-shrink:0'>"
+                        f"{a_conc_n} cr → 90%</span>"
+                    ) if a_conc_n is not None else ""
+
                     a_left, a_btn = st.columns([11, 1])
                     with a_left:
                         _border = b_col if is_aopen else '#1e1e1e'
@@ -1217,6 +1252,7 @@ def morning_pulse_view(df: pd.DataFrame, app: str, color: str, mode: str = "unin
                             f"<div style='min-width:0'>"
                             f"<div style='display:flex;align-items:center;gap:4px;flex-wrap:wrap;margin-bottom:2px'>"
                             f"<span style='font-size:0.68rem;color:#444'>{sig} · Spend {arow['spend_pct']:.1f}%</span>"
+                            f"{a_conc_html}"
                             f"{contrib_pills}"
                             f"</div>"
                             f"<div style='font-weight:600;font-size:0.83rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:#ccc'>{aname}</div>"
