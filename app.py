@@ -30,7 +30,7 @@ st.set_page_config(
     page_title="Perf Marketing Dashboard",
     page_icon="📊",
     layout="wide",
-    initial_sidebar_state="expanded",
+    initial_sidebar_state="collapsed",
 )
 
 # ── dark theme tweaks ────────────────────────────────────────────────────────
@@ -2094,102 +2094,124 @@ def category_mix_view():
 # ════════════════════════════════════════════════════════════════════════════
 
 def main():
-    # Force-expand sidebar via JS if it is currently collapsed
-    st.markdown("""
-    <script>
-    (function() {
-      var btn = window.parent.document.querySelector('[data-testid="stSidebarCollapsedControl"] button');
-      if (btn) { btn.click(); }
-    })();
-    </script>
-    """, unsafe_allow_html=True)
+    # ── init session state ──────────────────────────────────────────────────
+    if "sb_app"     not in st.session_state: st.session_state["sb_app"]     = "Seekho"
+    if "sb_section" not in st.session_state: st.session_state["sb_section"] = "🌅 Morning Pulse"
 
-    # ── sidebar navigation ────────────────────────────────────────────────────
-    with st.sidebar:
-        # ── Logo / title ──
-        st.markdown(
-            "<div style='padding:2px 0 14px'>"
-            "<div style='font-size:0.6rem;color:#444;letter-spacing:.18em;"
-            "text-transform:uppercase;margin-bottom:6px'>Marketing Analytics</div>"
-            "<div style='font-size:1.1rem;font-weight:700;color:#e8e8e8;"
-            "letter-spacing:-.02em'>Dashboard</div>"
-            "</div>",
-            unsafe_allow_html=True,
-        )
-        st.markdown("<hr style='border-color:#111;margin:0 0 6px'>", unsafe_allow_html=True)
+    app     = st.session_state.get("sb_app", APPS[0])
+    color   = APP_COLORS[app]
+    hex_col = color.lstrip("#")
+    r, g, b = int(hex_col[0:2], 16), int(hex_col[2:4], 16), int(hex_col[4:6], 16)
+    section_options = ["🌅 Morning Pulse", "📊 Category Mix"]
+    if st.session_state.get("sb_section") not in section_options:
+        st.session_state["sb_section"] = section_options[0]
+    section = st.session_state["sb_section"]
 
-        # ── init session state ──
-        if "sb_app"     not in st.session_state:
-            st.session_state["sb_app"]     = "Seekho"
-        if "sb_section" not in st.session_state:
-            st.session_state["sb_section"] = "🌅 Morning Pulse"
+    # ── top nav bar (replaces sidebar) ──────────────────────────────────────
+    st.markdown(f"""<style>
+      .topnav-wrap {{
+        display:flex; align-items:center; gap:6px; flex-wrap:wrap;
+        background:#0f0f0f; border:1px solid #1e1e1e; border-radius:12px;
+        padding:8px 14px; margin-bottom:18px;
+      }}
+      .topnav-divider {{
+        width:1px; height:18px; background:#222; margin:0 4px; flex-shrink:0;
+      }}
+      .topnav-label {{
+        font-size:0.6rem; color:#333; letter-spacing:.14em;
+        text-transform:uppercase; margin-right:2px; white-space:nowrap;
+      }}
+      /* app pill buttons */
+      .topnav-app button {{
+        all:unset !important; cursor:pointer !important;
+        font-size:0.78rem !important; font-weight:500 !important;
+        color:#555 !important; padding:4px 12px !important;
+        border-radius:20px !important; border:1px solid transparent !important;
+        transition:all .12s !important; white-space:nowrap !important;
+      }}
+      .topnav-app button:hover {{ color:#aaa !important; background:#181818 !important; }}
+      .topnav-app-active-{app} button {{
+        background:rgba({r},{g},{b},0.14) !important;
+        color:{color} !important; font-weight:600 !important;
+        border-color:rgba({r},{g},{b},0.3) !important;
+      }}
+      /* section pill buttons */
+      .topnav-sec button {{
+        all:unset !important; cursor:pointer !important;
+        font-size:0.78rem !important; font-weight:500 !important;
+        color:#555 !important; padding:4px 12px !important;
+        border-radius:20px !important; border:1px solid transparent !important;
+        transition:all .12s !important; white-space:nowrap !important;
+      }}
+      .topnav-sec button:hover {{ color:#aaa !important; background:#181818 !important; }}
+      .topnav-sec-active button {{
+        background:rgba({r},{g},{b},0.14) !important;
+        color:{color} !important; font-weight:600 !important;
+        border-color:rgba({r},{g},{b},0.3) !important;
+      }}
+      /* refresh button */
+      .topnav-refresh button {{
+        all:unset !important; cursor:pointer !important;
+        font-size:0.75rem !important; color:#444 !important;
+        padding:4px 10px !important; border-radius:8px !important;
+        border:1px solid #222 !important; margin-left:auto !important;
+        transition:all .12s !important; white-space:nowrap !important;
+      }}
+      .topnav-refresh button:hover {{ color:#aaa !important; border-color:#333 !important; }}
+    </style>""", unsafe_allow_html=True)
 
-        app   = st.session_state.get("sb_app", APPS[0])
-        color = APP_COLORS[app]
-        hex_col = color.lstrip("#")
-        r, g, b = int(hex_col[0:2], 16), int(hex_col[2:4], 16), int(hex_col[4:6], 16)
-
-        # inject hardcoded color into sidebar — CSS vars don't cross sidebar boundary
-        st.markdown(f"""<style>
-          [data-testid="stSidebar"] .nav-btn-active button {{
-              background:rgba({r},{g},{b},0.12) !important;
-              color:{color} !important; font-weight:600 !important;
-              border:none !important; box-shadow:none !important;
-          }}
-          [data-testid="stSidebar"] .nav-btn-active button:hover {{
-              background:rgba({r},{g},{b},0.18) !important; color:{color} !important;
-          }}
-        </style>""", unsafe_allow_html=True)
-
-        def _nav_btn(label: str, key: str, state_key: str):
-            is_active = st.session_state.get(state_key) == label
-            css_class = "nav-btn-active" if is_active else "nav-btn"
-            st.markdown(f"<div class='{css_class}'>", unsafe_allow_html=True)
-            if st.button(label, key=key, use_container_width=True):
-                st.session_state[state_key] = label
-                st.rerun()
-            st.markdown("</div>", unsafe_allow_html=True)
-
-        # ── App picker ──
-        st.markdown("<div class='sb-group-label'>App</div>", unsafe_allow_html=True)
-        for a in APPS:
+    # render top nav using columns so buttons work
+    nav_cols = st.columns([0.5] + [1]*len(APPS) + [0.3] + [1]*len(section_options) + [0.3, 1.2])
+    ci = 0
+    with nav_cols[ci]:
+        st.markdown("<div class='topnav-label'>App</div>", unsafe_allow_html=True)
+    ci += 1
+    for a in APPS:
+        with nav_cols[ci]:
             a_color = APP_COLORS[a]
-            a_hex = a_color.lstrip("#")
-            ar, ag, ab = int(a_hex[0:2], 16), int(a_hex[2:4], 16), int(a_hex[4:6], 16)
+            a_hex   = a_color.lstrip("#")
+            ar2, ag2, ab2 = int(a_hex[0:2],16), int(a_hex[2:4],16), int(a_hex[4:6],16)
             is_active = st.session_state.get("sb_app") == a
-            if is_active:
-                # render active app with its own color inline
-                st.markdown(f"""<style>
-                  [data-testid="stSidebar"] .nav-app-{a} button {{
-                      background:rgba({ar},{ag},{ab},0.12) !important;
-                      color:{a_color} !important; font-weight:600 !important;
-                      border:none !important; box-shadow:none !important;
-                  }}
-                </style>""", unsafe_allow_html=True)
-                st.markdown(f"<div class='nav-app-{a}'>", unsafe_allow_html=True)
-            else:
-                st.markdown(f"<div class='nav-btn'>", unsafe_allow_html=True)
-            if st.button(f"● {a}", key=f"app_{a}", use_container_width=True):
-                st.session_state["sb_app"] = a
+            active_cls = f"topnav-app-active-{a}" if is_active else "topnav-app"
+            # per-app active color
+            st.markdown(f"""<style>
+              .topnav-app-active-{a} button {{
+                background:rgba({ar2},{ag2},{ab2},0.14) !important;
+                color:{a_color} !important; font-weight:600 !important;
+                border-color:rgba({ar2},{ag2},{ab2},0.3) !important;
+              }}
+            </style>""", unsafe_allow_html=True)
+            dot = "●"
+            st.markdown(f"<div class='{active_cls}'>", unsafe_allow_html=True)
+            if st.button(f"{dot} {a}", key=f"tnav_app_{a}", use_container_width=True):
+                st.session_state["sb_app"]     = a
                 st.session_state["sb_section"] = "🌅 Morning Pulse"
                 st.rerun()
             st.markdown("</div>", unsafe_allow_html=True)
-
-        # ── Section picker ──
-        st.markdown("<div class='sb-group-label'>Section</div>", unsafe_allow_html=True)
-        section_options = ["🌅 Morning Pulse", "📊 Category Mix"]
-        if st.session_state.get("sb_section") not in section_options:
-            st.session_state["sb_section"] = section_options[0]
-        for opt in section_options:
-            _nav_btn(opt, f"sec_{opt}", "sb_section")
-        section = st.session_state["sb_section"]
-
-        # ── Refresh ──
-        st.markdown("<hr style='border-color:#111;margin:18px 0 10px'>", unsafe_allow_html=True)
-        if st.button(f"↻  Refresh {app}", key="refresh_btn", use_container_width=True):
+        ci += 1
+    with nav_cols[ci]:
+        st.markdown("<div class='topnav-divider'></div>", unsafe_allow_html=True)
+    ci += 1
+    for opt in section_options:
+        with nav_cols[ci]:
+            is_active = st.session_state.get("sb_section") == opt
+            cls = "topnav-sec-active" if is_active else "topnav-sec"
+            st.markdown(f"<div class='{cls}'>", unsafe_allow_html=True)
+            if st.button(opt, key=f"tnav_sec_{opt}", use_container_width=True):
+                st.session_state["sb_section"] = opt
+                st.rerun()
+            st.markdown("</div>", unsafe_allow_html=True)
+        ci += 1
+    with nav_cols[ci]:
+        st.markdown("", unsafe_allow_html=True)
+    ci += 1
+    with nav_cols[ci]:
+        st.markdown("<div class='topnav-refresh'>", unsafe_allow_html=True)
+        if st.button(f"↻ Refresh {app}", key="tnav_refresh", use_container_width=True):
             with st.spinner("Refreshing…"):
                 refresh_app_data(app)
             st.success("Done!")
+        st.markdown("</div>", unsafe_allow_html=True)
 
     # ── main content header ───────────────────────────────────────────────────
     hex_col = color.lstrip("#")
