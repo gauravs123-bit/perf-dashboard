@@ -60,11 +60,25 @@ st.markdown("""
 
   /* ── Sidebar ── */
   [data-testid="stSidebar"] {
-      background:#0a0a0a !important;
-      border-right:1px solid #1a1a1a !important;
-      min-width:200px !important;
+      background:#111 !important;
+      border-right:1px solid #252525 !important;
+      min-width:220px !important;
   }
   [data-testid="stSidebar"] > div:first-child { padding:1.4rem 1rem 1rem; }
+
+  /* sidebar collapse/expand toggle arrow */
+  [data-testid="stSidebarCollapsedControl"],
+  [data-testid="stSidebarCollapseButton"] {
+      background:#111 !important;
+      border:1px solid #252525 !important;
+      border-radius:0 6px 6px 0 !important;
+      color:#888 !important;
+      opacity:1 !important;
+  }
+  [data-testid="stSidebarCollapsedControl"] svg,
+  [data-testid="stSidebarCollapseButton"] svg { fill:#888 !important; stroke:#888 !important; }
+  [data-testid="stSidebarCollapsedControl"]:hover,
+  [data-testid="stSidebarCollapseButton"]:hover { background:#1a1a1a !important; color:#ccc !important; }
 
   /* hide radio circles */
   [data-testid="stSidebar"] .stRadio [data-baseweb="radio"] > div:first-child { display:none !important; }
