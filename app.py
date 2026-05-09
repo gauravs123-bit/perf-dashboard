@@ -60,8 +60,9 @@ st.markdown("""
 
   /* ── Sidebar ── */
   [data-testid="stSidebar"] {
-      background:#050505 !important;
-      border-right:1px solid #111 !important;
+      background:#0a0a0a !important;
+      border-right:1px solid #1a1a1a !important;
+      min-width:200px !important;
   }
   [data-testid="stSidebar"] > div:first-child { padding:1.4rem 1rem 1rem; }
 
@@ -70,55 +71,55 @@ st.markdown("""
   [data-testid="stSidebar"] .stRadio > div { gap:2px !important; }
   [data-testid="stSidebar"] .stRadio label {
       font-size:0.83rem; padding:7px 12px !important; border-radius:7px;
-      color:#3c3c3c !important; font-weight:500; transition:background .1s, color .1s;
+      color:#777 !important; font-weight:500; transition:background .1s, color .1s;
       cursor:pointer; display:flex !important; align-items:center; gap:7px; width:100%;
   }
   [data-testid="stSidebar"] .stRadio label:hover {
-      background:#111 !important; color:#888 !important;
+      background:#161616 !important; color:#ccc !important;
   }
   [data-testid="stSidebar"] .stRadio [data-testid="stMarkdownContainer"] p { margin:0; }
   [data-testid="stSidebar"] .stRadio [data-testid="stWidgetLabel"] { display:none; }
-  [data-testid="stSidebar"] hr { border-color:#131313; margin:10px 0; }
+  [data-testid="stSidebar"] hr { border-color:#1e1e1e; margin:10px 0; }
 
-  /* ── nav buttons (replace radio) ── */
+  /* ── nav buttons ── */
   [data-testid="stSidebar"] .nav-btn button,
   [data-testid="stSidebar"] .nav-btn [data-testid="stBaseButton-secondary"] {
       background:transparent !important; border:none !important; box-shadow:none !important;
-      color:#3c3c3c !important; font-size:0.83rem !important;
+      color:#777 !important; font-size:0.83rem !important;
       font-weight:500 !important; text-align:left !important;
-      padding:7px 12px !important; border-radius:7px !important;
-      width:100% !important; transition:background .1s, color .1s !important;
+      padding:8px 12px !important; border-radius:8px !important;
+      width:100% !important; transition:background .12s, color .12s !important;
       justify-content:flex-start !important;
   }
   [data-testid="stSidebar"] .nav-btn button:hover {
-      background:#111 !important; color:#888 !important;
+      background:#161616 !important; color:#ccc !important;
   }
   [data-testid="stSidebar"] .nav-btn-active button,
   [data-testid="stSidebar"] .nav-btn-active [data-testid="stBaseButton-secondary"] {
-      background:var(--app-color-subtle, #161616) !important;
+      background:var(--app-color-subtle, #1a1a1a) !important;
       color:var(--app-color, #e8e8e8) !important;
       font-weight:600 !important; border:none !important; box-shadow:none !important;
   }
   [data-testid="stSidebar"] .nav-btn-active button:hover {
-      background:var(--app-color-subtle, #161616) !important;
+      background:var(--app-color-subtle, #1a1a1a) !important;
       color:var(--app-color, #e8e8e8) !important;
   }
 
   /* sidebar group label */
   .sb-group-label {
-      font-size:0.58rem; font-weight:700; letter-spacing:.16em;
-      text-transform:uppercase; color:#383838; margin:18px 0 4px 2px;
+      font-size:0.6rem; font-weight:700; letter-spacing:.16em;
+      text-transform:uppercase; color:#3a3a3a; margin:20px 0 6px 4px;
   }
 
-  /* sidebar refresh button */
+  /* sidebar action buttons (refresh etc) */
   [data-testid="stSidebar"] .stButton > button {
-      background:#0a0a0a !important; border:1px solid #1c1c1c !important;
-      color:#444 !important; border-radius:8px !important;
+      background:#111 !important; border:1px solid #222 !important;
+      color:#666 !important; border-radius:8px !important;
       font-size:0.79rem !important; font-weight:500 !important;
       padding:8px 14px !important; width:100%; transition:all .15s;
   }
   [data-testid="stSidebar"] .stButton > button:hover {
-      background:#151515 !important; color:#aaa !important; border-color:#282828 !important;
+      background:#1a1a1a !important; color:#bbb !important; border-color:#333 !important;
   }
 
   /* ── Morning Pulse KPI cards ── */
@@ -2070,9 +2071,9 @@ def main():
         # ── Logo / title ──
         st.markdown(
             "<div style='padding:2px 0 14px'>"
-            "<div style='font-size:0.6rem;color:#2c2c2c;letter-spacing:.18em;"
-            "text-transform:uppercase;margin-bottom:5px'>Marketing Analytics</div>"
-            "<div style='font-size:1.05rem;font-weight:700;color:#d8d8d8;"
+            "<div style='font-size:0.6rem;color:#444;letter-spacing:.18em;"
+            "text-transform:uppercase;margin-bottom:6px'>Marketing Analytics</div>"
+            "<div style='font-size:1.1rem;font-weight:700;color:#e8e8e8;"
             "letter-spacing:-.02em'>Dashboard</div>"
             "</div>",
             unsafe_allow_html=True,
