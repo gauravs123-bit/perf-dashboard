@@ -66,19 +66,33 @@ st.markdown("""
   }
   [data-testid="stSidebar"] > div:first-child { padding:1.4rem 1rem 1rem; }
 
-  /* sidebar collapse/expand toggle arrow */
-  [data-testid="stSidebarCollapsedControl"],
+  /* sidebar collapse button (inside open sidebar) */
   [data-testid="stSidebarCollapseButton"] {
-      background:#111 !important;
-      border:1px solid #252525 !important;
-      border-radius:0 6px 6px 0 !important;
-      color:#888 !important;
-      opacity:1 !important;
+      opacity:1 !important; color:#555 !important;
   }
-  [data-testid="stSidebarCollapsedControl"] svg,
-  [data-testid="stSidebarCollapseButton"] svg { fill:#888 !important; stroke:#888 !important; }
-  [data-testid="stSidebarCollapsedControl"]:hover,
-  [data-testid="stSidebarCollapseButton"]:hover { background:#1a1a1a !important; color:#ccc !important; }
+  [data-testid="stSidebarCollapseButton"]:hover { color:#aaa !important; }
+  [data-testid="stSidebarCollapseButton"] svg { stroke:#555 !important; }
+
+  /* sidebar EXPAND button — shown on left edge when sidebar is collapsed */
+  [data-testid="stSidebarCollapsedControl"] {
+      background:#1e1e1e !important;
+      border:1px solid #333 !important;
+      border-left:none !important;
+      border-radius:0 8px 8px 0 !important;
+      width:28px !important;
+      opacity:1 !important;
+      top:50% !important;
+      box-shadow:2px 0 8px rgba(0,0,0,0.4) !important;
+  }
+  [data-testid="stSidebarCollapsedControl"] button {
+      color:#aaa !important;
+  }
+  [data-testid="stSidebarCollapsedControl"] svg {
+      stroke:#aaa !important; fill:none !important;
+  }
+  [data-testid="stSidebarCollapsedControl"]:hover {
+      background:#2a2a2a !important; border-color:#444 !important;
+  }
 
   /* hide radio circles */
   [data-testid="stSidebar"] .stRadio [data-baseweb="radio"] > div:first-child { display:none !important; }
@@ -2080,6 +2094,16 @@ def category_mix_view():
 # ════════════════════════════════════════════════════════════════════════════
 
 def main():
+    # Force-expand sidebar via JS if it is currently collapsed
+    st.markdown("""
+    <script>
+    (function() {
+      var btn = window.parent.document.querySelector('[data-testid="stSidebarCollapsedControl"] button');
+      if (btn) { btn.click(); }
+    })();
+    </script>
+    """, unsafe_allow_html=True)
+
     # ── sidebar navigation ────────────────────────────────────────────────────
     with st.sidebar:
         # ── Logo / title ──
