@@ -233,40 +233,63 @@ st.markdown("""
   .dod-pill-neu  { display:inline-flex; align-items:center; font-size:0.68rem;
                    padding:2px 8px; border-radius:5px; background:#141414; color:#333; }
 
-  /* ── Clickable row name buttons — invisible text style ── */
-  section[data-testid="stMain"] .camp-name-btn button,
-  section[data-testid="stMain"] .adset-name-btn button {
-    all: unset !important;
-    display: block !important;
-    width: 100% !important;
-    padding: 7px 4px !important;
+  /* ── Campaign name buttons — ghost text style ── */
+  .camp-name-btn button {
+    background: transparent !important;
+    border: none !important;
+    box-shadow: none !important;
+    color: #c8c8c8 !important;
     font-size: 0.82rem !important;
     font-weight: 500 !important;
-    color: #ccc !important;
     text-align: left !important;
-    cursor: pointer !important;
-    white-space: nowrap !important;
-    overflow: hidden !important;
-    text-overflow: ellipsis !important;
-    border-bottom: 1px solid transparent !important;
+    padding: 6px 4px !important;
+    width: 100% !important;
+    border-radius: 4px !important;
+    justify-content: flex-start !important;
+    letter-spacing: -0.01em !important;
   }
-  section[data-testid="stMain"] .adset-name-btn button {
-    font-size: 0.76rem !important; color: #aaa !important; padding: 5px 4px !important;
+  .camp-name-btn button:hover {
+    background: rgba(255,255,255,0.05) !important;
+    color: #fff !important;
+    border: none !important;
+    box-shadow: none !important;
   }
-  section[data-testid="stMain"] .camp-name-btn button:hover {
-    color: #fff !important; text-decoration: underline !important; text-decoration-color: #333 !important;
+  .adset-name-btn button {
+    background: transparent !important;
+    border: none !important;
+    box-shadow: none !important;
+    color: #999 !important;
+    font-size: 0.77rem !important;
+    font-weight: 400 !important;
+    text-align: left !important;
+    padding: 5px 4px !important;
+    width: 100% !important;
+    border-radius: 4px !important;
+    justify-content: flex-start !important;
   }
-  section[data-testid="stMain"] .adset-name-btn button:hover {
-    color: #ccc !important; text-decoration: underline !important; text-decoration-color: #222 !important;
+  .adset-name-btn button:hover {
+    background: rgba(255,255,255,0.04) !important;
+    color: #ccc !important;
+    border: none !important;
+    box-shadow: none !important;
   }
   /* ── Chart icon button ── */
-  section[data-testid="stMain"] .chart-pop-btn button {
-    all: unset !important;
-    display: block !important; width: 100% !important; text-align: center !important;
-    font-size: 1rem !important; cursor: pointer !important; padding: 4px 0 !important;
-    opacity: 0.35 !important;
+  .chart-pop-btn button {
+    background: transparent !important;
+    border: 1px solid #1e1e1e !important;
+    box-shadow: none !important;
+    color: #444 !important;
+    font-size: 0.85rem !important;
+    padding: 3px 6px !important;
+    border-radius: 6px !important;
+    width: 100% !important;
+    transition: all .12s !important;
   }
-  section[data-testid="stMain"] .chart-pop-btn button:hover { opacity: 0.9 !important; }
+  .chart-pop-btn button:hover {
+    border-color: #333 !important;
+    color: #aaa !important;
+    background: rgba(255,255,255,0.03) !important;
+  }
 
   /* ── Header strip ── */
   .strip-card { background:#0d0d0d; border:1px solid #161616; border-radius:10px;
@@ -2107,111 +2130,37 @@ def main():
         st.session_state["sb_section"] = section_options[0]
     section = st.session_state["sb_section"]
 
-    # ── top nav bar (replaces sidebar) ──────────────────────────────────────
-    st.markdown(f"""<style>
-      .topnav-wrap {{
-        display:flex; align-items:center; gap:6px; flex-wrap:wrap;
-        background:#0f0f0f; border:1px solid #1e1e1e; border-radius:12px;
-        padding:8px 14px; margin-bottom:18px;
-      }}
-      .topnav-divider {{
-        width:1px; height:18px; background:#222; margin:0 4px; flex-shrink:0;
-      }}
-      .topnav-label {{
-        font-size:0.6rem; color:#333; letter-spacing:.14em;
-        text-transform:uppercase; margin-right:2px; white-space:nowrap;
-      }}
-      /* app pill buttons */
-      .topnav-app button {{
-        all:unset !important; cursor:pointer !important;
-        font-size:0.78rem !important; font-weight:500 !important;
-        color:#555 !important; padding:4px 12px !important;
-        border-radius:20px !important; border:1px solid transparent !important;
-        transition:all .12s !important; white-space:nowrap !important;
-      }}
-      .topnav-app button:hover {{ color:#aaa !important; background:#181818 !important; }}
-      .topnav-app-active-{app} button {{
-        background:rgba({r},{g},{b},0.14) !important;
-        color:{color} !important; font-weight:600 !important;
-        border-color:rgba({r},{g},{b},0.3) !important;
-      }}
-      /* section pill buttons */
-      .topnav-sec button {{
-        all:unset !important; cursor:pointer !important;
-        font-size:0.78rem !important; font-weight:500 !important;
-        color:#555 !important; padding:4px 12px !important;
-        border-radius:20px !important; border:1px solid transparent !important;
-        transition:all .12s !important; white-space:nowrap !important;
-      }}
-      .topnav-sec button:hover {{ color:#aaa !important; background:#181818 !important; }}
-      .topnav-sec-active button {{
-        background:rgba({r},{g},{b},0.14) !important;
-        color:{color} !important; font-weight:600 !important;
-        border-color:rgba({r},{g},{b},0.3) !important;
-      }}
-      /* refresh button */
-      .topnav-refresh button {{
-        all:unset !important; cursor:pointer !important;
-        font-size:0.75rem !important; color:#444 !important;
-        padding:4px 10px !important; border-radius:8px !important;
-        border:1px solid #222 !important; margin-left:auto !important;
-        transition:all .12s !important; white-space:nowrap !important;
-      }}
-      .topnav-refresh button:hover {{ color:#aaa !important; border-color:#333 !important; }}
-    </style>""", unsafe_allow_html=True)
-
-    # render top nav using columns so buttons work
-    nav_cols = st.columns([0.5] + [1]*len(APPS) + [0.3] + [1]*len(section_options) + [0.3, 1.2])
-    ci = 0
-    with nav_cols[ci]:
-        st.markdown("<div class='topnav-label'>App</div>", unsafe_allow_html=True)
-    ci += 1
-    for a in APPS:
-        with nav_cols[ci]:
-            a_color = APP_COLORS[a]
-            a_hex   = a_color.lstrip("#")
-            ar2, ag2, ab2 = int(a_hex[0:2],16), int(a_hex[2:4],16), int(a_hex[4:6],16)
-            is_active = st.session_state.get("sb_app") == a
-            active_cls = f"topnav-app-active-{a}" if is_active else "topnav-app"
-            # per-app active color
-            st.markdown(f"""<style>
-              .topnav-app-active-{a} button {{
-                background:rgba({ar2},{ag2},{ab2},0.14) !important;
-                color:{a_color} !important; font-weight:600 !important;
-                border-color:rgba({ar2},{ag2},{ab2},0.3) !important;
-              }}
-            </style>""", unsafe_allow_html=True)
-            dot = "●"
-            st.markdown(f"<div class='{active_cls}'>", unsafe_allow_html=True)
-            if st.button(f"{dot} {a}", key=f"tnav_app_{a}", use_container_width=True):
-                st.session_state["sb_app"]     = a
+    # ── top nav: st.pills for clean inline selectors ────────────────────────
+    nav_left, nav_right = st.columns([8, 2])
+    with nav_left:
+        nc1, nc2 = st.columns([1, 1])
+        with nc1:
+            app_options = list(APPS)
+            sel_app = st.pills("App", app_options,
+                               default=st.session_state["sb_app"],
+                               key="pills_app", label_visibility="collapsed")
+            if sel_app and sel_app != st.session_state["sb_app"]:
+                st.session_state["sb_app"]     = sel_app
                 st.session_state["sb_section"] = "🌅 Morning Pulse"
                 st.rerun()
-            st.markdown("</div>", unsafe_allow_html=True)
-        ci += 1
-    with nav_cols[ci]:
-        st.markdown("<div class='topnav-divider'></div>", unsafe_allow_html=True)
-    ci += 1
-    for opt in section_options:
-        with nav_cols[ci]:
-            is_active = st.session_state.get("sb_section") == opt
-            cls = "topnav-sec-active" if is_active else "topnav-sec"
-            st.markdown(f"<div class='{cls}'>", unsafe_allow_html=True)
-            if st.button(opt, key=f"tnav_sec_{opt}", use_container_width=True):
-                st.session_state["sb_section"] = opt
+        with nc2:
+            sel_sec = st.pills("Section", section_options,
+                               default=st.session_state["sb_section"],
+                               key="pills_sec", label_visibility="collapsed")
+            if sel_sec and sel_sec != st.session_state["sb_section"]:
+                st.session_state["sb_section"] = sel_sec
                 st.rerun()
-            st.markdown("</div>", unsafe_allow_html=True)
-        ci += 1
-    with nav_cols[ci]:
-        st.markdown("", unsafe_allow_html=True)
-    ci += 1
-    with nav_cols[ci]:
-        st.markdown("<div class='topnav-refresh'>", unsafe_allow_html=True)
-        if st.button(f"↻ Refresh {app}", key="tnav_refresh", use_container_width=True):
+    with nav_right:
+        st.markdown("<div style='padding-top:6px'>", unsafe_allow_html=True)
+        if st.button(f"↻  Refresh {app}", key="tnav_refresh", use_container_width=True):
             with st.spinner("Refreshing…"):
                 refresh_app_data(app)
             st.success("Done!")
         st.markdown("</div>", unsafe_allow_html=True)
+
+    app     = st.session_state.get("sb_app", APPS[0])
+    color   = APP_COLORS[app]
+    section = st.session_state.get("sb_section", "🌅 Morning Pulse")
 
     # ── main content header ───────────────────────────────────────────────────
     hex_col = color.lstrip("#")
