@@ -1347,18 +1347,49 @@ def morning_pulse_view(df: pd.DataFrame, app: str, color: str, mode: str = "unin
         for _, crow in camps.iterrows():
             camps_metrics[crow["campaign"]] = crow
 
-    # ── table header ──
-    _TH = "font-size:0.58rem;text-transform:uppercase;letter-spacing:0.08em;color:#444;padding:5px 0 5px 0;border-bottom:1px solid #1a1a1a;"
-    h0, h1, h2, h3, h4, h5, h6 = st.columns([5, 1.6, 1.1, 1.2, 1.2, 1.6, 0.7])
-    with h0: st.markdown(f"<div style='{_TH}'>Campaign</div>", unsafe_allow_html=True)
-    with h1: st.markdown(f"<div style='{_TH};text-align:right'>Spend</div>", unsafe_allow_html=True)
-    with h2: st.markdown(f"<div style='{_TH};text-align:right'>Orders</div>", unsafe_allow_html=True)
-    with h3: st.markdown(f"<div style='{_TH};text-align:right'>CAC</div>", unsafe_allow_html=True)
-    with h4: st.markdown(f"<div style='{_TH};text-align:right'>Unin%</div>", unsafe_allow_html=True)
-    with h5: st.markdown(f"<div style='{_TH};text-align:right'>DoD CAC · Unin</div>", unsafe_allow_html=True)
-    with h6: st.markdown(f"<div style='{_TH}'></div>", unsafe_allow_html=True)
+    # ── search + table header ──
+    srch_col, _ = st.columns([3, 6])
+    with srch_col:
+        camp_search = st.text_input("", placeholder="🔍  Search campaigns…",
+                                    key=f"camp_search_{app}_{mode}",
+                                    label_visibility="collapsed")
+    filtered_camps = [c for c in all_camps
+                      if camp_search.lower() in c.lower()] if camp_search else all_camps
 
-    for ci, camp_name in enumerate(all_camps):
+    # precompute sparkline data per campaign (last 7d CAC)
+    def _sparkline_svg(camp_df, w=60, h=22):
+        if camp_df is None or camp_df.empty or "date_tz" not in camp_df.columns:
+            return ""
+        daily = (camp_df.groupby("date_tz")
+                 .agg(s=("total_cost","sum"), o=("D0_paid_users","sum"))
+                 .reset_index().sort_values("date_tz").tail(7))
+        daily["cac"] = daily["s"] / daily["o"].clip(lower=1)
+        vals = daily["cac"].tolist()
+        if len(vals) < 2: return ""
+        mn, mx = min(vals), max(vals)
+        rng = mx - mn if mx != mn else 1
+        xs = [round(i * (w-4) / (len(vals)-1) + 2, 1) for i in range(len(vals))]
+        ys = [round(h - 2 - (v - mn) / rng * (h-4), 1) for v in vals]
+        pts = " ".join(f"{x},{y}" for x, y in zip(xs, ys))
+        last_col = "#E24B4A" if vals[-1] > vals[0] else "#1D9E75"
+        return (f"<svg width='{w}' height='{h}' style='vertical-align:middle'>"
+                f"<polyline points='{pts}' fill='none' stroke='{last_col}' stroke-width='1.5' stroke-linejoin='round'/>"
+                f"<circle cx='{xs[-1]}' cy='{ys[-1]}' r='2' fill='{last_col}'/>"
+                f"</svg>")
+
+    _TH = "font-size:0.58rem;text-transform:uppercase;letter-spacing:0.08em;color:#3a3a3a;padding:6px 0;border-bottom:1px solid #1a1a1a;"
+    h_rk, h0, h1, h2, h3, h4, h5, h6, h7 = st.columns([0.4, 4.5, 1.6, 1.0, 1.2, 1.1, 1.6, 1.0, 0.55])
+    with h_rk: st.markdown(f"<div style='{_TH};text-align:center'>#</div>", unsafe_allow_html=True)
+    with h0:   st.markdown(f"<div style='{_TH}'>Campaign</div>", unsafe_allow_html=True)
+    with h1:   st.markdown(f"<div style='{_TH};text-align:right'>Spend</div>", unsafe_allow_html=True)
+    with h2:   st.markdown(f"<div style='{_TH};text-align:right'>Orders</div>", unsafe_allow_html=True)
+    with h3:   st.markdown(f"<div style='{_TH};text-align:right'>CAC</div>", unsafe_allow_html=True)
+    with h4:   st.markdown(f"<div style='{_TH};text-align:right'>Unin%</div>", unsafe_allow_html=True)
+    with h5:   st.markdown(f"<div style='{_TH};text-align:right'>DoD CAC · Unin</div>", unsafe_allow_html=True)
+    with h6:   st.markdown(f"<div style='{_TH};text-align:center'>Trend</div>", unsafe_allow_html=True)
+    with h7:   st.markdown(f"<div style='{_TH}'></div>", unsafe_allow_html=True)
+
+    for ci, camp_name in enumerate(filtered_camps):
         is_open  = sel_camp == camp_name
         row_bg   = f"color-mix(in srgb, {color} 6%, transparent)" if is_open else "transparent"
         _TD      = f"font-size:0.78rem;color:#bbb;padding:8px 0;border-bottom:1px solid #111;background:{row_bg};"
@@ -1408,38 +1439,41 @@ def morning_pulse_view(df: pd.DataFrame, app: str, color: str, mode: str = "unin
                       f"border-radius:4px;padding:1px 5px;color:#444;flex-shrink:0'>{conc_n}cr·90%</span>"
                       ) if conc_n is not None else ""
 
-        camp_display = (camp_name[:38] + "…") if len(camp_name) > 39 else camp_name
+        camp_display = (camp_name[:36] + "…") if len(camp_name) > 37 else camp_name
+        camp_df_spark = df_sel[df_sel["campaign"] == camp_name] if "campaign" in df_sel.columns else None
+        spark_svg = _sparkline_svg(camp_df_spark)
 
-        r0, r1, r2, r3, r4, r5, r6 = st.columns([5, 1.6, 1.1, 1.2, 1.2, 1.6, 0.55])
+        r_rk, r0, r1, r2, r3, r4, r5, r6, r7 = st.columns([0.4, 4.5, 1.6, 1.0, 1.2, 1.1, 1.6, 1.0, 0.55])
+        with r_rk:
+            st.markdown(f"<div style='{_TD};text-align:center;color:#333;font-size:0.7rem'>{ci+1}</div>", unsafe_allow_html=True)
         with r0:
-            # dot + badges rendered before button; button = click-to-expand
-            prefix_html = (
-                f"<div style='display:flex;align-items:center;gap:6px;pointer-events:none;"
-                f"position:absolute;left:6px;top:50%;transform:translateY(-50%);z-index:0'>"
-                f"<span class='src-dot' style='background:{dot_col}'></span>"
-                f"{src_badge}{conc_badge}"
-                f"</div>")
-            st.markdown(
-                f"<div style='position:relative;border-bottom:1px solid #111;background:{row_bg}'>",
-                unsafe_allow_html=True)
+            st.markdown(f"<div style='{_TD};background:{row_bg}'>", unsafe_allow_html=True)
             st.markdown("<div class='camp-name-btn'>", unsafe_allow_html=True)
             if st.button(camp_display, key=f"dd_btn_camp_{app}_{mode}_{ci}",
                          use_container_width=True, help=camp_name):
                 st.session_state[camp_key]  = None if is_open else camp_name
                 st.session_state[adset_key] = None
                 st.rerun()
-            st.markdown("</div></div>", unsafe_allow_html=True)
+            st.markdown("</div>", unsafe_allow_html=True)
+            # source dot + badge below name
+            st.markdown(
+                f"<div style='display:flex;gap:5px;align-items:center;padding:0 4px 4px'>"
+                f"<span class='src-dot' style='background:{dot_col}'></span>"
+                f"{src_badge}{conc_badge}"
+                f"</div></div>", unsafe_allow_html=True)
         with r1:
             st.markdown(f"<div style='{_TD};text-align:right'>{spend_str}</div>", unsafe_allow_html=True)
         with r2:
             st.markdown(f"<div style='{_TD};text-align:right'>{orders_str}</div>", unsafe_allow_html=True)
         with r3:
-            st.markdown(f"<div style='{_TD};text-align:right;color:{cac_col}'>{cac_str}</div>", unsafe_allow_html=True)
+            st.markdown(f"<div style='{_TD};text-align:right;color:{cac_col};font-weight:{'600' if cac_col=='#E24B4A' else '400'}'>{cac_str}</div>", unsafe_allow_html=True)
         with r4:
             st.markdown(f"<div style='{_TD};text-align:right;color:{unin_col}'>{unin_str}</div>", unsafe_allow_html=True)
         with r5:
             st.markdown(f"<div style='{_TD};text-align:right'>{dod_html}</div>", unsafe_allow_html=True)
         with r6:
+            st.markdown(f"<div style='{_TD};text-align:center'>{spark_svg}</div>", unsafe_allow_html=True)
+        with r7:
             st.markdown("<div class='chart-pop-btn'>", unsafe_allow_html=True)
             if st.button("📈", key=f"chart_camp_{app}_{mode}_{ci}", use_container_width=True):
                 camp_df = df_sel[df_sel["campaign"] == camp_name] if "campaign" in df_sel.columns else pd.DataFrame()
@@ -1891,27 +1925,25 @@ def cac_scatter(df: pd.DataFrame, app_color: str, app: str = ""):
 #  Category Mix view
 # ════════════════════════════════════════════════════════════════════════════
 
-def category_mix_view():
-    """Cross-app creative category breakdown: Category → Campaign, with YD + DBY metrics."""
+def category_mix_view(app: str = "Seekho"):
+    """Creative category breakdown for a single app: Category → Campaign, with YD + DBY metrics."""
 
-    # ── date selector (same logic as morning pulse) ──
-    # load all apps data to find common date range
+    # ── load data for selected app only ──
     all_dfs = {}
     all_cr  = {}
-    for a in APPS:
-        d = safe_fetch(a)
-        if not d.empty:
-            all_dfs[a] = d
-        if a in CREATIVE_QUERY_IDS:
-            try:
-                cr = add_derived_metrics(fetch_creative_data(a))
-                if not cr.empty:
-                    all_cr[a] = cr
-            except Exception:
-                pass
+    d = safe_fetch(app)
+    if not d.empty:
+        all_dfs[app] = d
+    if app in CREATIVE_QUERY_IDS:
+        try:
+            cr = add_derived_metrics(fetch_creative_data(app))
+            if not cr.empty:
+                all_cr[app] = cr
+        except Exception:
+            pass
 
     if not all_cr:
-        st.warning("No creative data available for any app.")
+        st.warning(f"No creative data available for {app}.")
         return
 
     # find selectable dates using creative data dates (not main app data)
@@ -2186,7 +2218,7 @@ def main():
     )
 
     if section == "📊 Category Mix":
-        category_mix_view()
+        category_mix_view(app=app)
         return
 
     df = safe_fetch(app)
