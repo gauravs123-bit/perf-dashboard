@@ -1914,10 +1914,15 @@ def category_mix_view():
         st.warning("No creative data available for any app.")
         return
 
-    # find selectable dates (last 7, must have prior day)
-    all_dates_combined = sorted(set().union(*[set(d["date_tz"].unique()) for d in all_dfs.values()]))
-    avail_dates = all_dates_combined[-7:]
-    selectable  = [d for d in avail_dates if all_dates_combined.index(d) > 0]
+    # find selectable dates using creative data dates (not main app data)
+    cr_dates_combined = sorted(set().union(*[set(cr["date_tz"].unique()) for cr in all_cr.values()]))
+    if len(cr_dates_combined) < 2:
+        st.warning("Need at least 2 days of creative data.")
+        return
+    avail_dates = cr_dates_combined[-8:]
+    selectable  = [d for d in avail_dates if cr_dates_combined.index(d) > 0]
+    # also need a full list for prior-day lookup
+    all_dates_combined = cr_dates_combined
     if not selectable:
         st.warning("Need at least 2 days of data.")
         return
