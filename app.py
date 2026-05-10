@@ -1236,6 +1236,16 @@ def morning_pulse_view(df: pd.DataFrame, app: str, color: str, mode: str = "unin
     sel_camp  = st.session_state[camp_key]
     sel_adset = st.session_state[adset_key]
 
+    # Kitagawa contribution maps — campaign level
+    camp_cac_map  = {r["group"]: r for _, r in kit_cac.iterrows()}  if not kit_cac.empty  else {}
+    camp_unin_map = {r["group"]: r for _, r in kit_unin.iterrows()} if not kit_unin.empty else {}
+
+    # Kitagawa contribution maps — ad set level
+    kit_adset_cac  = kitagawa_cac(df_sel,       level="ad_set")
+    kit_adset_unin = kitagawa_uninstall(df_sel, level="ad_set")
+    adset_cac_map  = {r["group"]: r for _, r in kit_adset_cac.iterrows()}  if not kit_adset_cac.empty  else {}
+    adset_unin_map = {r["group"]: r for _, r in kit_adset_unin.iterrows()} if not kit_adset_unin.empty else {}
+
     adset_contrib = diagnose_contribution(df_sel, "ad_set", campaign_filter=sel_camp) if sel_camp else None
 
     cr_raw = None; cr_sel = None; kit_cr_cac_map = {}; kit_cr_unin_map = {}
@@ -1273,38 +1283,23 @@ def morning_pulse_view(df: pd.DataFrame, app: str, color: str, mode: str = "unin
         if v >= 1_000:    return f"₹{v/1_000:.0f}k"
         return f"₹{v:.0f}"
 
-    def _cac_dod_pct(name, group_col, data_df):
-        try:
-            if data_df is None or data_df.empty or group_col not in data_df.columns: return None
-            cdf = data_df[data_df[group_col] == name]
-            if cdf.empty or "date_tz" not in cdf.columns: return None
-            dates = sorted(d for d in cdf["date_tz"].unique() if d <= sel_date)
-            if len(dates) < 2: return None
-            d0, d1 = dates[-1], dates[-2]
-            def _c(d):
-                dd = cdf[cdf["date_tz"] == d]
-                s = dd["total_cost"].sum(); o = dd["D0_paid_users"].sum()
-                return s / o if o > 0 else None
-            c0, c1 = _c(d0), _c(d1)
-            if c0 is None or c1 is None or c1 == 0: return None
-            return (c0 - c1) / c1 * 100
-        except Exception: return None
-
-    def _dod_pill(pct):
-        if pct is None: return "<span style='color:#2a2a2a;font-size:0.72rem'>—</span>"
-        is_bad = pct > 0
-        col = "#E24B4A" if is_bad else "#1D9E75"
-        bg  = "rgba(226,75,74,0.14)" if is_bad else "rgba(29,158,117,0.14)"
-        arr = "↑" if pct > 0 else "↓"
-        return (f"<span style='background:{bg};color:{col};font-size:0.72rem;font-weight:700;"
-                f"padding:3px 9px;border-radius:6px;white-space:nowrap'>{arr} {abs(pct):.1f}%</span>")
-
     def _src_dot_label(src):
         s = (src or "").lower()
         if "facebook" in s or "meta" in s: return "#378ADD", "Facebook"
         if "google" in s:                   return "#34A853", "Google"
         if "snap" in s:                     return "#F5A623", "Snapchat"
         return "#555555", "Other"
+
+    def _contrib_pill(val, fmt_fn):
+        """Colored pill: positive = red (bad — contributed to rise), negative = green."""
+        if val is None or val == 0:
+            return "<span style='color:#2a2a2a;font-size:0.72rem'>—</span>"
+        is_bad = val > 0
+        col = "#E24B4A" if is_bad else "#1D9E75"
+        bg  = "rgba(226,75,74,0.14)" if is_bad else "rgba(29,158,117,0.14)"
+        arr = "↑" if val > 0 else "↓"
+        return (f"<span style='background:{bg};color:{col};font-size:0.72rem;font-weight:700;"
+                f"padding:3px 9px;border-radius:6px;white-space:nowrap'>{arr} {fmt_fn(abs(val))}</span>")
 
     _TH_s = ("font-size:0.62rem;text-transform:uppercase;letter-spacing:0.1em;color:#363636;"
              "padding:9px 12px;font-weight:600;border-bottom:1px solid #191919;background:#0a0a0a;")
@@ -1339,7 +1334,7 @@ def morning_pulse_view(df: pd.DataFrame, app: str, color: str, mode: str = "unin
                 st.rerun()
 
     # ══════════════════════════════════════════════════════════
-    #  LEVEL 1 — CAMPAIGNS
+    #  LEVEL 1 — CAMPAIGNS  (clickable rows → drills to ad sets)
     # ══════════════════════════════════════════════════════════
     if not sel_camp:
         srch_c, _ = st.columns([3, 6])
@@ -1360,62 +1355,68 @@ def morning_pulse_view(df: pd.DataFrame, app: str, color: str, mode: str = "unin
         with hdr_r:
             st.markdown(
                 f"<div style='font-size:0.72rem;color:#3a3a3a;text-align:right;margin-top:16px'>"
-                f"Sorted by spend · {len(filtered_camps)} active</div>",
+                f"Sorted by spend · {len(filtered_camps)} active · click row to drill in</div>",
                 unsafe_allow_html=True)
 
-        inner = ""
-        for ci, camp_name in enumerate(filtered_camps):
-            cm        = camps_metrics.get(camp_name)
-            spend_val = cm.get('spend_yd')     if cm is not None else None
-            ord_val   = cm.get('orders_yd')    if cm is not None else None
-            cac_val   = cm.get('cac_yd')       if cm is not None else None
-            unin_val  = cm.get('unin_rate_yd') if cm is not None else None
-            spend_str  = _fmt_spend(spend_val)
-            orders_str = f"{int(ord_val):,}"  if ord_val  is not None and pd.notna(ord_val)  else "—"
-            cac_str    = f"₹{cac_val:,.0f}"   if cac_val  is not None and pd.notna(cac_val)  else "—"
-            unin_str   = f"{unin_val:.1f}%"   if unin_val is not None and pd.notna(unin_val) else "—"
-            cac_col    = "#E24B4A" if (cac_val  is not None and pd.notna(cac_val)  and cac_val  > 500) else "#c0c0c0"
-            unin_col   = "#E24B4A" if (unin_val is not None and pd.notna(unin_val) and unin_val > 25)  else "#c0c0c0"
-            src = camp_source_map.get(camp_name, "")
-            dot_col, src_label = _src_dot_label(src)
-            dod_pill   = _dod_pill(_cac_dod_pct(camp_name, "campaign", df_sel))
-            disp_name  = (camp_name[:54] + "…") if len(camp_name) > 55 else camp_name
-            row_bg     = "#0d0d0d" if ci % 2 == 0 else "#090909"
-            inner += (
-                f"<tr style='background:{row_bg}'>"
-                f"<td style='{_TD_s}'>"
-                f"<span style='display:inline-block;width:7px;height:7px;border-radius:50%;"
-                f"background:{dot_col};margin-right:8px;vertical-align:middle'></span>"
-                f"<span style='color:#e0e0e0;font-weight:500'>{disp_name}</span>"
-                f"<span style='color:#363636;font-size:0.7rem;margin-left:7px'>{src_label}</span>"
-                f"</td>"
-                f"<td style='{_TD_s};text-align:right;font-weight:600;color:#e0e0e0'>{spend_str}</td>"
-                f"<td style='{_TD_s};text-align:right'>{orders_str}</td>"
-                f"<td style='{_TD_s};text-align:right;color:{cac_col}'>{cac_str}</td>"
-                f"<td style='{_TD_s};text-align:right;color:{unin_col}'>{unin_str}</td>"
-                f"<td style='{_TD_s};text-align:right'>{dod_pill}</td>"
-                f"</tr>"
-            )
-        st.markdown(_tbl_wrap(["Campaign", "Spend", "Orders", "CAC", "Uninst", "DoD CAC"], inner),
-                    unsafe_allow_html=True)
+        # Build dataframe for clickable table
+        rows = []
+        for camp_name in filtered_camps:
+            cm       = camps_metrics.get(camp_name)
+            src      = camp_source_map.get(camp_name, "")
+            _, src_l = _src_dot_label(src)
+            cac_cv   = camp_cac_map.get(camp_name,  {}).get("contribution")
+            unin_cv  = camp_unin_map.get(camp_name, {}).get("contribution")
+            rows.append({
+                "Campaign":      camp_name,
+                "Source":        src_l,
+                "Spend":         cm.get("spend_yd")     if cm is not None else None,
+                "CAC ₹":         cm.get("cac_yd")       if cm is not None else None,
+                "Uninst%":       cm.get("unin_rate_yd") if cm is not None else None,
+                "CAC contrib ₹": cac_cv,
+                "Unin contrib pp": unin_cv,
+            })
+        df_camp = pd.DataFrame(rows)
 
-        if filtered_camps:
-            st.markdown("<div style='height:10px'></div>", unsafe_allow_html=True)
-            dc1, dc2, _ = st.columns([1.2, 3.5, 4.3])
-            with dc1:
-                st.markdown("<div style='font-size:0.75rem;color:#444;padding-top:7px'>Drill into →</div>",
-                            unsafe_allow_html=True)
-            with dc2:
-                drill_sel = st.selectbox("", ["— pick campaign —"] + filtered_camps,
-                                         key=f"drill_sel_{app}_{mode}",
-                                         label_visibility="collapsed")
-                if drill_sel != "— pick campaign —":
-                    st.session_state[camp_key]  = drill_sel
-                    st.session_state[adset_key] = None
-                    st.rerun()
+        def _style_camp(df):
+            s = pd.DataFrame("", index=df.index, columns=df.columns)
+            if "CAC ₹" in df.columns:
+                s["CAC ₹"] = df["CAC ₹"].apply(
+                    lambda v: "color: #E24B4A" if pd.notna(v) and v > 500 else "color: #c0c0c0")
+            if "Uninst%" in df.columns:
+                s["Uninst%"] = df["Uninst%"].apply(
+                    lambda v: "color: #E24B4A" if pd.notna(v) and v > 25 else "color: #c0c0c0")
+            for col in ["CAC contrib ₹", "Unin contrib pp"]:
+                if col in df.columns:
+                    s[col] = df[col].apply(
+                        lambda v: "background-color:rgba(226,75,74,0.14);color:#E24B4A"
+                        if pd.notna(v) and v > 0
+                        else ("background-color:rgba(29,158,117,0.14);color:#1D9E75"
+                              if pd.notna(v) and v < 0 else "color:#2a2a2a"))
+            return s
+
+        ev1 = st.dataframe(
+            df_camp.style.apply(_style_camp, axis=None),
+            use_container_width=True, hide_index=True,
+            on_select="rerun", selection_mode="single-row",
+            key=f"dd_tbl1_{app}_{mode}",
+            column_config={
+                "Spend":           st.column_config.TextColumn("Spend"),
+                "CAC ₹":           st.column_config.NumberColumn("CAC ₹",            format="₹%.0f"),
+                "Uninst%":         st.column_config.NumberColumn("Uninst%",           format="%.1f%%"),
+                "CAC contrib ₹":   st.column_config.NumberColumn("CAC contrib ₹",    format="₹%+.0f"),
+                "Unin contrib pp": st.column_config.NumberColumn("Unin contrib pp",   format="%+.2f pp"),
+            },
+        )
+        # Format spend as ₹Xk before display — override with TextColumn
+        # Row click → drill to ad sets
+        if ev1.selection.rows:
+            picked = filtered_camps[ev1.selection.rows[0]]
+            st.session_state[camp_key]  = picked
+            st.session_state[adset_key] = None
+            st.rerun()
 
     # ══════════════════════════════════════════════════════════
-    #  LEVEL 2 — AD SETS
+    #  LEVEL 2 — AD SETS  (clickable rows → drills to creatives)
     # ══════════════════════════════════════════════════════════
     elif sel_camp and not sel_adset:
         n_adsets = len(adset_contrib) if adset_contrib is not None else 0
@@ -1429,57 +1430,70 @@ def morning_pulse_view(df: pd.DataFrame, app: str, color: str, mode: str = "unin
         with hdr_r:
             st.markdown(
                 f"<div style='font-size:0.72rem;color:#3a3a3a;text-align:right;margin-top:16px'>"
-                f"Sorted by spend · {n_adsets} active</div>",
+                f"Sorted by spend · {n_adsets} active"
+                f"{'  · click row to drill in' if app in CREATIVE_QUERY_IDS else ''}</div>",
                 unsafe_allow_html=True)
 
         if adset_contrib is None or adset_contrib.empty:
             st.markdown("<div style='color:#444;font-size:0.82rem;padding:16px 0'>No ad set data.</div>",
                         unsafe_allow_html=True)
         else:
-            inner = ""
-            for ai, (_, arow) in enumerate(adset_contrib.iterrows()):
-                aname = arow["ad_set"]
-                sig   = arow["signal"]
-                b_col = "#E24B4A" if sig == "🔴 High Risk" else ("#1D9E75" if sig == "🟢 Efficient" else "#555")
-                _a_sp = f"{arow['spend_pct']:.1f}%"  if pd.notna(arow.get('spend_pct'))  else "—"
-                _a_or = f"{arow['orders_pct']:.1f}%" if pd.notna(arow.get('orders_pct')) else "—"
-                _a_un = f"{arow['unin_pct']:.1f}%"   if pd.notna(arow.get('unin_pct'))   else "—"
-                _un_c = "#E24B4A" if (pd.notna(arow.get('unin_pct')) and pd.notna(arow.get('orders_pct'))
-                                      and arow['unin_pct'] > arow['orders_pct'] + 5) else "#c0c0c0"
-                sig_e     = sig.split()[0]
-                dod_pill  = _dod_pill(_cac_dod_pct(aname, "ad_set", df_sel))
-                disp_name = (aname[:54] + "…") if len(aname) > 55 else aname
-                row_bg    = "#0d0d0d" if ai % 2 == 0 else "#090909"
-                inner += (
-                    f"<tr style='background:{row_bg}'>"
-                    f"<td style='{_TD_s};border-left:2px solid {b_col}'>"
-                    f"<span style='color:#e0e0e0;font-weight:500'>{disp_name}</span>"
-                    f"<span style='font-size:0.68rem;padding:1px 5px;border-radius:4px;"
-                    f"background:{b_col}22;color:{b_col};margin-left:7px'>{sig_e}</span>"
-                    f"</td>"
-                    f"<td style='{_TD_s};text-align:right'>{_a_sp}</td>"
-                    f"<td style='{_TD_s};text-align:right'>{_a_or}</td>"
-                    f"<td style='{_TD_s};text-align:right;color:{_un_c}'>{_a_un}</td>"
-                    f"<td style='{_TD_s};text-align:right'>{dod_pill}</td>"
-                    f"</tr>"
-                )
-            st.markdown(_tbl_wrap(["Ad Set", "Spend%", "Orders%", "Uninst%", "DoD CAC"], inner),
-                        unsafe_allow_html=True)
+            rows = []
+            adset_list = []
+            for _, arow in adset_contrib.iterrows():
+                aname    = arow["ad_set"]
+                sig      = arow["signal"]
+                cac_abs  = arow["spend"] / arow["orders"] if arow.get("orders", 0) > 0 else None
+                unin_abs = arow["unin"]  / arow["orders"] * 100 if arow.get("orders", 0) > 0 else None
+                cac_cv   = adset_cac_map.get(aname,  {}).get("contribution")
+                unin_cv  = adset_unin_map.get(aname, {}).get("contribution")
+                adset_list.append(aname)
+                rows.append({
+                    "Ad Set":          aname,
+                    "Signal":          sig.split()[0],
+                    "Spend%":          arow.get("spend_pct"),
+                    "CAC ₹":           cac_abs,
+                    "Uninst%":         unin_abs,
+                    "CAC contrib ₹":   cac_cv,
+                    "Unin contrib pp": unin_cv,
+                })
+            df_adset = pd.DataFrame(rows)
 
-            if app in CREATIVE_QUERY_IDS:
-                st.markdown("<div style='height:10px'></div>", unsafe_allow_html=True)
-                dc1, dc2, _ = st.columns([1.2, 3.5, 4.3])
-                with dc1:
-                    st.markdown("<div style='font-size:0.75rem;color:#444;padding-top:7px'>Drill into →</div>",
-                                unsafe_allow_html=True)
-                with dc2:
-                    adset_names = adset_contrib["ad_set"].tolist()
-                    drill_sel = st.selectbox("", ["— pick ad set —"] + adset_names,
-                                             key=f"drill_asel_{app}_{mode}",
-                                             label_visibility="collapsed")
-                    if drill_sel != "— pick ad set —":
-                        st.session_state[adset_key] = drill_sel
-                        st.rerun()
+            def _style_adset(df):
+                s = pd.DataFrame("", index=df.index, columns=df.columns)
+                if "CAC ₹" in df.columns:
+                    s["CAC ₹"] = df["CAC ₹"].apply(
+                        lambda v: "color:#E24B4A" if pd.notna(v) and v > 500 else "color:#c0c0c0")
+                if "Uninst%" in df.columns:
+                    s["Uninst%"] = df["Uninst%"].apply(
+                        lambda v: "color:#E24B4A" if pd.notna(v) and v > 25 else "color:#c0c0c0")
+                for col in ["CAC contrib ₹", "Unin contrib pp"]:
+                    if col in df.columns:
+                        s[col] = df[col].apply(
+                            lambda v: "background-color:rgba(226,75,74,0.14);color:#E24B4A"
+                            if pd.notna(v) and v > 0
+                            else ("background-color:rgba(29,158,117,0.14);color:#1D9E75"
+                                  if pd.notna(v) and v < 0 else "color:#2a2a2a"))
+                return s
+
+            ev2 = st.dataframe(
+                df_adset.style.apply(_style_adset, axis=None),
+                use_container_width=True, hide_index=True,
+                on_select="rerun" if app in CREATIVE_QUERY_IDS else "ignore",
+                selection_mode="single-row",
+                key=f"dd_tbl2_{app}_{mode}",
+                column_config={
+                    "Spend%":          st.column_config.NumberColumn("Spend%",           format="%.1f%%"),
+                    "CAC ₹":           st.column_config.NumberColumn("CAC ₹",            format="₹%.0f"),
+                    "Uninst%":         st.column_config.NumberColumn("Uninst%",           format="%.1f%%"),
+                    "CAC contrib ₹":   st.column_config.NumberColumn("CAC contrib ₹",    format="₹%+.0f"),
+                    "Unin contrib pp": st.column_config.NumberColumn("Unin contrib pp",   format="%+.2f pp"),
+                },
+            )
+            if app in CREATIVE_QUERY_IDS and ev2.selection.rows:
+                picked = adset_list[ev2.selection.rows[0]]
+                st.session_state[adset_key] = picked
+                st.rerun()
 
     # ══════════════════════════════════════════════════════════
     #  LEVEL 3 — CREATIVES
@@ -1518,23 +1532,27 @@ def morning_pulse_view(df: pd.DataFrame, app: str, color: str, mode: str = "unin
                 unin_str = f"{cr_unin_rate:.1f}%"  if cr_unin_rate is not None else "—"
                 cac_col  = "#E24B4A" if (cr_cac       is not None and cr_cac       > 500) else "#c0c0c0"
                 unin_col = "#E24B4A" if (cr_unin_rate is not None and cr_unin_rate > 30)  else "#c0c0c0"
-                dod_pill   = _dod_pill(_cac_dod_pct(cr_name, "ad_creative", cr_sel))
-                disp_name  = (cr_name[:60] + "…") if len(cr_name) > 61 else cr_name
-                row_bg     = "#0d0d0d" if ri % 2 == 0 else "#090909"
+                cac_cv   = kit_cr_cac_map.get(cr_name,  {}).get("contribution")
+                unin_cv  = kit_cr_unin_map.get(cr_name, {}).get("contribution")
+                cac_pill  = _contrib_pill(cac_cv,  lambda v: f"₹{v:.0f}")
+                unin_pill = _contrib_pill(unin_cv, lambda v: f"{v:.2f}pp")
+                disp_name = (cr_name[:58] + "…") if len(cr_name) > 59 else cr_name
+                row_bg    = "#0d0d0d" if ri % 2 == 0 else "#090909"
                 inner += (
                     f"<tr style='background:{row_bg}'>"
                     f"<td style='{_TD_s};border-left:2px solid {cr_col}'>"
                     f"<span style='color:#e0e0e0;font-weight:500'>{disp_name}</span>"
                     f"</td>"
                     f"<td style='{_TD_s};text-align:right'>{crow['spend_pct']:.1f}%</td>"
-                    f"<td style='{_TD_s};text-align:right'>{crow['orders_pct']:.1f}%</td>"
                     f"<td style='{_TD_s};text-align:right;color:{cac_col}'>{cac_str}</td>"
                     f"<td style='{_TD_s};text-align:right;color:{unin_col}'>{unin_str}</td>"
-                    f"<td style='{_TD_s};text-align:right'>{dod_pill}</td>"
+                    f"<td style='{_TD_s};text-align:right'>{cac_pill}</td>"
+                    f"<td style='{_TD_s};text-align:right'>{unin_pill}</td>"
                     f"</tr>"
                 )
-            st.markdown(_tbl_wrap(["Creative", "Spend%", "Orders%", "CAC", "Uninst%", "DoD CAC"], inner),
-                        unsafe_allow_html=True)
+            st.markdown(_tbl_wrap(
+                ["Creative", "Spend%", "CAC ₹", "Uninst%", "CAC contrib ₹", "Unin contrib pp"],
+                inner), unsafe_allow_html=True)
 
 
 
