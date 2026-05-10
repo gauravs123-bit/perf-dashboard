@@ -1347,17 +1347,47 @@ def morning_pulse_view(df: pd.DataFrame, app: str, color: str, mode: str = "unin
         for _, crow in camps.iterrows():
             camps_metrics[crow["campaign"]] = crow
 
-    # ── search + table header ──
-    srch_col, _ = st.columns([3, 6])
-    with srch_col:
-        camp_search = st.text_input("", placeholder="🔍  Search campaigns…",
-                                    key=f"camp_search_{app}_{mode}",
-                                    label_visibility="collapsed")
-    filtered_camps = [c for c in all_camps
-                      if camp_search.lower() in c.lower()] if camp_search else all_camps
+    # ── Breadcrumb ──
+    if sel_camp:
+        bc_parts = [f"<span style='color:#555;cursor:pointer' id='bc_camp'>Campaigns</span>",
+                    f"<span style='color:#333'> › </span>",
+                    f"<span style='color:#999'>{sel_camp[:40]}</span>"]
+        if sel_adset:
+            bc_parts += [f"<span style='color:#333'> › </span>",
+                         f"<span style='color:#999'>{sel_adset[:40]}</span>"]
+        st.markdown(
+            f"<div style='font-size:0.72rem;margin-bottom:8px;padding:4px 0'>{''.join(bc_parts)}</div>",
+            unsafe_allow_html=True)
+        bc1, bc2 = st.columns([1, 8])
+        with bc1:
+            if st.button("← Back", key=f"bc_back_{app}_{mode}", use_container_width=True):
+                if sel_adset:
+                    st.session_state[adset_key] = None
+                else:
+                    st.session_state[camp_key]  = None
+                    st.session_state[adset_key] = None
+                st.rerun()
 
-    # precompute sparkline data per campaign (last 7d CAC)
-    def _sparkline_svg(camp_df, w=60, h=22):
+    # ── shared helpers ──
+    _TH  = ("font-size:0.6rem;text-transform:uppercase;letter-spacing:0.09em;"
+            "color:#3a3a3a;padding:9px 8px;background:#0d0d0d;")
+    _TD  = "font-size:0.8rem;color:#bbb;padding:9px 8px;border-bottom:1px solid #0f0f0f;"
+
+    def _dod_stack(cac_row, unin_row):
+        parts = []
+        if cac_row is not None and cac_row["contribution"] != 0:
+            cv = cac_row["contribution"]
+            c  = "#E24B4A" if cv > 0 else "#1D9E75"
+            parts.append(f"<div style='font-size:0.72rem;font-weight:700;color:{c};line-height:1.3'>"
+                         f"{'↑' if cv>0 else '↓'}₹{abs(cv):.0f}</div>")
+        if unin_row is not None and unin_row["contribution"] != 0:
+            uv = unin_row["contribution"]
+            uc = "#E24B4A" if uv > 0 else "#1D9E75"
+            parts.append(f"<div style='font-size:0.68rem;color:{uc};line-height:1.3'>"
+                         f"{'↑' if uv>0 else '↓'}{abs(uv):.2f}pp</div>")
+        return "".join(parts) if parts else "<div style='color:#2a2a2a;font-size:0.72rem'>—</div>"
+
+    def _sparkline_svg(camp_df, w=60, h=24):
         if camp_df is None or camp_df.empty or "date_tz" not in camp_df.columns:
             return ""
         daily = (camp_df.groupby("date_tz")
@@ -1368,231 +1398,252 @@ def morning_pulse_view(df: pd.DataFrame, app: str, color: str, mode: str = "unin
         if len(vals) < 2: return ""
         mn, mx = min(vals), max(vals)
         rng = mx - mn if mx != mn else 1
-        xs = [round(i * (w-4) / (len(vals)-1) + 2, 1) for i in range(len(vals))]
-        ys = [round(h - 2 - (v - mn) / rng * (h-4), 1) for v in vals]
-        pts = " ".join(f"{x},{y}" for x, y in zip(xs, ys))
-        last_col = "#E24B4A" if vals[-1] > vals[0] else "#1D9E75"
-        return (f"<svg width='{w}' height='{h}' style='vertical-align:middle'>"
-                f"<polyline points='{pts}' fill='none' stroke='{last_col}' stroke-width='1.5' stroke-linejoin='round'/>"
-                f"<circle cx='{xs[-1]}' cy='{ys[-1]}' r='2' fill='{last_col}'/>"
+        xs = [round(i*(w-6)/(len(vals)-1)+3, 1) for i in range(len(vals))]
+        ys = [round(h-3-(v-mn)/rng*(h-6), 1) for v in vals]
+        pts = " ".join(f"{x},{y}" for x,y in zip(xs,ys))
+        col = "#E24B4A" if vals[-1] > vals[0] else "#1D9E75"
+        return (f"<svg width='{w}' height='{h}' style='vertical-align:middle;display:block;margin:auto'>"
+                f"<polyline points='{pts}' fill='none' stroke='{col}' stroke-width='1.5' stroke-linejoin='round' stroke-linecap='round'/>"
+                f"<circle cx='{xs[-1]}' cy='{ys[-1]}' r='2.2' fill='{col}'/>"
                 f"</svg>")
 
-    _TH = "font-size:0.58rem;text-transform:uppercase;letter-spacing:0.08em;color:#3a3a3a;padding:6px 0;border-bottom:1px solid #1a1a1a;"
-    h_rk, h0, h1, h2, h3, h4, h5, h6, h7 = st.columns([0.4, 4.5, 1.6, 1.0, 1.2, 1.1, 1.6, 1.0, 0.55])
-    with h_rk: st.markdown(f"<div style='{_TH};text-align:center'>#</div>", unsafe_allow_html=True)
-    with h0:   st.markdown(f"<div style='{_TH}'>Campaign</div>", unsafe_allow_html=True)
-    with h1:   st.markdown(f"<div style='{_TH};text-align:right'>Spend</div>", unsafe_allow_html=True)
-    with h2:   st.markdown(f"<div style='{_TH};text-align:right'>Orders</div>", unsafe_allow_html=True)
-    with h3:   st.markdown(f"<div style='{_TH};text-align:right'>CAC</div>", unsafe_allow_html=True)
-    with h4:   st.markdown(f"<div style='{_TH};text-align:right'>Unin%</div>", unsafe_allow_html=True)
-    with h5:   st.markdown(f"<div style='{_TH};text-align:right'>DoD CAC · Unin</div>", unsafe_allow_html=True)
-    with h6:   st.markdown(f"<div style='{_TH};text-align:center'>Trend</div>", unsafe_allow_html=True)
-    with h7:   st.markdown(f"<div style='{_TH}'></div>", unsafe_allow_html=True)
+    # ══════════════════════════════════════════════════════════
+    #  LEVEL 1 — CAMPAIGNS
+    # ══════════════════════════════════════════════════════════
+    if not sel_camp:
+        # section header
+        srch_c, _, filt_c = st.columns([3, 4, 1.5])
+        with srch_c:
+            camp_search = st.text_input("", placeholder="🔍  Search campaigns…",
+                                        key=f"camp_search_{app}_{mode}",
+                                        label_visibility="collapsed")
+        filtered_camps = [c for c in all_camps if camp_search.lower() in c.lower()] if camp_search else all_camps
 
-    for ci, camp_name in enumerate(filtered_camps):
-        is_open  = sel_camp == camp_name
-        row_bg   = f"color-mix(in srgb, {color} 6%, transparent)" if is_open else "transparent"
-        _TD      = f"font-size:0.78rem;color:#bbb;padding:8px 0;border-bottom:1px solid #111;background:{row_bg};"
+        st.markdown(
+            f"<div style='margin:4px 0 10px'>"
+            f"<span style='font-size:0.95rem;font-weight:600;color:#e0e0e0'>Campaigns</span>"
+            f"<span style='font-size:0.72rem;color:#444;margin-left:10px'>{len(filtered_camps)} active"
+            f"{'  ·  🔍 filtered' if camp_search else '  ·  Click a row to drill into ad sets'}</span>"
+            f"</div>",
+            unsafe_allow_html=True)
 
-        # source dot + badge
-        src_str   = camp_source_map.get(camp_name, "")
-        src_lower = src_str.lower()
-        if "facebook" in src_lower or "meta" in src_lower:
-            dot_col = "#378ADD"
-        elif "google" in src_lower:
-            dot_col = "#34A853"
-        elif "snap" in src_lower:
-            dot_col = "#F5A623"
+        # table header
+        h_rk,h0,h1,h2,h3,h4,h5,h6,h7 = st.columns([0.4,4.5,1.8,1.1,1.3,1.2,1.8,1.1,0.6])
+        with h_rk: st.markdown(f"<div style='{_TH};text-align:center'>#</div>", unsafe_allow_html=True)
+        with h0:   st.markdown(f"<div style='{_TH}'>Campaign</div>", unsafe_allow_html=True)
+        with h1:   st.markdown(f"<div style='{_TH};text-align:right'>Spend</div>", unsafe_allow_html=True)
+        with h2:   st.markdown(f"<div style='{_TH};text-align:right'>Orders</div>", unsafe_allow_html=True)
+        with h3:   st.markdown(f"<div style='{_TH};text-align:right'>CAC</div>", unsafe_allow_html=True)
+        with h4:   st.markdown(f"<div style='{_TH};text-align:right'>Unin%</div>", unsafe_allow_html=True)
+        with h5:   st.markdown(f"<div style='{_TH};text-align:right'>DoD CAC / Unin</div>", unsafe_allow_html=True)
+        with h6:   st.markdown(f"<div style='{_TH};text-align:center'>Trend</div>", unsafe_allow_html=True)
+        with h7:   st.markdown(f"<div style='{_TH}'></div>", unsafe_allow_html=True)
+
+        for ci, camp_name in enumerate(filtered_camps):
+            cm         = camps_metrics.get(camp_name)
+            spend_str  = f"₹{cm['spend_yd']:,.0f}"  if cm is not None and pd.notna(cm.get('spend_yd'))  else "—"
+            orders_str = f"{int(cm['orders_yd']):,}" if cm is not None and pd.notna(cm.get('orders_yd')) else "—"
+            cac_val    = cm.get('cac_yd')            if cm is not None else None
+            unin_val   = cm.get('unin_rate_yd')      if cm is not None else None
+            cac_str    = f"₹{cac_val:,.0f}"          if cac_val  is not None and pd.notna(cac_val)  else "—"
+            unin_str   = f"{unin_val:.1f}%"          if unin_val is not None and pd.notna(unin_val) else "—"
+            cac_col    = "#E24B4A" if cac_val  is not None and pd.notna(cac_val)  and cac_val  > 500 else "#ccc"
+            unin_col   = "#E24B4A" if unin_val is not None and pd.notna(unin_val) and unin_val > 25  else "#ccc"
+
+            src_str   = camp_source_map.get(camp_name, "")
+            src_lower = src_str.lower()
+            dot_col   = "#378ADD" if ("facebook" in src_lower or "meta" in src_lower) else \
+                        "#34A853" if "google" in src_lower else \
+                        "#F5A623" if "snap" in src_lower else "#444"
+
+            dod_html  = _dod_stack(camp_cac_map.get(camp_name), camp_unin_map.get(camp_name))
+            camp_df_s = df_sel[df_sel["campaign"] == camp_name] if "campaign" in df_sel.columns else None
+            spark     = _sparkline_svg(camp_df_s)
+            disp_name = (camp_name[:44] + "…") if len(camp_name) > 45 else camp_name
+            row_bg    = f"rgba({int(color[1:3],16)},{int(color[3:5],16)},{int(color[5:7],16)},0.05)"
+
+            r_rk,r0,r1,r2,r3,r4,r5,r6,r7 = st.columns([0.4,4.5,1.8,1.1,1.3,1.2,1.8,1.1,0.6])
+            with r_rk:
+                st.markdown(f"<div style='{_TD};text-align:center;color:#333'>{ci+1}</div>", unsafe_allow_html=True)
+            with r0:
+                st.markdown(f"<div style='padding:2px 0 0 4px;display:flex;align-items:center;gap:6px;border-bottom:1px solid #0f0f0f'>", unsafe_allow_html=True)
+                st.markdown("<div class='camp-name-btn' style='flex:1;min-width:0'>", unsafe_allow_html=True)
+                if st.button(disp_name, key=f"dd_btn_camp_{app}_{mode}_{ci}",
+                             use_container_width=True, help=camp_name):
+                    st.session_state[camp_key]  = camp_name
+                    st.session_state[adset_key] = None
+                    st.rerun()
+                st.markdown("</div>", unsafe_allow_html=True)
+                st.markdown(f"<span class='src-dot' style='background:{dot_col};flex-shrink:0'></span>"
+                            f"</div>", unsafe_allow_html=True)
+            with r1:
+                st.markdown(f"<div style='{_TD};text-align:right'>{spend_str}</div>", unsafe_allow_html=True)
+            with r2:
+                st.markdown(f"<div style='{_TD};text-align:right'>{orders_str}</div>", unsafe_allow_html=True)
+            with r3:
+                st.markdown(f"<div style='{_TD};text-align:right;color:{cac_col};font-weight:{'600' if cac_col=='#E24B4A' else '400'}'>{cac_str}</div>", unsafe_allow_html=True)
+            with r4:
+                st.markdown(f"<div style='{_TD};text-align:right;color:{unin_col}'>{unin_str}</div>", unsafe_allow_html=True)
+            with r5:
+                st.markdown(f"<div style='{_TD};text-align:right'>{dod_html}</div>", unsafe_allow_html=True)
+            with r6:
+                st.markdown(f"<div style='{_TD};text-align:center'>{spark}</div>", unsafe_allow_html=True)
+            with r7:
+                st.markdown("<div class='chart-pop-btn'>", unsafe_allow_html=True)
+                if st.button("📈", key=f"chart_camp_{app}_{mode}_{ci}", use_container_width=True):
+                    show_trend_dialog(camp_name, camp_df_s if camp_df_s is not None else pd.DataFrame())
+                st.markdown("</div>", unsafe_allow_html=True)
+
+    # ══════════════════════════════════════════════════════════
+    #  LEVEL 2 — AD SETS (shown when a campaign is selected)
+    # ══════════════════════════════════════════════════════════
+    elif sel_camp and not sel_adset:
+        st.markdown(
+            f"<div style='margin:4px 0 10px'>"
+            f"<span style='font-size:0.95rem;font-weight:600;color:#e0e0e0'>Ad Sets</span>"
+            f"<span style='font-size:0.72rem;color:#444;margin-left:10px'>"
+            f"{len(adset_contrib) if adset_contrib is not None else 0} active"
+            f"{'  ·  Click a row to drill into creatives' if app in CREATIVE_QUERY_IDS else ''}</span>"
+            f"</div>",
+            unsafe_allow_html=True)
+
+        if adset_contrib is None or adset_contrib.empty:
+            st.markdown("<div style='color:#444;font-size:0.82rem;padding:12px 0'>No ad set data for this campaign.</div>", unsafe_allow_html=True)
         else:
-            dot_col = "#555"
-        src_badge = (f"<span class='src-badge'>{src_str}</span>") if src_str else ""
+            h_rk,h0,h1,h2,h3,h4,h5,h6,h7 = st.columns([0.4,4.5,1.8,1.1,1.3,1.2,1.8,1.1,0.6])
+            with h_rk: st.markdown(f"<div style='{_TH};text-align:center'>#</div>", unsafe_allow_html=True)
+            with h0:   st.markdown(f"<div style='{_TH}'>Ad Set</div>", unsafe_allow_html=True)
+            with h1:   st.markdown(f"<div style='{_TH};text-align:right'>Spend %</div>", unsafe_allow_html=True)
+            with h2:   st.markdown(f"<div style='{_TH};text-align:right'>Orders %</div>", unsafe_allow_html=True)
+            with h3:   st.markdown(f"<div style='{_TH};text-align:right'>Signal</div>", unsafe_allow_html=True)
+            with h4:   st.markdown(f"<div style='{_TH};text-align:right'>Unin%</div>", unsafe_allow_html=True)
+            with h5:   st.markdown(f"<div style='{_TH};text-align:right'>DoD CAC / Unin</div>", unsafe_allow_html=True)
+            with h6:   st.markdown(f"<div style='{_TH};text-align:center'>Trend</div>", unsafe_allow_html=True)
+            with h7:   st.markdown(f"<div style='{_TH}'></div>", unsafe_allow_html=True)
 
-        # metrics
-        cm       = camps_metrics.get(camp_name)
-        spend_str  = f"₹{cm['spend_yd']:,.0f}"  if cm is not None and pd.notna(cm.get('spend_yd',  None)) else "—"
-        orders_str = f"{int(cm['orders_yd']):,}" if cm is not None and pd.notna(cm.get('orders_yd', None)) else "—"
-        cac_val    = cm.get('cac_yd')            if cm is not None else None
-        unin_val   = cm.get('unin_rate_yd')      if cm is not None else None
-        cac_str    = f"₹{cac_val:,.0f}"          if cac_val  is not None and pd.notna(cac_val)  else "—"
-        unin_str   = f"{unin_val:.1f}%"          if unin_val is not None and pd.notna(unin_val) else "—"
-        cac_col    = "#E24B4A" if cac_val  is not None and pd.notna(cac_val)  and cac_val  > 500 else "#999"
-        unin_col   = "#E24B4A" if unin_val is not None and pd.notna(unin_val) and unin_val > 25  else "#999"
+            for ai, (_, arow) in enumerate(adset_contrib.iterrows()):
+                aname    = arow["ad_set"]
+                sig      = arow["signal"]
+                b_col    = "#E24B4A" if sig=="🔴 High Risk" else ("#1D9E75" if sig=="🟢 Efficient" else "#555")
+                cac_row  = adset_cac_map.get(aname)
+                unin_row = adset_unin_map.get(aname)
+                dod_html = _dod_stack(cac_row, unin_row)
+                _a_spend  = f"{arow['spend_pct']:.1f}%"  if pd.notna(arow.get('spend_pct'))  else "—"
+                _a_orders = f"{arow['orders_pct']:.1f}%" if pd.notna(arow.get('orders_pct')) else "—"
+                _a_unin   = f"{arow['unin_pct']:.1f}%"  if pd.notna(arow.get('unin_pct'))   else "—"
+                _a_unin_col = "#E24B4A" if (pd.notna(arow.get('unin_pct')) and pd.notna(arow.get('orders_pct'))
+                                            and arow['unin_pct'] > arow['orders_pct'] + 5) else "#ccc"
+                adset_df_s = (df_sel[(df_sel["campaign"]==sel_camp)&(df_sel["ad_set"]==aname)]
+                              if "ad_set" in df_sel.columns else None)
+                spark = _sparkline_svg(adset_df_s)
+                disp_name = (aname[:44]+"…") if len(aname)>45 else aname
 
-        # DoD pills — CAC contribution + unin contribution
-        c_cac_row  = camp_cac_map.get(camp_name)
-        c_unin_row = camp_unin_map.get(camp_name)
-        if c_cac_row is not None and c_cac_row["contribution"] != 0:
-            cv = c_cac_row["contribution"]
-            dod_cac = f"<span class='{'dod-pill-bad' if cv>0 else 'dod-pill-good'}'>{'▲' if cv>0 else '▼'}₹{abs(cv):.0f}</span>"
-        else:
-            dod_cac = "<span class='dod-pill-neu'>—</span>"
-        if c_unin_row is not None and c_unin_row["contribution"] != 0:
-            uv = c_unin_row["contribution"]
-            dod_unin = f"<span class='{'dod-pill-bad' if uv>0 else 'dod-pill-good'}'>{'▲' if uv>0 else '▼'}{abs(uv):.2f}pp</span>"
-        else:
-            dod_unin = ""
-        dod_html = f"<div style='display:flex;flex-direction:column;align-items:flex-end;gap:2px'>{dod_cac}{dod_unin}</div>"
-
-        # conc badge (small, appended after name)
-        conc_n = camp_conc.get(camp_name)
-        conc_badge = (f"<span style='font-size:0.58rem;background:#161616;border:1px solid #1e1e1e;"
-                      f"border-radius:4px;padding:1px 5px;color:#444;flex-shrink:0'>{conc_n}cr·90%</span>"
-                      ) if conc_n is not None else ""
-
-        camp_display = (camp_name[:36] + "…") if len(camp_name) > 37 else camp_name
-        camp_df_spark = df_sel[df_sel["campaign"] == camp_name] if "campaign" in df_sel.columns else None
-        spark_svg = _sparkline_svg(camp_df_spark)
-
-        r_rk, r0, r1, r2, r3, r4, r5, r6, r7 = st.columns([0.4, 4.5, 1.6, 1.0, 1.2, 1.1, 1.6, 1.0, 0.55])
-        with r_rk:
-            st.markdown(f"<div style='{_TD};text-align:center;color:#333;font-size:0.7rem'>{ci+1}</div>", unsafe_allow_html=True)
-        with r0:
-            st.markdown(f"<div style='{_TD};background:{row_bg}'>", unsafe_allow_html=True)
-            st.markdown("<div class='camp-name-btn'>", unsafe_allow_html=True)
-            if st.button(camp_display, key=f"dd_btn_camp_{app}_{mode}_{ci}",
-                         use_container_width=True, help=camp_name):
-                st.session_state[camp_key]  = None if is_open else camp_name
-                st.session_state[adset_key] = None
-                st.rerun()
-            st.markdown("</div>", unsafe_allow_html=True)
-            # source dot + badge below name
-            st.markdown(
-                f"<div style='display:flex;gap:5px;align-items:center;padding:0 4px 4px'>"
-                f"<span class='src-dot' style='background:{dot_col}'></span>"
-                f"{src_badge}{conc_badge}"
-                f"</div></div>", unsafe_allow_html=True)
-        with r1:
-            st.markdown(f"<div style='{_TD};text-align:right'>{spend_str}</div>", unsafe_allow_html=True)
-        with r2:
-            st.markdown(f"<div style='{_TD};text-align:right'>{orders_str}</div>", unsafe_allow_html=True)
-        with r3:
-            st.markdown(f"<div style='{_TD};text-align:right;color:{cac_col};font-weight:{'600' if cac_col=='#E24B4A' else '400'}'>{cac_str}</div>", unsafe_allow_html=True)
-        with r4:
-            st.markdown(f"<div style='{_TD};text-align:right;color:{unin_col}'>{unin_str}</div>", unsafe_allow_html=True)
-        with r5:
-            st.markdown(f"<div style='{_TD};text-align:right'>{dod_html}</div>", unsafe_allow_html=True)
-        with r6:
-            st.markdown(f"<div style='{_TD};text-align:center'>{spark_svg}</div>", unsafe_allow_html=True)
-        with r7:
-            st.markdown("<div class='chart-pop-btn'>", unsafe_allow_html=True)
-            if st.button("📈", key=f"chart_camp_{app}_{mode}_{ci}", use_container_width=True):
-                camp_df = df_sel[df_sel["campaign"] == camp_name] if "campaign" in df_sel.columns else pd.DataFrame()
-                show_trend_dialog(camp_name, camp_df)
-            st.markdown("</div>", unsafe_allow_html=True)
-
-        # inline ad sets immediately below the selected campaign
-        if is_open and adset_contrib is not None:
-            with st.container():
-                if adset_contrib.empty:
-                    st.markdown("<div style='color:#444;font-size:0.8rem;padding:8px 0 8px 12px'>No ad set data</div>", unsafe_allow_html=True)
-                for ai, (_, arow) in enumerate(adset_contrib.iterrows()):
-                    aname    = arow["ad_set"]
-                    is_aopen = sel_adset == aname
-                    sig      = arow["signal"]
-                    b_col    = "#E24B4A" if sig == "🔴 High Risk" else ("#1D9E75" if sig == "🟢 Efficient" else "#555")
-
-                    # Kitagawa contribution for this adset
-                    cac_row  = adset_cac_map.get(aname)
-                    unin_row = adset_unin_map.get(aname)
-                    a_conc_n = adset_conc.get(aname)
-
-                    # adset DoD pill
-                    if cac_row is not None and cac_row["contribution"] != 0:
-                        acv = cac_row["contribution"]
-                        adod_cls  = "dod-pill-bad" if acv > 0 else "dod-pill-good"
-                        adod_html = f"<span class='{adod_cls}'>{'▲' if acv > 0 else '▼'}₹{abs(acv):.0f}</span>"
+                r_rk,r0,r1,r2,r3,r4,r5,r6,r7 = st.columns([0.4,4.5,1.8,1.1,1.3,1.2,1.8,1.1,0.6])
+                with r_rk:
+                    st.markdown(f"<div style='{_TD};text-align:center;color:#333'>{ai+1}</div>", unsafe_allow_html=True)
+                with r0:
+                    st.markdown(f"<div style='border-bottom:1px solid #0f0f0f;border-left:2px solid {b_col}'>", unsafe_allow_html=True)
+                    st.markdown("<div class='adset-name-btn'>", unsafe_allow_html=True)
+                    if app in CREATIVE_QUERY_IDS:
+                        if st.button(disp_name, key=f"dd_btn_adset_{app}_{mode}_{ai}",
+                                     use_container_width=True, help=aname):
+                            st.session_state[adset_key] = aname
+                            st.rerun()
                     else:
-                        adod_html = "<span class='dod-pill-neu'>—</span>"
+                        st.markdown(f"<div style='font-size:0.8rem;color:#999;padding:8px 4px'>{disp_name}</div>", unsafe_allow_html=True)
+                    st.markdown("</div></div>", unsafe_allow_html=True)
+                with r1:
+                    st.markdown(f"<div style='{_TD};text-align:right'>{_a_spend}</div>", unsafe_allow_html=True)
+                with r2:
+                    st.markdown(f"<div style='{_TD};text-align:right'>{_a_orders}</div>", unsafe_allow_html=True)
+                with r3:
+                    st.markdown(f"<div style='{_TD};text-align:right'>"
+                                f"<span style='font-size:0.7rem;padding:2px 6px;border-radius:4px;"
+                                f"background:{b_col}22;color:{b_col}'>{sig.split()[0]}</span>"
+                                f"</div>", unsafe_allow_html=True)
+                with r4:
+                    st.markdown(f"<div style='{_TD};text-align:right;color:{_a_unin_col}'>{_a_unin}</div>", unsafe_allow_html=True)
+                with r5:
+                    st.markdown(f"<div style='{_TD};text-align:right'>{dod_html}</div>", unsafe_allow_html=True)
+                with r6:
+                    st.markdown(f"<div style='{_TD};text-align:center'>{spark}</div>", unsafe_allow_html=True)
+                with r7:
+                    st.markdown("<div class='chart-pop-btn'>", unsafe_allow_html=True)
+                    if st.button("📈", key=f"chart_adset_{app}_{mode}_{ai}", use_container_width=True):
+                        show_trend_dialog(aname, adset_df_s if adset_df_s is not None else pd.DataFrame())
+                    st.markdown("</div>", unsafe_allow_html=True)
 
-                    _ATD = (f"font-size:0.75rem;color:#999;padding:7px 0 7px 16px;"
-                            f"border-bottom:1px solid #0e0e0e;border-left:2px solid {b_col};"
-                            f"background:{'#0d0d18' if is_aopen else '#080808'};")
-                    a_conc_badge = (
-                        f"<span style='font-size:0.58rem;background:#161616;border:1px solid #1e1e1e;"
-                        f"border-radius:4px;padding:1px 5px;color:#444;flex-shrink:0'>{a_conc_n}cr·90%</span>"
-                    ) if a_conc_n is not None else ""
-                    if unin_row is not None and unin_row["contribution"] != 0:
-                        _uv = unin_row["contribution"]
-                        _uc = "#E24B4A" if _uv > 0 else "#1D9E75"
-                        _ubg = "226,75,74" if _uv > 0 else "29,158,117"
-                        _uarrow = "▲" if _uv > 0 else "▼"
-                        _uval = f"{abs(_uv):.2f}pp unin"
-                        unin_pill = (f"<span style='font-size:0.68rem;font-weight:700;color:{_uc};"
-                                     f"background:rgba({_ubg},.12);border-radius:8px;padding:1px 6px'>"
-                                     f"{_uarrow}{_uval}</span>")
-                    else:
-                        unin_pill = ""
+    # ══════════════════════════════════════════════════════════
+    #  LEVEL 3 — CREATIVES (shown when both camp + adset selected)
+    # ══════════════════════════════════════════════════════════
+    elif sel_camp and sel_adset and cr_sel is not None:
+        cr_abs = creative_yd_contribution(cr_sel, campaign_filter=sel_camp, adset_filter=sel_adset)
+        st.markdown(
+            f"<div style='margin:4px 0 10px'>"
+            f"<span style='font-size:0.95rem;font-weight:600;color:#e0e0e0'>Creatives</span>"
+            f"<span style='font-size:0.72rem;color:#444;margin-left:10px'>{len(cr_abs)} creatives · {sel_adset[:40]}</span>"
+            f"</div>",
+            unsafe_allow_html=True)
 
-                    _a_spend  = f"{arow['spend_pct']:.1f}%"  if pd.notna(arow.get('spend_pct'))  else "—"
-                    _a_orders = f"{arow['orders_pct']:.1f}%" if pd.notna(arow.get('orders_pct')) else "—"
-                    _a_unin   = f"{arow['unin_pct']:.1f}%"  if pd.notna(arow.get('unin_pct'))   else "—"
-                    _a_unin_col = "#E24B4A" if (pd.notna(arow.get('unin_pct')) and pd.notna(arow.get('orders_pct'))
-                                                and arow['unin_pct'] > arow['orders_pct'] + 5) else "#999"
+        if cr_abs.empty:
+            st.markdown("<div style='color:#444;font-size:0.82rem;padding:12px 0'>No creative data for this ad set.</div>", unsafe_allow_html=True)
+        else:
+            h_rk,h0,h1,h2,h3,h4,h5,h6 = st.columns([0.4,5,1.8,1.1,1.3,1.2,1.8,0.6])
+            with h_rk: st.markdown(f"<div style='{_TH};text-align:center'>#</div>", unsafe_allow_html=True)
+            with h0:   st.markdown(f"<div style='{_TH}'>Creative</div>", unsafe_allow_html=True)
+            with h1:   st.markdown(f"<div style='{_TH};text-align:right'>Spend %</div>", unsafe_allow_html=True)
+            with h2:   st.markdown(f"<div style='{_TH};text-align:right'>Orders %</div>", unsafe_allow_html=True)
+            with h3:   st.markdown(f"<div style='{_TH};text-align:right'>CAC</div>", unsafe_allow_html=True)
+            with h4:   st.markdown(f"<div style='{_TH};text-align:right'>Unin%</div>", unsafe_allow_html=True)
+            with h5:   st.markdown(f"<div style='{_TH};text-align:right'>DoD CAC / Unin</div>", unsafe_allow_html=True)
+            with h6:   st.markdown(f"<div style='{_TH}'></div>", unsafe_allow_html=True)
 
-                    a0, a1, a2, a3, a4, a5, a6 = st.columns([5, 1.6, 1.1, 1.2, 1.2, 1.6, 0.55])
-                    with a0:
-                        aname_disp = (aname[:38] + "…") if len(aname) > 39 else aname
-                        sig_badge = (f"<span style='font-size:0.6rem;padding:1px 5px;border-radius:4px;"
-                                     f"background:{b_col}22;color:{b_col};pointer-events:none'>{sig.split()[0]}</span>")
-                        st.markdown(
-                            f"<div style='position:relative;border-bottom:1px solid #0e0e0e;"
-                            f"border-left:2px solid {b_col};background:{'#0d0d18' if is_aopen else '#080808'}'>"
-                            f"<div style='padding:2px 0 2px 8px'>{sig_badge} {a_conc_badge}</div>",
-                            unsafe_allow_html=True)
-                        st.markdown("<div class='adset-name-btn'>", unsafe_allow_html=True)
-                        if app in CREATIVE_QUERY_IDS:
-                            if st.button(aname_disp, key=f"dd_btn_adset_{app}_{mode}_{ci}_{ai}",
-                                         use_container_width=True, help=aname):
-                                st.session_state[adset_key] = None if is_aopen else aname
-                                st.rerun()
-                        else:
-                            st.markdown(f"<div style='font-size:0.78rem;color:#aaa;padding:4px 4px'>{aname_disp}</div>",
-                                        unsafe_allow_html=True)
-                        st.markdown("</div></div>", unsafe_allow_html=True)
-                    with a1:
-                        st.markdown(f"<div style='{_ATD};text-align:right'>{_a_spend}</div>", unsafe_allow_html=True)
-                    with a2:
-                        st.markdown(f"<div style='{_ATD};text-align:right'>{_a_orders}</div>", unsafe_allow_html=True)
-                    with a3:
-                        st.markdown(f"<div style='{_ATD};text-align:right'>—</div>", unsafe_allow_html=True)
-                    with a4:
-                        st.markdown(f"<div style='{_ATD};text-align:right;color:{_a_unin_col}'>{_a_unin}</div>", unsafe_allow_html=True)
-                    with a5:
-                        st.markdown(f"<div style='{_ATD};text-align:right'>{adod_html} {unin_pill}</div>", unsafe_allow_html=True)
-                    with a6:
-                        st.markdown("<div class='chart-pop-btn'>", unsafe_allow_html=True)
-                        if st.button("📈", key=f"chart_adset_{app}_{mode}_{ci}_{ai}", use_container_width=True):
-                            adset_df = (df_sel[
-                                (df_sel["campaign"] == sel_camp) & (df_sel["ad_set"] == aname)
-                            ] if "ad_set" in df_sel.columns else pd.DataFrame())
-                            show_trend_dialog(aname, adset_df)
-                        st.markdown("</div>", unsafe_allow_html=True)
+            for ri, (_, crow) in enumerate(cr_abs.iterrows()):
+                cr_name = crow["ad_creative"]
+                if crow["orders_pct"] < crow["spend_pct"] and crow["unin_pct"] > crow["spend_pct"]:
+                    cr_sig = "🔴"; cr_col = "#E24B4A"
+                elif crow["orders_pct"] > crow["spend_pct"] and crow["unin_pct"] < crow["spend_pct"]:
+                    cr_sig = "🟢"; cr_col = "#1D9E75"
+                else:
+                    cr_sig = "⚪"; cr_col = "#555"
+                cac_c  = kit_cr_cac_map.get(cr_name, {}).get("contribution")
+                unin_c = kit_cr_unin_map.get(cr_name, {}).get("contribution")
+                cr_cac = crow["spend"]/crow["orders"] if crow["orders"]>0 else None
+                cr_unin_rate = crow["unin"]/crow["orders"]*100 if crow["orders"]>0 else None
+                cac_str  = f"₹{cr_cac:,.0f}"        if cr_cac      is not None else "—"
+                unin_str = f"{cr_unin_rate:.1f}%"    if cr_unin_rate is not None else "—"
+                cac_col  = "#E24B4A" if cr_cac      is not None and cr_cac      > 500 else "#ccc"
+                unin_col = "#E24B4A" if cr_unin_rate is not None and cr_unin_rate > 30  else "#ccc"
+                dod_html = _dod_stack(
+                    type("R", (), {"contribution": cac_c})() if cac_c  is not None else None,
+                    type("R", (), {"contribution": unin_c})() if unin_c is not None else None,
+                )
+                disp_name = (cr_name[:50]+"…") if len(cr_name)>51 else cr_name
 
-                    # inline creatives immediately below the selected ad set
-                    if is_aopen and cr_sel is not None:
-                        cr_abs = creative_yd_contribution(cr_sel, campaign_filter=sel_camp, adset_filter=aname)
-                        st.markdown("<div style='padding-left:16px;border-left:2px solid #1a1a1a;margin-left:6px;margin-bottom:3px'>", unsafe_allow_html=True)
-                        if cr_abs.empty:
-                            st.markdown("<div style='color:#333;font-size:0.78rem;padding:4px'>No creative data</div>", unsafe_allow_html=True)
-                        else:
-                            for _, crow in cr_abs.iterrows():
-                                # compute signal inline
-                                if crow["orders_pct"] < crow["spend_pct"] and crow["unin_pct"] > crow["spend_pct"]:
-                                    sig = "🔴 High Risk"
-                                elif crow["orders_pct"] > crow["spend_pct"] and crow["unin_pct"] < crow["spend_pct"]:
-                                    sig = "🟢 Efficient"
-                                else:
-                                    sig = "⚪ Neutral"
-                                cr_name = crow["ad_creative"]
-                                cac_c  = kit_cr_cac_map.get(cr_name, {}).get("contribution")
-                                unin_c = kit_cr_unin_map.get(cr_name, {}).get("contribution")
-                                st.markdown(_creative_card(
-                                    cr_name,
-                                    crow["spend"], crow["orders"], crow["unin"],
-                                    sig,
-                                    cac_contrib=cac_c,
-                                    unin_contrib=unin_c,
-                                ), unsafe_allow_html=True)
+                r_rk,r0,r1,r2,r3,r4,r5,r6 = st.columns([0.4,5,1.8,1.1,1.3,1.2,1.8,0.6])
+                with r_rk:
+                    st.markdown(f"<div style='{_TD};text-align:center;color:#333'>{ri+1}</div>", unsafe_allow_html=True)
+                with r0:
+                    st.markdown(
+                        f"<div style='border-bottom:1px solid #0f0f0f;border-left:2px solid {cr_col};padding:8px 4px 8px 10px'>"
+                        f"<div style='font-size:0.8rem;color:#ccc;white-space:nowrap;overflow:hidden;text-overflow:ellipsis' title='{cr_name}'>{disp_name}</div>"
+                        f"</div>", unsafe_allow_html=True)
+                with r1:
+                    st.markdown(f"<div style='{_TD};text-align:right'>{crow['spend_pct']:.1f}%</div>", unsafe_allow_html=True)
+                with r2:
+                    st.markdown(f"<div style='{_TD};text-align:right'>{crow['orders_pct']:.1f}%</div>", unsafe_allow_html=True)
+                with r3:
+                    st.markdown(f"<div style='{_TD};text-align:right;color:{cac_col};font-weight:{'600' if cac_col=='#E24B4A' else '400'}'>{cac_str}</div>", unsafe_allow_html=True)
+                with r4:
+                    st.markdown(f"<div style='{_TD};text-align:right;color:{unin_col}'>{unin_str}</div>", unsafe_allow_html=True)
+                with r5:
+                    st.markdown(f"<div style='{_TD};text-align:right'>{dod_html}</div>", unsafe_allow_html=True)
+                with r6:
+                    st.markdown("<div class='chart-pop-btn'>", unsafe_allow_html=True)
+                    cr_df_t = (cr_sel[cr_sel["ad_creative"]==cr_name] if cr_sel is not None else pd.DataFrame())
+                    if st.button("📈", key=f"chart_cr_{app}_{mode}_{ri}", use_container_width=True):
+                        show_trend_dialog(cr_name, cr_df_t)
+                    st.markdown("</div>", unsafe_allow_html=True)
 
 
 
