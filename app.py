@@ -233,42 +233,39 @@ st.markdown("""
   .dod-pill-neu  { display:inline-flex; align-items:center; font-size:0.68rem;
                    padding:2px 8px; border-radius:5px; background:#141414; color:#333; }
 
-  /* ── Drill + Trend buttons: nuke every wrapper margin/padding ── */
-  .row-actions {
-    display:flex; align-items:center; gap:3px;
-    border-bottom:1px solid #0f0f0f; padding:0; height:100%;
+  /* ── Drill + Trend buttons ─────────────────────────────────────────────── */
+  /* In Streamlit 1.50: stHorizontalBlock is a CSS CLASS (not data-testid).  */
+  /* stButton data-testid does NOT exist; stElementContainer wraps elements.  */
+  /* The action column (c6) is the ONLY nested .stHorizontalBlock in the app. */
+
+  /* Nuke spacing on the nested column row */
+  [data-testid="stColumn"] > * > .stHorizontalBlock { gap:2px !important; padding:0 !important; }
+  /* Nuke wrapper padding on element containers inside nested cols */
+  [data-testid="stColumn"] .stHorizontalBlock [data-testid="stElementContainer"],
+  [data-testid="stColumn"] .stHorizontalBlock .element-container {
+    margin:0 !important; padding:0 !important; min-height:0 !important;
   }
-  /* kill every Streamlit block wrapper inside row-actions */
-  .row-actions > div,
-  .row-actions [data-testid="stVerticalBlock"],
-  .row-actions [data-testid="stVerticalBlockBorderWrapper"],
-  .row-actions .element-container,
-  .row-actions .stButton,
-  .row-actions [data-testid="stButton"] {
-    margin:0 !important; padding:0 !important;
-    min-height:0 !important; height:auto !important; flex:1;
-    gap:0 !important;
+  /* The actual button elements */
+  [data-testid="stColumn"] .stHorizontalBlock button {
+    min-height:20px !important; height:20px !important; line-height:20px !important;
+    padding:0 5px !important; font-size:0.6rem !important; font-weight:600 !important;
+    letter-spacing:0.04em !important; text-transform:uppercase !important;
+    border-radius:2px !important; box-shadow:none !important;
+    white-space:nowrap !important; width:100% !important;
   }
-  .row-actions button {
-    box-shadow:none !important; border-radius:2px !important;
-    min-height:0 !important; height:14px !important; line-height:14px !important;
-    padding:0 4px !important; font-size:0.5rem !important; font-weight:700 !important;
-    letter-spacing:0.06em !important; text-transform:uppercase !important;
-    white-space:nowrap !important; width:100% !important; transition:all .1s !important;
+  /* drill ▸ — first sub-column */
+  [data-testid="stColumn"] .stHorizontalBlock [data-testid="stColumn"]:first-child button {
+    background:transparent !important; border:1px solid #252525 !important; color:#404040 !important;
   }
-  .row-actions .drill-btn button {
-    background:transparent !important; border:1px solid #1c1c1c !important; color:#2a2a2a !important;
+  [data-testid="stColumn"] .stHorizontalBlock [data-testid="stColumn"]:first-child button:hover {
+    border-color:#444 !important; color:#888 !important; background:transparent !important;
   }
-  .row-actions .drill-btn button:hover {
-    border-color:#333 !important; color:#888 !important;
-    background:transparent !important; box-shadow:none !important;
+  /* trend — second (last) sub-column */
+  [data-testid="stColumn"] .stHorizontalBlock [data-testid="stColumn"]:last-child button {
+    background:#0d0d0d !important; border:1px solid #1e1e1e !important; color:#404040 !important;
   }
-  .row-actions .chart-pop-btn button {
-    background:#0d0d0d !important; border:1px solid #1c1c1c !important; color:#383838 !important;
-  }
-  .row-actions .chart-pop-btn button:hover {
-    background:#141414 !important; border-color:rgba(226,75,74,0.25) !important;
-    color:#E24B4A !important; box-shadow:none !important;
+  [data-testid="stColumn"] .stHorizontalBlock [data-testid="stColumn"]:last-child button:hover {
+    background:#141414 !important; border-color:rgba(226,75,74,0.3) !important; color:#E24B4A !important;
   }
 
   /* ── Header strip ── */
@@ -1418,18 +1415,17 @@ def morning_pulse_view(df: pd.DataFrame, app: str, color: str, mode: str = "unin
             with c4: st.markdown(_contrib_cell(cac_cv,  lambda v: f"₹{v:.0f}"), unsafe_allow_html=True)
             with c5: st.markdown(_contrib_cell(unin_cv, lambda v: f"{v:.2f}pp"), unsafe_allow_html=True)
             with c6:
-                st.markdown("<div class='row-actions'>", unsafe_allow_html=True)
-                st.markdown("<div class='drill-btn'>", unsafe_allow_html=True)
-                if st.button("▸", key=f"drill_c1_{app}_{mode}_{ci}",
-                             use_container_width=True, help="Drill into ad sets"):
-                    st.session_state[camp_key]  = camp_name
-                    st.session_state[adset_key] = None
-                    st.rerun()
-                st.markdown("</div><div class='chart-pop-btn'>", unsafe_allow_html=True)
-                if st.button("trend", key=f"chart_c1_{app}_{mode}_{ci}",
-                             use_container_width=True, help="7-day trend"):
-                    show_trend_dialog(camp_name, camp_df_s)
-                st.markdown("</div></div>", unsafe_allow_html=True)
+                ca, cb = st.columns(2, gap="small")
+                with ca:
+                    if st.button("▸", key=f"drill_c1_{app}_{mode}_{ci}",
+                                 use_container_width=True, help="Drill into ad sets"):
+                        st.session_state[camp_key]  = camp_name
+                        st.session_state[adset_key] = None
+                        st.rerun()
+                with cb:
+                    if st.button("trend", key=f"chart_c1_{app}_{mode}_{ci}",
+                                 use_container_width=True, help="7-day trend"):
+                        show_trend_dialog(camp_name, camp_df_s)
 
     # ══════════════════════════════════════════════════════════
     #  LEVEL 2 — AD SETS
@@ -1488,19 +1484,21 @@ def morning_pulse_view(df: pd.DataFrame, app: str, color: str, mode: str = "unin
                 with c4: st.markdown(_contrib_cell(cac_cv,  lambda v: f"₹{v:.0f}"), unsafe_allow_html=True)
                 with c5: st.markdown(_contrib_cell(unin_cv, lambda v: f"{v:.2f}pp"), unsafe_allow_html=True)
                 with c6:
-                    st.markdown("<div class='row-actions'>", unsafe_allow_html=True)
                     if app in CREATIVE_QUERY_IDS:
-                        st.markdown("<div class='drill-btn'>", unsafe_allow_html=True)
-                        if st.button("▸", key=f"drill_a2_{app}_{mode}_{ai}",
-                                     use_container_width=True, help="Drill into creatives"):
-                            st.session_state[adset_key] = aname
-                            st.rerun()
-                        st.markdown("</div>", unsafe_allow_html=True)
-                    st.markdown("<div class='chart-pop-btn'>", unsafe_allow_html=True)
-                    if st.button("trend", key=f"chart_a2_{app}_{mode}_{ai}",
-                                 use_container_width=True, help="7-day trend"):
-                        show_trend_dialog(aname, adset_df_s)
-                    st.markdown("</div></div>", unsafe_allow_html=True)
+                        ca, cb = st.columns(2, gap="small")
+                        with ca:
+                            if st.button("▸", key=f"drill_a2_{app}_{mode}_{ai}",
+                                         use_container_width=True, help="Drill into creatives"):
+                                st.session_state[adset_key] = aname
+                                st.rerun()
+                        with cb:
+                            if st.button("trend", key=f"chart_a2_{app}_{mode}_{ai}",
+                                         use_container_width=True, help="7-day trend"):
+                                show_trend_dialog(aname, adset_df_s)
+                    else:
+                        if st.button("trend", key=f"chart_a2_{app}_{mode}_{ai}",
+                                     use_container_width=True, help="7-day trend"):
+                            show_trend_dialog(aname, adset_df_s)
 
     # ══════════════════════════════════════════════════════════
     #  LEVEL 3 — CREATIVES
@@ -1559,12 +1557,9 @@ def morning_pulse_view(df: pd.DataFrame, app: str, color: str, mode: str = "unin
                 with c4: st.markdown(_contrib_cell(cac_cv,  lambda v: f"₹{v:.0f}"), unsafe_allow_html=True)
                 with c5: st.markdown(_contrib_cell(unin_cv, lambda v: f"{v:.2f}pp"), unsafe_allow_html=True)
                 with c6:
-                    st.markdown("<div class='row-actions'><div class='chart-pop-btn'>",
-                                unsafe_allow_html=True)
                     if st.button("trend", key=f"chart_cr_{app}_{mode}_{ri}",
                                  use_container_width=True, help="7-day trend"):
                         show_trend_dialog(cr_name, cr_df_t)
-                    st.markdown("</div></div>", unsafe_allow_html=True)
 
 
 
