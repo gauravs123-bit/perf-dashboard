@@ -275,20 +275,27 @@ st.markdown("""
   }
   /* ── Chart icon button ── */
   .chart-pop-btn button {
-    background: transparent !important;
-    border: 1px solid #1e1e1e !important;
+    background: #111 !important;
+    border: 1px solid #222 !important;
     box-shadow: none !important;
-    color: #444 !important;
-    font-size: 0.85rem !important;
-    padding: 3px 6px !important;
-    border-radius: 6px !important;
+    color: #555 !important;
+    font-size: 0.7rem !important;
+    font-weight: 600 !important;
+    letter-spacing: 0.04em !important;
+    padding: 4px 0 !important;
+    border-radius: 5px !important;
     width: 100% !important;
+    min-height: 0 !important;
     transition: all .12s !important;
   }
   .chart-pop-btn button:hover {
-    border-color: #333 !important;
-    color: #aaa !important;
-    background: rgba(255,255,255,0.03) !important;
+    background: #1a1a1a !important;
+    border-color: #E24B4A44 !important;
+    color: #E24B4A !important;
+    box-shadow: none !important;
+  }
+  .chart-pop-btn button:hover p {
+    color: #E24B4A !important;
   }
 
   /* ── Header strip ── */
@@ -1442,7 +1449,7 @@ def morning_pulse_view(df: pd.DataFrame, app: str, color: str, mode: str = "unin
             with c5: st.markdown(_contrib_cell(unin_cv, lambda v: f"{v:.2f}pp"), unsafe_allow_html=True)
             with c6:
                 st.markdown("<div class='chart-pop-btn'>", unsafe_allow_html=True)
-                if st.button("📈", key=f"chart_c1_{app}_{mode}_{ci}", use_container_width=True,
+                if st.button("trend", key=f"chart_c1_{app}_{mode}_{ci}", use_container_width=True,
                              help="7-day CAC & Uninstall trend"):
                     show_trend_dialog(camp_name, camp_df_s)
                 st.markdown("</div>", unsafe_allow_html=True)
@@ -1514,7 +1521,7 @@ def morning_pulse_view(df: pd.DataFrame, app: str, color: str, mode: str = "unin
                 with c5: st.markdown(_contrib_cell(unin_cv, lambda v: f"{v:.2f}pp"), unsafe_allow_html=True)
                 with c6:
                     st.markdown("<div class='chart-pop-btn'>", unsafe_allow_html=True)
-                    if st.button("📈", key=f"chart_a2_{app}_{mode}_{ai}", use_container_width=True,
+                    if st.button("trend", key=f"chart_a2_{app}_{mode}_{ai}", use_container_width=True,
                                  help="7-day CAC & Uninstall trend"):
                         show_trend_dialog(aname, adset_df_s)
                     st.markdown("</div>", unsafe_allow_html=True)
@@ -1578,7 +1585,7 @@ def morning_pulse_view(df: pd.DataFrame, app: str, color: str, mode: str = "unin
                 with c5: st.markdown(_contrib_cell(unin_cv, lambda v: f"{v:.2f}pp"), unsafe_allow_html=True)
                 with c6:
                     st.markdown("<div class='chart-pop-btn'>", unsafe_allow_html=True)
-                    if st.button("📈", key=f"chart_cr_{app}_{mode}_{ri}", use_container_width=True,
+                    if st.button("trend", key=f"chart_cr_{app}_{mode}_{ri}", use_container_width=True,
                                  help="7-day CAC & Uninstall trend"):
                         show_trend_dialog(cr_name, cr_df_t)
                     st.markdown("</div>", unsafe_allow_html=True)
