@@ -15,10 +15,8 @@ jobs:
           REDASH_BASE_URL: ${{ secrets.REDASH_BASE_URL }}
           REDASH_API_KEY:  ${{ secrets.REDASH_API_KEY }}
         run: |
-          set -e
-
-          # All query IDs: app-level + creative-level
           QUERY_IDS="89268 89172 89171 96035 97452 86001 86002 86364 86447 97486"
+          FAILED=0
 
           for QID in $QUERY_IDS; do
             echo "→ Refreshing query $QID ..."
@@ -27,16 +25,17 @@ jobs:
               "${REDASH_BASE_URL}/api/queries/${QID}/results" \
               -H "Authorization: Key ${REDASH_API_KEY}" \
               -H "Content-Type: application/json" \
-              -d '{"max_age": 0}')
+              -d '{"max_age": 0}' || echo "000")
 
             if [ "$HTTP" -ge 200 ] && [ "$HTTP" -lt 300 ]; then
               echo "  ✓ $QID → $HTTP"
             else
-              echo "  ✗ $QID → $HTTP (non-fatal, continuing)"
+              echo "  ✗ $QID → $HTTP"
+              FAILED=$((FAILED + 1))
             fi
 
-            # Small delay to avoid hammering Redash
             sleep 2
           done
 
-          echo "Done. All queries triggered."
+          echo "Done. $FAILED query/queries failed (non-fatal)."
+          exit 0
