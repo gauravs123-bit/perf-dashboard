@@ -1429,6 +1429,38 @@ def morning_pulse_view(df: pd.DataFrame, app: str, color: str, mode: str = "unin
                 f"Sorted by spend · {len(filtered_camps)} active</div>",
                 unsafe_allow_html=True)
 
+        # ── Source-level summary bar ──────────────────────────────────────
+        src_summary = source_split(df_sel, "p0_uninstall_rate") if not df_sel.empty else pd.DataFrame()
+        if not src_summary.empty:
+            _SRC_COLORS = {"Facebook": "#378ADD", "Google": "#34A853", "Other": "#666"}
+            cards_html = "<div style='display:flex;gap:8px;margin:10px 0 14px;flex-wrap:wrap'>"
+            for _, srow in src_summary.sort_values("total_cost", ascending=False).iterrows():
+                sg  = srow["source_group"]
+                sc  = _SRC_COLORS.get(sg, "#666")
+                sp  = srow["total_cost"]
+                cac = srow["D0_CAC_calc"]
+                unin= srow["p0_uninstall_rate"]
+                spct= srow.get("spend_share", 0)
+                sp_s = _fmt_spend(sp) if sp else "—"
+                cac_s = f"₹{cac:,.0f}" if cac else "—"
+                unin_s = f"{unin:.1f}%" if unin else "—"
+                cards_html += (
+                    f"<div style='background:#0d0d0d;border:1px solid #1a1a1a;border-left:3px solid {sc};"
+                    f"border-radius:6px;padding:7px 12px;display:flex;align-items:center;gap:16px'>"
+                    f"<span style='font-size:0.7rem;font-weight:700;color:{sc};letter-spacing:0.06em;"
+                    f"text-transform:uppercase;min-width:54px'>{sg}</span>"
+                    f"<span style='font-size:0.62rem;color:#555;margin-right:-8px'>spend</span>"
+                    f"<span style='font-size:0.82rem;font-weight:600;color:#c0c0c0'>{sp_s}"
+                    f"<span style='font-size:0.62rem;color:#333;margin-left:3px'>{spct:.0f}%</span></span>"
+                    f"<span style='font-size:0.62rem;color:#555;margin-right:-8px'>cac</span>"
+                    f"<span style='font-size:0.82rem;font-weight:600;color:#c0c0c0'>{cac_s}</span>"
+                    f"<span style='font-size:0.62rem;color:#555;margin-right:-8px'>unin</span>"
+                    f"<span style='font-size:0.82rem;font-weight:600;color:#c0c0c0'>{unin_s}</span>"
+                    f"</div>"
+                )
+            cards_html += "</div>"
+            st.markdown(cards_html, unsafe_allow_html=True)
+
         _tbl_header(["Campaign", "Spend", "CAC ₹", "Uninst%", "CAC contrib ₹", "Unin contrib pp", ""])
 
         for ci, camp_name in enumerate(filtered_camps):
