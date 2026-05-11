@@ -233,55 +233,49 @@ st.markdown("""
   .dod-pill-neu  { display:inline-flex; align-items:center; font-size:0.68rem;
                    padding:2px 8px; border-radius:5px; background:#141414; color:#333; }
 
-  /* ── Drill arrow button ── */
-  .drill-btn { line-height:0; }
-  .drill-btn > div { margin:0 !important; padding:0 !important; }
-  .drill-btn button {
-    background: transparent !important;
-    border: 1px solid #222 !important;
+  /* ── Drill + Trend buttons ── */
+  .drill-btn, .chart-pop-btn { display:inline-block; line-height:0; }
+  /* kill ALL Streamlit wrapper padding around these buttons */
+  .drill-btn > div, .chart-pop-btn > div,
+  .drill-btn .stButton, .chart-pop-btn .stButton,
+  .drill-btn [data-testid="stButton"], .chart-pop-btn [data-testid="stButton"] {
+    margin: 0 !important; padding: 0 !important;
+    min-height: 0 !important; height: auto !important;
+  }
+  .drill-btn button, .chart-pop-btn button {
     box-shadow: none !important;
-    color: #3a3a3a !important;
-    font-size: 0.7rem !important;
-    padding: 0 !important;
-    border-radius: 4px !important;
-    width: 100% !important;
+    padding: 0 5px !important;
+    border-radius: 3px !important;
     min-height: 0 !important;
-    height: 22px !important;
-    line-height: 22px !important;
-    transition: all .12s !important;
-  }
-  .drill-btn button:hover {
-    background: rgba(255,255,255,0.04) !important;
-    border-color: #333 !important;
-    color: #999 !important;
-    box-shadow: none !important;
-  }
-  /* ── Chart trend button ── */
-  .chart-pop-btn { line-height:0; }
-  .chart-pop-btn > div { margin:0 !important; padding:0 !important; }
-  .chart-pop-btn button {
-    background: #111 !important;
-    border: 1px solid #222 !important;
-    box-shadow: none !important;
-    color: #484848 !important;
-    font-size: 0.65rem !important;
-    font-weight: 600 !important;
+    height: 18px !important;
+    line-height: 18px !important;
+    font-size: 0.58rem !important;
+    font-weight: 700 !important;
     letter-spacing: 0.08em !important;
     text-transform: uppercase !important;
-    padding: 0 !important;
-    border-radius: 4px !important;
-    width: 100% !important;
-    min-height: 0 !important;
-    height: 22px !important;
-    line-height: 22px !important;
     white-space: nowrap !important;
-    transition: all .12s !important;
+    transition: all .1s !important;
+  }
+  .drill-btn button {
+    background: transparent !important;
+    border: 1px solid #1c1c1c !important;
+    color: #2e2e2e !important;
+    width: 100% !important;
+  }
+  .drill-btn button:hover {
+    border-color: #2e2e2e !important; color: #777 !important;
+    background: transparent !important; box-shadow: none !important;
+  }
+  .chart-pop-btn button {
+    background: #0e0e0e !important;
+    border: 1px solid #1c1c1c !important;
+    color: #3a3a3a !important;
+    width: 100% !important;
   }
   .chart-pop-btn button:hover {
-    background: #181818 !important;
-    border-color: rgba(226,75,74,0.3) !important;
-    color: #E24B4A !important;
-    box-shadow: none !important;
+    background: #141414 !important;
+    border-color: rgba(226,75,74,0.25) !important;
+    color: #E24B4A !important; box-shadow: none !important;
   }
 
   /* ── Header strip ── */
