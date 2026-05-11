@@ -338,17 +338,25 @@ def _build_trend_fig(filter_df: pd.DataFrame, label: str, n_days: int = 14):
     daily["cac"]       = daily["spend"]  / daily["orders"].clip(lower=1)
     daily["unin_rate"] = daily["unin"]   / daily["orders"].clip(lower=1) * 100
     fig = go.Figure()
+    # Spend bars (y3, right-2)
+    fig.add_trace(go.Bar(
+        x=daily["date_tz"].astype(str), y=daily["spend"],
+        name="Spend ₹", yaxis="y3",
+        marker_color="rgba(120,120,120,0.22)",
+        hovertemplate="%{x}<br>Spend ₹%{y:,.0f}<extra></extra>"))
+    # CAC line (y1, left)
     fig.add_trace(go.Scatter(
         x=daily["date_tz"].astype(str), y=daily["cac"],
-        name="CAC (₹)", line=dict(color="#E24B4A", width=2.5),
+        name="CAC ₹", line=dict(color="#E24B4A", width=2.5),
         hovertemplate="%{x}<br>CAC ₹%{y:.0f}<extra></extra>"))
+    # Uninstall % line (y2, right)
     fig.add_trace(go.Scatter(
         x=daily["date_tz"].astype(str), y=daily["unin_rate"],
         name="Unin %", line=dict(color="#378ADD", width=2.5, dash="dot"),
         yaxis="y2",
         hovertemplate="%{x}<br>Unin %{y:.1f}%<extra></extra>"))
     fig.update_layout(
-        height=320, margin=dict(l=0, r=0, t=24, b=40),
+        height=340, margin=dict(l=0, r=60, t=24, b=40),
         paper_bgcolor="#0d0d0d", plot_bgcolor="#0d0d0d",
         font=dict(color="#777", size=11),
         legend=dict(orientation="h", y=1.12, x=0, font=dict(size=10)),
@@ -356,12 +364,16 @@ def _build_trend_fig(filter_df: pd.DataFrame, label: str, n_days: int = 14):
         yaxis=dict(title="CAC ₹", showgrid=True, gridcolor="#181818",
                    tickfont=dict(size=9), tickprefix="₹"),
         yaxis2=dict(title="Unin %", overlaying="y", side="right",
-                    showgrid=False, tickfont=dict(size=9), ticksuffix="%"),
+                    showgrid=False, tickfont=dict(size=9), ticksuffix="%",
+                    anchor="x"),
+        yaxis3=dict(overlaying="y", side="right", showgrid=False,
+                    showticklabels=False, anchor="free", position=1.0),
+        barmode="overlay",
     )
     return fig, daily
 
 
-@st.dialog("📈 CAC & Uninstall Trend", width="large")
+@st.dialog("📈 CAC, Spend & Uninstall Trend", width="large")
 def show_trend_dialog(label: str, filter_df: pd.DataFrame):
     st.markdown(f"<div style='font-size:0.82rem;color:#888;margin-bottom:12px'>{label}</div>",
                 unsafe_allow_html=True)
@@ -370,15 +382,17 @@ def show_trend_dialog(label: str, filter_df: pd.DataFrame):
         st.info("No historical data available for this selection.")
         return
     st.plotly_chart(fig, use_container_width=True, config={"displayModeBar": False})
-    # summary row
     if daily is not None and not daily.empty:
         last = daily.iloc[-1]
         prev = daily.iloc[-2] if len(daily) > 1 else last
-        c1, c2, c3 = st.columns(3)
-        c1.metric("CAC (YD)", f"₹{last['cac']:.0f}", f"₹{last['cac']-prev['cac']:.0f}")
-        c2.metric("Unin% (YD)", f"{last['unin_rate']:.1f}%",
-                  f"{last['unin_rate']-prev['unin_rate']:.2f}pp")
-        c3.metric("Orders (YD)", f"{int(last['orders']):,}",
+        c1, c2, c3, c4 = st.columns(4)
+        c1.metric("Spend (YD)", f"₹{last['spend']:,.0f}",
+                  f"₹{last['spend']-prev['spend']:+,.0f}")
+        c2.metric("CAC (YD)", f"₹{last['cac']:.0f}",
+                  f"₹{last['cac']-prev['cac']:+.0f}")
+        c3.metric("Unin% (YD)", f"{last['unin_rate']:.1f}%",
+                  f"{last['unin_rate']-prev['unin_rate']:+.2f}pp")
+        c4.metric("Orders (YD)", f"{int(last['orders']):,}",
                   f"{int(last['orders']-prev['orders']):+,}")
 
 
