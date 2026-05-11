@@ -234,20 +234,26 @@ st.markdown("""
                    padding:2px 8px; border-radius:5px; background:#141414; color:#333; }
 
   /* ── Drill + Trend buttons: nuke every wrapper margin/padding ── */
-  .row-actions { display:flex; align-items:center; gap:4px;
-                 border-bottom:1px solid #0f0f0f; padding:0; height:100%; }
+  .row-actions {
+    display:flex; align-items:center; gap:3px;
+    border-bottom:1px solid #0f0f0f; padding:0; height:100%;
+  }
+  /* kill every Streamlit block wrapper inside row-actions */
   .row-actions > div,
+  .row-actions [data-testid="stVerticalBlock"],
+  .row-actions [data-testid="stVerticalBlockBorderWrapper"],
+  .row-actions .element-container,
   .row-actions .stButton,
-  .row-actions [data-testid="stButton"],
-  .row-actions [data-testid="stBaseButton-secondary"] {
+  .row-actions [data-testid="stButton"] {
     margin:0 !important; padding:0 !important;
-    min-height:0 !important; flex:1;
+    min-height:0 !important; height:auto !important; flex:1;
+    gap:0 !important;
   }
   .row-actions button {
     box-shadow:none !important; border-radius:2px !important;
-    min-height:0 !important; height:16px !important; line-height:16px !important;
-    padding:0 4px !important; font-size:0.52rem !important; font-weight:700 !important;
-    letter-spacing:0.07em !important; text-transform:uppercase !important;
+    min-height:0 !important; height:14px !important; line-height:14px !important;
+    padding:0 4px !important; font-size:0.5rem !important; font-weight:700 !important;
+    letter-spacing:0.06em !important; text-transform:uppercase !important;
     white-space:nowrap !important; width:100% !important; transition:all .1s !important;
   }
   .row-actions .drill-btn button {
@@ -1322,7 +1328,7 @@ def morning_pulse_view(df: pd.DataFrame, app: str, color: str, mode: str = "unin
                 st.rerun()
 
     # col widths: name | spend | cac | uninst | cac_contrib | unin_contrib | [drill+trend]
-    _CW = [4.2, 1.0, 1.0, 1.0, 1.5, 1.5, 1.5]
+    _CW = [4.2, 1.0, 1.0, 1.0, 1.5, 1.5, 1.3]
 
     def _cell(txt, align="right", color="#c0c0c0", bold=False):
         fw = "600" if bold else "400"
