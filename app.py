@@ -295,10 +295,60 @@ st.markdown("""
 
   /* section pill nav */
   div[data-testid="stHorizontalBlock"] .stRadio [data-testid="stWidgetLabel"] { display:none; }
+
+  /* ── Nav pills (app + section selectors) ──────────────────────────────── */
+  /* Force horizontal layout — baseweb ButtonGroup defaults to column in some configs */
+  [data-baseweb="button-group"] {
+    flex-direction: row !important;
+    flex-wrap: wrap !important;
+    gap: 4px !important;
+    padding: 0 !important;
+    align-items: center !important;
+  }
+  /* Base pill style */
+  [data-baseweb="button-group"] button {
+    border-radius: 20px !important;
+    font-size: 0.68rem !important;
+    font-weight: 600 !important;
+    text-transform: uppercase !important;
+    letter-spacing: 0.08em !important;
+    padding: 3px 11px !important;
+    min-height: 26px !important;
+    height: 26px !important;
+    line-height: 26px !important;
+    background: #0d0d0d !important;
+    border: 1px solid #1c1c1c !important;
+    color: #333 !important;
+    box-shadow: none !important;
+    flex: 0 0 auto !important;
+    transition: border-color .12s, color .12s, background .12s !important;
+  }
+  [data-baseweb="button-group"] button:hover {
+    border-color: #2e2e2e !important;
+    color: #555 !important;
+    background: #111 !important;
+  }
+  /* Active pill — emotion target e8vg11g11 (Streamlit 1.50) + aria fallbacks */
+  [class*="e8vg11g11"],
+  [data-baseweb="button-group"] button[aria-pressed="true"],
+  [data-baseweb="button-group"] button[aria-checked="true"] {
+    font-weight: 700 !important;
+  }
+  /* Hide the label above st.pills when label_visibility="collapsed" already handles it
+     but also hide any stray label containers that add vertical space */
+  [data-testid="stWidgetLabel"]:has(+ [data-baseweb="button-group"]) {
+    display: none !important;
+    margin: 0 !important;
+    height: 0 !important;
+  }
 </style>
 """, unsafe_allow_html=True)
 
 APPS = list(APP_QUERY_IDS.keys())
+
+def _hex_to_rgb(h: str) -> tuple[int, int, int]:
+    h = h.lstrip("#")
+    return int(h[0:2], 16), int(h[2:4], 16), int(h[4:6], 16)
 
 # ════════════════════════════════════════════════════════════════════════════
 #  Trend chart dialog (module-level for @st.dialog)
@@ -2134,33 +2184,42 @@ def main():
         st.session_state["sb_section"] = section_options[0]
     section = st.session_state["sb_section"]
 
-    # ── top nav: st.pills for clean inline selectors ────────────────────────
-    nav_left, nav_right = st.columns([8, 2])
-    with nav_left:
-        nc1, nc2 = st.columns([1, 1])
-        with nc1:
-            app_options = list(APPS)
-            sel_app = st.pills("App", app_options,
-                               default=st.session_state["sb_app"],
-                               key="pills_app", label_visibility="collapsed")
-            if sel_app and sel_app != st.session_state["sb_app"]:
-                st.session_state["sb_app"]     = sel_app
-                st.session_state["sb_section"] = "🌅 Morning Pulse"
-                st.rerun()
-        with nc2:
-            sel_sec = st.pills("Section", section_options,
-                               default=st.session_state["sb_section"],
-                               key="pills_sec", label_visibility="collapsed")
-            if sel_sec and sel_sec != st.session_state["sb_section"]:
-                st.session_state["sb_section"] = sel_sec
-                st.rerun()
+    # ── top nav ──────────────────────────────────────────────────────────────
+    # Inject dynamic CSS: selected pill uses current app's color
+    _r, _g, _b = _hex_to_rgb(APP_COLORS[app])
+    _c = APP_COLORS[app]
+    st.markdown(f"""<style>
+      [class*="e8vg11g11"],
+      [data-baseweb="button-group"] button[aria-pressed="true"],
+      [data-baseweb="button-group"] button[aria-checked="true"] {{
+        background: rgba({_r},{_g},{_b},0.13) !important;
+        border-color: {_c} !important;
+        color: {_c} !important;
+        font-weight: 700 !important;
+      }}
+    </style>""", unsafe_allow_html=True)
+
+    nav_app, nav_sec, nav_right = st.columns([5.5, 3.2, 1.5])
+    with nav_app:
+        sel_app = st.pills("App", list(APPS),
+                           default=st.session_state["sb_app"],
+                           key="pills_app", label_visibility="collapsed")
+        if sel_app and sel_app != st.session_state["sb_app"]:
+            st.session_state["sb_app"]     = sel_app
+            st.session_state["sb_section"] = "🌅 Morning Pulse"
+            st.rerun()
+    with nav_sec:
+        sel_sec = st.pills("Section", section_options,
+                           default=st.session_state["sb_section"],
+                           key="pills_sec", label_visibility="collapsed")
+        if sel_sec and sel_sec != st.session_state["sb_section"]:
+            st.session_state["sb_section"] = sel_sec
+            st.rerun()
     with nav_right:
-        st.markdown("<div style='padding-top:6px'>", unsafe_allow_html=True)
         if st.button(f"↻  Refresh {app}", key="tnav_refresh", use_container_width=True):
             with st.spinner("Refreshing…"):
                 refresh_app_data(app)
             st.success("Done!")
-        st.markdown("</div>", unsafe_allow_html=True)
 
     app     = st.session_state.get("sb_app", APPS[0])
     color   = APP_COLORS[app]
