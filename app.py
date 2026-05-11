@@ -244,10 +244,10 @@ st.markdown("""
     min-height:0 !important; flex:1;
   }
   .row-actions button {
-    box-shadow:none !important; border-radius:3px !important;
-    min-height:0 !important; height:20px !important; line-height:20px !important;
-    padding:0 6px !important; font-size:0.58rem !important; font-weight:700 !important;
-    letter-spacing:0.08em !important; text-transform:uppercase !important;
+    box-shadow:none !important; border-radius:2px !important;
+    min-height:0 !important; height:16px !important; line-height:16px !important;
+    padding:0 4px !important; font-size:0.52rem !important; font-weight:700 !important;
+    letter-spacing:0.07em !important; text-transform:uppercase !important;
     white-space:nowrap !important; width:100% !important; transition:all .1s !important;
   }
   .row-actions .drill-btn button {
@@ -1322,7 +1322,7 @@ def morning_pulse_view(df: pd.DataFrame, app: str, color: str, mode: str = "unin
                 st.rerun()
 
     # col widths: name | spend | cac | uninst | cac_contrib | unin_contrib | [drill+trend]
-    _CW = [4.0, 1.0, 1.0, 1.0, 1.5, 1.5, 2.1]
+    _CW = [4.2, 1.0, 1.0, 1.0, 1.5, 1.5, 1.5]
 
     def _cell(txt, align="right", color="#c0c0c0", bold=False):
         fw = "600" if bold else "400"
