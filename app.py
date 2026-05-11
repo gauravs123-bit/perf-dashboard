@@ -242,14 +242,17 @@ st.markdown("""
     font-size: 0.82rem !important;
     font-weight: 500 !important;
     text-align: left !important;
-    padding: 6px 4px !important;
+    padding: 5px 4px !important;
     width: 100% !important;
+    min-height: 0 !important;
+    height: auto !important;
     border-radius: 4px !important;
     justify-content: flex-start !important;
     letter-spacing: -0.01em !important;
+    line-height: 1.3 !important;
   }
   .camp-name-btn button:hover {
-    background: rgba(255,255,255,0.05) !important;
+    background: rgba(255,255,255,0.04) !important;
     color: #fff !important;
     border: none !important;
     box-shadow: none !important;
@@ -273,29 +276,35 @@ st.markdown("""
     border: none !important;
     box-shadow: none !important;
   }
-  /* ── Chart icon button ── */
+  /* ── Chart trend button ── */
+  .chart-pop-btn { display:flex; align-items:center; border-bottom:1px solid #0f0f0f; padding:4px 0; }
   .chart-pop-btn button {
-    background: #111 !important;
-    border: 1px solid #222 !important;
+    background: #141414 !important;
+    border: 1px solid #252525 !important;
     box-shadow: none !important;
     color: #555 !important;
-    font-size: 0.7rem !important;
+    font-size: 0.68rem !important;
     font-weight: 600 !important;
-    letter-spacing: 0.04em !important;
-    padding: 4px 0 !important;
+    letter-spacing: 0.06em !important;
+    text-transform: uppercase !important;
+    padding: 5px 10px !important;
     border-radius: 5px !important;
     width: 100% !important;
     min-height: 0 !important;
+    height: 28px !important;
+    line-height: 1 !important;
+    white-space: nowrap !important;
     transition: all .12s !important;
   }
   .chart-pop-btn button:hover {
-    background: #1a1a1a !important;
-    border-color: #E24B4A44 !important;
+    background: #1e1e1e !important;
+    border-color: rgba(226,75,74,0.35) !important;
     color: #E24B4A !important;
     box-shadow: none !important;
   }
-  .chart-pop-btn button:hover p {
-    color: #E24B4A !important;
+  .chart-pop-btn p {
+    white-space: nowrap !important;
+    overflow: hidden !important;
   }
 
   /* ── Header strip ── */
@@ -1355,7 +1364,7 @@ def morning_pulse_view(df: pd.DataFrame, app: str, color: str, mode: str = "unin
                 st.rerun()
 
     # shared column widths: name | spend | cac | uninst | cac_contrib | unin_contrib | chart
-    _CW = [4.2, 1.2, 1.2, 1.2, 1.6, 1.6, 0.55]
+    _CW = [3.8, 1.1, 1.1, 1.1, 1.5, 1.5, 1.1]
 
     def _cell(txt, align="right", color="#c0c0c0", bold=False):
         fw = "600" if bold else "400"
