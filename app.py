@@ -233,47 +233,25 @@ st.markdown("""
   .dod-pill-neu  { display:inline-flex; align-items:center; font-size:0.68rem;
                    padding:2px 8px; border-radius:5px; background:#141414; color:#333; }
 
-  /* ── Campaign name buttons — ghost text style ── */
-  .camp-name-btn button {
+  /* ── Drill arrow button ── */
+  .drill-btn button {
     background: transparent !important;
-    border: none !important;
+    border: 1px solid #1e1e1e !important;
     box-shadow: none !important;
-    color: #c8c8c8 !important;
-    font-size: 0.82rem !important;
-    font-weight: 500 !important;
-    text-align: left !important;
-    padding: 5px 4px !important;
+    color: #383838 !important;
+    font-size: 0.78rem !important;
+    padding: 4px 0 !important;
+    border-radius: 5px !important;
     width: 100% !important;
     min-height: 0 !important;
-    height: auto !important;
-    border-radius: 4px !important;
-    justify-content: flex-start !important;
-    letter-spacing: -0.01em !important;
-    line-height: 1.3 !important;
+    height: 28px !important;
+    line-height: 1 !important;
+    transition: all .12s !important;
   }
-  .camp-name-btn button:hover {
+  .drill-btn button:hover {
     background: rgba(255,255,255,0.04) !important;
-    color: #fff !important;
-    border: none !important;
-    box-shadow: none !important;
-  }
-  .adset-name-btn button {
-    background: transparent !important;
-    border: none !important;
-    box-shadow: none !important;
-    color: #999 !important;
-    font-size: 0.77rem !important;
-    font-weight: 400 !important;
-    text-align: left !important;
-    padding: 5px 4px !important;
-    width: 100% !important;
-    border-radius: 4px !important;
-    justify-content: flex-start !important;
-  }
-  .adset-name-btn button:hover {
-    background: rgba(255,255,255,0.04) !important;
-    color: #ccc !important;
-    border: none !important;
+    border-color: #333 !important;
+    color: #aaa !important;
     box-shadow: none !important;
   }
   /* ── Chart trend button ── */
@@ -1363,8 +1341,8 @@ def morning_pulse_view(df: pd.DataFrame, app: str, color: str, mode: str = "unin
                     st.session_state[adset_key] = None
                 st.rerun()
 
-    # shared column widths: name | spend | cac | uninst | cac_contrib | unin_contrib | chart
-    _CW = [3.8, 1.1, 1.1, 1.1, 1.5, 1.5, 1.1]
+    # col widths: name | spend | cac | uninst | cac_contrib | unin_contrib | [drill+trend]
+    _CW = [4.0, 1.0, 1.0, 1.0, 1.5, 1.5, 2.1]
 
     def _cell(txt, align="right", color="#c0c0c0", bold=False):
         fw = "600" if bold else "400"
@@ -1435,32 +1413,43 @@ def morning_pulse_view(df: pd.DataFrame, app: str, color: str, mode: str = "unin
             cac_cv    = camp_cac_map.get(camp_name,  {}).get("contribution")
             unin_cv   = camp_unin_map.get(camp_name, {}).get("contribution")
             camp_df_s = df_sel[df_sel["campaign"] == camp_name] if "campaign" in df_sel.columns else pd.DataFrame()
+            disp_name = (camp_name[:48] + "…") if len(camp_name) > 49 else camp_name
 
             c0, c1, c2, c3, c4, c5, c6 = st.columns(_CW)
             with c0:
                 st.markdown(
-                    f"<div style='border-bottom:1px solid #0f0f0f;padding:2px 0'>"
-                    f"<span style='display:inline-block;width:6px;height:6px;border-radius:50%;"
-                    f"background:{dot_col};margin-right:6px;vertical-align:middle'></span>"
-                    f"<span style='font-size:0.68rem;color:#363636'>{src_label}</span></div>",
-                    unsafe_allow_html=True)
-                st.markdown("<div class='camp-name-btn'>", unsafe_allow_html=True)
-                if st.button(camp_name, key=f"dd_c1_{app}_{mode}_{ci}",
-                             use_container_width=True, help="Click to drill into ad sets"):
-                    st.session_state[camp_key]  = camp_name
-                    st.session_state[adset_key] = None
-                    st.rerun()
-                st.markdown("</div>", unsafe_allow_html=True)
+                    f"<div style='padding:10px 4px;border-bottom:1px solid #0f0f0f;"
+                    f"display:flex;align-items:center;gap:7px'>"
+                    f"<span style='width:6px;height:6px;border-radius:50%;background:{dot_col};"
+                    f"flex-shrink:0;display:inline-block'></span>"
+                    f"<span style='font-size:0.8rem;color:#e0e0e0;font-weight:500;min-width:0;"
+                    f"overflow:hidden;text-overflow:ellipsis;white-space:nowrap'>{disp_name}</span>"
+                    f"<span style='font-size:0.65rem;color:#333;flex-shrink:0'>{src_label}</span>"
+                    f"</div>", unsafe_allow_html=True)
             with c1: st.markdown(_cell(spend_str, bold=True, color="#e0e0e0"), unsafe_allow_html=True)
             with c2: st.markdown(_cell(cac_str, color=cac_col), unsafe_allow_html=True)
             with c3: st.markdown(_cell(unin_str, color=unin_col), unsafe_allow_html=True)
             with c4: st.markdown(_contrib_cell(cac_cv,  lambda v: f"₹{v:.0f}"), unsafe_allow_html=True)
             with c5: st.markdown(_contrib_cell(unin_cv, lambda v: f"{v:.2f}pp"), unsafe_allow_html=True)
             with c6:
-                st.markdown("<div class='chart-pop-btn'>", unsafe_allow_html=True)
-                if st.button("trend", key=f"chart_c1_{app}_{mode}_{ci}", use_container_width=True,
-                             help="7-day CAC & Uninstall trend"):
-                    show_trend_dialog(camp_name, camp_df_s)
+                st.markdown("<div style='display:flex;align-items:center;gap:4px;"
+                            "border-bottom:1px solid #0f0f0f;padding:5px 0'>",
+                            unsafe_allow_html=True)
+                bd, bt = st.columns([1, 1.8])
+                with bd:
+                    st.markdown("<div class='drill-btn'>", unsafe_allow_html=True)
+                    if st.button("▸", key=f"drill_c1_{app}_{mode}_{ci}",
+                                 use_container_width=True, help="Drill into ad sets"):
+                        st.session_state[camp_key]  = camp_name
+                        st.session_state[adset_key] = None
+                        st.rerun()
+                    st.markdown("</div>", unsafe_allow_html=True)
+                with bt:
+                    st.markdown("<div class='chart-pop-btn'>", unsafe_allow_html=True)
+                    if st.button("trend", key=f"chart_c1_{app}_{mode}_{ci}",
+                                 use_container_width=True, help="7-day trend"):
+                        show_trend_dialog(camp_name, camp_df_s)
+                    st.markdown("</div>", unsafe_allow_html=True)
                 st.markdown("</div>", unsafe_allow_html=True)
 
     # ══════════════════════════════════════════════════════════
@@ -1502,37 +1491,42 @@ def morning_pulse_view(df: pd.DataFrame, app: str, color: str, mode: str = "unin
                 unin_col = "#E24B4A" if unin_abs is not None and unin_abs > 25  else "#c0c0c0"
                 adset_df_s = (df_sel[(df_sel["campaign"] == sel_camp) & (df_sel["ad_set"] == aname)]
                               if "ad_set" in df_sel.columns else pd.DataFrame())
+                disp_name = (aname[:48] + "…") if len(aname) > 49 else aname
 
                 c0, c1, c2, c3, c4, c5, c6 = st.columns(_CW)
                 with c0:
                     st.markdown(
-                        f"<div style='border-bottom:1px solid #0f0f0f;border-left:2px solid {b_col};"
-                        f"padding-left:8px'>"
+                        f"<div style='padding:10px 4px 10px 10px;border-bottom:1px solid #0f0f0f;"
+                        f"border-left:2px solid {b_col};display:flex;align-items:center;gap:7px'>"
                         f"<span style='font-size:0.62rem;padding:1px 5px;border-radius:3px;"
-                        f"background:{b_col}20;color:{b_col}'>{sig.split()[0]}</span></div>",
-                        unsafe_allow_html=True)
-                    st.markdown("<div class='adset-name-btn'>", unsafe_allow_html=True)
-                    if app in CREATIVE_QUERY_IDS:
-                        if st.button(aname, key=f"dd_a2_{app}_{mode}_{ai}",
-                                     use_container_width=True, help="Click to drill into creatives"):
-                            st.session_state[adset_key] = aname
-                            st.rerun()
-                    else:
-                        st.markdown(
-                            f"<div style='font-size:0.8rem;color:#999;padding:7px 4px;"
-                            f"border-bottom:1px solid #0f0f0f'>{aname}</div>",
-                            unsafe_allow_html=True)
-                    st.markdown("</div>", unsafe_allow_html=True)
+                        f"background:{b_col}20;color:{b_col};flex-shrink:0'>{sig.split()[0]}</span>"
+                        f"<span style='font-size:0.8rem;color:#d0d0d0;min-width:0;overflow:hidden;"
+                        f"text-overflow:ellipsis;white-space:nowrap'>{disp_name}</span>"
+                        f"</div>", unsafe_allow_html=True)
                 with c1: st.markdown(_cell(_sp), unsafe_allow_html=True)
                 with c2: st.markdown(_cell(cac_str, color=cac_col), unsafe_allow_html=True)
                 with c3: st.markdown(_cell(unin_str, color=unin_col), unsafe_allow_html=True)
                 with c4: st.markdown(_contrib_cell(cac_cv,  lambda v: f"₹{v:.0f}"), unsafe_allow_html=True)
                 with c5: st.markdown(_contrib_cell(unin_cv, lambda v: f"{v:.2f}pp"), unsafe_allow_html=True)
                 with c6:
-                    st.markdown("<div class='chart-pop-btn'>", unsafe_allow_html=True)
-                    if st.button("trend", key=f"chart_a2_{app}_{mode}_{ai}", use_container_width=True,
-                                 help="7-day CAC & Uninstall trend"):
-                        show_trend_dialog(aname, adset_df_s)
+                    st.markdown("<div style='display:flex;align-items:center;gap:4px;"
+                                "border-bottom:1px solid #0f0f0f;padding:5px 0'>",
+                                unsafe_allow_html=True)
+                    bd, bt = st.columns([1, 1.8])
+                    with bd:
+                        if app in CREATIVE_QUERY_IDS:
+                            st.markdown("<div class='drill-btn'>", unsafe_allow_html=True)
+                            if st.button("▸", key=f"drill_a2_{app}_{mode}_{ai}",
+                                         use_container_width=True, help="Drill into creatives"):
+                                st.session_state[adset_key] = aname
+                                st.rerun()
+                            st.markdown("</div>", unsafe_allow_html=True)
+                    with bt:
+                        st.markdown("<div class='chart-pop-btn'>", unsafe_allow_html=True)
+                        if st.button("trend", key=f"chart_a2_{app}_{mode}_{ai}",
+                                     use_container_width=True, help="7-day trend"):
+                            show_trend_dialog(aname, adset_df_s)
+                        st.markdown("</div>", unsafe_allow_html=True)
                     st.markdown("</div>", unsafe_allow_html=True)
 
     # ══════════════════════════════════════════════════════════
@@ -1582,22 +1576,23 @@ def morning_pulse_view(df: pd.DataFrame, app: str, color: str, mode: str = "unin
                 c0, c1, c2, c3, c4, c5, c6 = st.columns(_CW)
                 with c0:
                     st.markdown(
-                        f"<div style='border-bottom:1px solid #0f0f0f;border-left:2px solid {cr_col};"
-                        f"padding:9px 4px 9px 10px;font-size:0.8rem;color:#e0e0e0;font-weight:500;"
+                        f"<div style='padding:10px 4px 10px 10px;border-bottom:1px solid #0f0f0f;"
+                        f"border-left:2px solid {cr_col};font-size:0.8rem;color:#e0e0e0;font-weight:500;"
                         f"white-space:nowrap;overflow:hidden;text-overflow:ellipsis' title='{cr_name}'>"
-                        f"{disp_name}</div>",
-                        unsafe_allow_html=True)
+                        f"{disp_name}</div>", unsafe_allow_html=True)
                 with c1: st.markdown(_cell(_sp), unsafe_allow_html=True)
                 with c2: st.markdown(_cell(cac_str, color=cac_col), unsafe_allow_html=True)
                 with c3: st.markdown(_cell(unin_str, color=unin_col), unsafe_allow_html=True)
                 with c4: st.markdown(_contrib_cell(cac_cv,  lambda v: f"₹{v:.0f}"), unsafe_allow_html=True)
                 with c5: st.markdown(_contrib_cell(unin_cv, lambda v: f"{v:.2f}pp"), unsafe_allow_html=True)
                 with c6:
+                    st.markdown("<div style='border-bottom:1px solid #0f0f0f;padding:5px 0'>",
+                                unsafe_allow_html=True)
                     st.markdown("<div class='chart-pop-btn'>", unsafe_allow_html=True)
-                    if st.button("trend", key=f"chart_cr_{app}_{mode}_{ri}", use_container_width=True,
-                                 help="7-day CAC & Uninstall trend"):
+                    if st.button("trend", key=f"chart_cr_{app}_{mode}_{ri}",
+                                 use_container_width=True, help="7-day trend"):
                         show_trend_dialog(cr_name, cr_df_t)
-                    st.markdown("</div>", unsafe_allow_html=True)
+                    st.markdown("</div></div>", unsafe_allow_html=True)
 
 
 
