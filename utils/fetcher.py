@@ -75,7 +75,7 @@ def fetch_app_data(app_name: str) -> pd.DataFrame:
 
 
 def refresh_app_data(app_name: str) -> pd.DataFrame:
-    fetch_app_data.clear()
+    fetch_app_data.clear(app_name)
     return fetch_app_data(app_name)
 
 

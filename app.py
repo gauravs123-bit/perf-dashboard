@@ -2284,6 +2284,13 @@ def main():
         st.warning(f"No data loaded for {app}.")
         return
 
+    # Debug: show what app_name values are in the fetched data
+    if "app_name" in df.columns:
+        apps_in_data = df["app_name"].unique().tolist()
+        if len(apps_in_data) > 1 or (len(apps_in_data) == 1 and apps_in_data[0] != app):
+            st.warning(f"⚠️ Data mismatch: fetched for **{app}** but data contains app_name={apps_in_data}. "
+                       f"Check Redash query {__import__('utils.fetcher', fromlist=['APP_QUERY_IDS']).APP_QUERY_IDS.get(app)}.")
+
     morning_pulse_view(df, app=app, color=color, mode="uninstall")
 
 
