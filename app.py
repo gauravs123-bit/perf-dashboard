@@ -2199,6 +2199,155 @@ def category_mix_view(app: str = "Seekho"):
 
 
 # ════════════════════════════════════════════════════════════════════════════
+#  Ad Set Analysis — source → ad set, 7-day cumulative
+# ════════════════════════════════════════════════════════════════════════════
+
+def adset_analysis_view(df: pd.DataFrame, app: str, color: str):
+    """Source → ad set breakdown over last 7 days (cumulative)."""
+    if df.empty or "ad_set" not in df.columns:
+        st.markdown("<div style='color:#444;padding:24px 0'>No ad set data available.</div>",
+                    unsafe_allow_html=True)
+        return
+
+    # ── 7-day window ──────────────────────────────────────────────────────────
+    latest = df["date_tz"].max()
+    all_dates = sorted(df["date_tz"].unique())
+    window_dates = all_dates[-7:]
+    df7 = df[df["date_tz"].isin(window_dates)].copy()
+
+    if df7.empty:
+        st.markdown("<div style='color:#444;padding:24px 0'>No data in last 7 days.</div>",
+                    unsafe_allow_html=True)
+        return
+
+    # ── source grouping ───────────────────────────────────────────────────────
+    src_lower = df7["source"].str.lower() if "source" in df7.columns else pd.Series("", index=df7.index)
+    df7["_src"] = np.where(
+        src_lower.str.contains("facebook|meta", na=False), "Facebook",
+        np.where(src_lower.str.contains("google|goog", na=False), "Google", "Other")
+    )
+
+    # ── aggregate per source + ad_set over 7 days ────────────────────────────
+    grp = df7.groupby(["_src", "ad_set"], as_index=False).agg(
+        spend=("total_cost", "sum"),
+        orders=("D0_paid_users", "sum"),
+        unin=("p0_unin_users", "sum"),
+    )
+    grp["cac"]  = (grp["spend"] / grp["orders"].replace(0, np.nan)).fillna(0)
+    grp["unin_rate"] = (grp["unin"] / grp["orders"].replace(0, np.nan) * 100).fillna(0)
+
+    # overall 7d averages for signal comparison
+    total_spend = grp["spend"].sum() or 1
+    total_orders = grp["orders"].sum() or 1
+    total_unin   = grp["unin"].sum()
+    avg_cac  = total_spend / total_orders
+    avg_unin = total_unin  / total_orders * 100
+    grp["spend_pct"] = grp["spend"] / total_spend * 100
+
+    _SRC_COLORS = {"Facebook": "#378ADD", "Google": "#34A853", "Other": "#666"}
+
+    def _signal(row):
+        """Returns (label, color) for the focus signal."""
+        high_cac  = row["cac"]       > avg_cac  * 1.25
+        high_unin = row["unin_rate"] > avg_unin * 1.25
+        low_vol   = row["spend_pct"] < 1.0
+        if high_cac and high_unin: return "⚠ Both High",   "#E24B4A"
+        if high_cac:               return "↑ CAC",         "#E07B39"
+        if high_unin:              return "↑ Uninstall",   "#E07B39"
+        if not high_cac and not high_unin and not low_vol: return "✓ Efficient", "#1D9E75"
+        return "", "#444"
+
+    def _fmt_spend(v):
+        if v >= 1_000_000: return f"₹{v/1_000_000:.1f}M"
+        if v >= 1_000:     return f"₹{v/1_000:.0f}k"
+        return f"₹{v:.0f}"
+
+    # ── date range label ──────────────────────────────────────────────────────
+    st.markdown(
+        f"<div style='font-size:0.72rem;color:#444;margin-bottom:18px'>"
+        f"7-day window · {window_dates[0]} → {window_dates[-1]} · "
+        f"avg CAC <span style='color:#c0c0c0;font-weight:600'>₹{avg_cac:,.0f}</span> · "
+        f"avg uninstall <span style='color:#c0c0c0;font-weight:600'>{avg_unin:.1f}%</span>"
+        f"</div>",
+        unsafe_allow_html=True,
+    )
+
+    open_key = f"adset_analysis_open_{app}"
+    if open_key not in st.session_state:
+        st.session_state[open_key] = None
+
+    # ── render per source ─────────────────────────────────────────────────────
+    for src_name in ["Facebook", "Google", "Other"]:
+        src_df = grp[grp["_src"] == src_name].sort_values("spend", ascending=False)
+        if src_df.empty:
+            continue
+
+        sc = _SRC_COLORS[src_name]
+        src_spend = src_df["spend"].sum()
+        src_orders = src_df["orders"].sum()
+        src_cac   = src_spend / src_orders if src_orders else 0
+        src_unin_rate = src_df["unin"].sum() / src_orders * 100 if src_orders else 0
+        src_spct  = src_spend / total_spend * 100
+        n_adsets  = len(src_df)
+
+        # Source header card
+        st.markdown(
+            f"<div style='background:#0d0d0d;border:1px solid #1a1a1a;border-left:3px solid {sc};"
+            f"border-radius:8px;padding:10px 16px;margin-bottom:6px;"
+            f"display:flex;align-items:center;gap:24px'>"
+            f"<span style='font-size:0.82rem;font-weight:700;color:{sc};min-width:70px;"
+            f"text-transform:uppercase;letter-spacing:0.07em'>{src_name}</span>"
+            f"<span style='font-size:0.68rem;color:#444'>{n_adsets} ad sets</span>"
+            f"<span style='font-size:0.68rem;color:#555'>spend</span>"
+            f"<span style='font-size:0.9rem;font-weight:700;color:#d0d0d0'>{_fmt_spend(src_spend)}"
+            f"<span style='font-size:0.65rem;color:#333;margin-left:4px'>{src_spct:.0f}%</span></span>"
+            f"<span style='font-size:0.68rem;color:#555'>cac</span>"
+            f"<span style='font-size:0.9rem;font-weight:700;color:#d0d0d0'>₹{src_cac:,.0f}</span>"
+            f"<span style='font-size:0.68rem;color:#555'>unin</span>"
+            f"<span style='font-size:0.9rem;font-weight:700;color:#d0d0d0'>{src_unin_rate:.1f}%</span>"
+            f"</div>",
+            unsafe_allow_html=True,
+        )
+
+        # Ad set rows
+        for _, row in src_df.iterrows():
+            aname = row["ad_set"]
+            sig_label, sig_col = _signal(row)
+            cac_col  = "#E24B4A" if row["cac"]       > avg_cac  * 1.25 else "#c0c0c0"
+            unin_col = "#E24B4A" if row["unin_rate"] > avg_unin * 1.25 else "#c0c0c0"
+            disp = (aname[:60] + "…") if len(aname) > 61 else aname
+
+            signal_html = (
+                f"<span style='font-size:0.6rem;font-weight:700;padding:1px 6px;"
+                f"border-radius:3px;background:{sig_col}20;color:{sig_col}'>{sig_label}</span>"
+            ) if sig_label else ""
+
+            st.markdown(
+                f"<div style='display:flex;align-items:center;gap:16px;padding:7px 12px 7px 20px;"
+                f"border-bottom:1px solid #0d0d0d'>"
+                f"<span style='font-size:0.78rem;color:#c0c0c0;flex:1;min-width:0;"
+                f"overflow:hidden;text-overflow:ellipsis;white-space:nowrap'>{disp}</span>"
+                f"{signal_html}"
+                f"<span style='font-size:0.65rem;color:#444;flex-shrink:0'>spend</span>"
+                f"<span style='font-size:0.82rem;font-weight:600;color:#d0d0d0;flex-shrink:0'>"
+                f"{_fmt_spend(row['spend'])}"
+                f"<span style='font-size:0.62rem;color:#333;margin-left:3px'>{row['spend_pct']:.1f}%</span>"
+                f"</span>"
+                f"<span style='font-size:0.65rem;color:#444;flex-shrink:0'>cac</span>"
+                f"<span style='font-size:0.82rem;font-weight:600;color:{cac_col};flex-shrink:0'>"
+                f"₹{row['cac']:,.0f}</span>"
+                f"<span style='font-size:0.65rem;color:#444;flex-shrink:0'>unin</span>"
+                f"<span style='font-size:0.82rem;font-weight:600;color:{unin_col};flex-shrink:0'>"
+                f"{row['unin_rate']:.1f}%</span>"
+                f"<span style='font-size:0.75rem;color:#2a2a2a;flex-shrink:0'>{row['orders']:,.0f} users</span>"
+                f"</div>",
+                unsafe_allow_html=True,
+            )
+
+        st.markdown("<div style='height:16px'></div>", unsafe_allow_html=True)
+
+
+# ════════════════════════════════════════════════════════════════════════════
 #  main navigation
 # ════════════════════════════════════════════════════════════════════════════
 
@@ -2211,7 +2360,7 @@ def main():
     color   = APP_COLORS[app]
     hex_col = color.lstrip("#")
     r, g, b = int(hex_col[0:2], 16), int(hex_col[2:4], 16), int(hex_col[4:6], 16)
-    section_options = ["🌅 Morning Pulse", "📊 Category Mix"]
+    section_options = ["🌅 Morning Pulse", "📊 Category Mix", "🔍 Ad Set Analysis"]
     if st.session_state.get("sb_section") not in section_options:
         st.session_state["sb_section"] = section_options[0]
     section = st.session_state["sb_section"]
@@ -2282,6 +2431,10 @@ def main():
     df = safe_fetch(app)
     if df.empty:
         st.warning(f"No data loaded for {app}.")
+        return
+
+    if section == "🔍 Ad Set Analysis":
+        adset_analysis_view(df, app=app, color=color)
         return
 
     # Debug: show what app_name values are in the fetched data
