@@ -74,8 +74,25 @@ def fetch_app_data(app_name: str) -> pd.DataFrame:
     return df
 
 
+def _force_redash_execution(query_id: int) -> None:
+    """POST to Redash with max_age=0 to force a fresh query execution."""
+    url = f"{REDASH_BASE_URL}/api/queries/{query_id}/results"
+    try:
+        requests.post(url, json={"max_age": 0},
+                      params={"api_key": REDASH_API_KEY}, timeout=60)
+    except Exception:
+        pass
+
+
 def refresh_app_data(app_name: str) -> pd.DataFrame:
+    # Force Redash to re-execute both app and creative queries
+    _force_redash_execution(APP_QUERY_IDS[app_name])
+    if app_name in CREATIVE_QUERY_IDS:
+        _force_redash_execution(CREATIVE_QUERY_IDS[app_name])
+    # Clear Streamlit cache so next fetch gets fresh results
     fetch_app_data.clear(app_name)
+    if app_name in CREATIVE_QUERY_IDS:
+        fetch_creative_data.clear(app_name)
     return fetch_app_data(app_name)
 
 
