@@ -2231,8 +2231,15 @@ _MIN_SPEND_CREATIVE  = 2_000
 _MIN_SPEND_ADSET     = 5_000
 _MIN_SPEND_CAMPAIGN  = 10_000
 
-def _adviser_score(cac, unin, spend, cac_target=CAC_TARGET, unin_target=UNIN_TARGET):
+def _adviser_score(cac, unin, spend=0, cac_target=CAC_TARGET, unin_target=UNIN_TARGET):
     """Return (action, urgency, reason_parts) for a single entity."""
+    try:
+        cac  = float(cac)
+        unin = float(unin)
+    except (TypeError, ValueError):
+        return "WATCH", "neutral", ["Insufficient data"]
+    if pd.isna(cac) or pd.isna(unin):
+        return "WATCH", "neutral", ["Insufficient data"]
     cac_ratio  = cac  / cac_target  if cac_target  else 0
     unin_ratio = unin / unin_target if unin_target else 0
 
@@ -2321,6 +2328,7 @@ def adviser_view(df: pd.DataFrame, cr_raw, app: str, color: str):
     camp_agg = _agg_3day(df, "campaign")
     for _, row in camp_agg.iterrows():
         if row["spend"] < _MIN_SPEND_CAMPAIGN: continue
+        if row["paid"] < 3: continue
         action, urgency, reasons = _adviser_score(row["cac"], row["unin_rate"])
         if action == "WATCH": continue
         reasons.append(f"Campaign-level signal")
@@ -2333,6 +2341,7 @@ def adviser_view(df: pd.DataFrame, cr_raw, app: str, color: str):
         adset_agg = _agg_3day(df, "ad_set")
         for _, row in adset_agg.iterrows():
             if row["spend"] < _MIN_SPEND_ADSET: continue
+            if row["paid"] < 2: continue
             action, urgency, reasons = _adviser_score(row["cac"], row["unin_rate"])
             if action == "WATCH": continue
             html = _action_card(row["ad_set"], "Ad Set", action, urgency,
@@ -2344,6 +2353,7 @@ def adviser_view(df: pd.DataFrame, cr_raw, app: str, color: str):
         cr_agg = _agg_3day(cr_raw, "ad_creative")
         for _, row in cr_agg.iterrows():
             if row["spend"] < _MIN_SPEND_CREATIVE: continue
+            if row["paid"] < 2: continue
             action, urgency, reasons = _adviser_score(row["cac"], row["unin_rate"])
             if action == "WATCH": continue
             html = _action_card(row["ad_creative"], "Creative", action, urgency,
