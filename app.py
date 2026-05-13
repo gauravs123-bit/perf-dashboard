@@ -354,16 +354,31 @@ def _hex_to_rgb(h: str) -> tuple[int, int, int]:
 #  Trend chart dialog (module-level for @st.dialog)
 # ════════════════════════════════════════════════════════════════════════════
 
-def _build_trend_fig(filter_df: pd.DataFrame, label: str, n_days: int = 14):
+def _build_trend_fig(filter_df: pd.DataFrame, label: str, n_days: int = 14,
+                     end_date=None):
     if filter_df is None or filter_df.empty or "date_tz" not in filter_df.columns:
         return None, None
     daily = (filter_df.groupby("date_tz")
              .agg(spend=("total_cost", "sum"),
                   orders=("D0_paid_users", "sum"),
                   unin=("p0_unin_users", "sum"))
-             .reset_index().sort_values("date_tz").tail(n_days))
-    daily["cac"]       = daily["spend"]  / daily["orders"].clip(lower=1)
-    daily["unin_rate"] = daily["unin"]   / daily["orders"].clip(lower=1) * 100
+             .reset_index().sort_values("date_tz"))
+    # Reindex to full date range so 0-spend days show as empty bars
+    min_date = daily["date_tz"].min()
+    max_date = end_date if end_date is not None else daily["date_tz"].max()
+    full_range = pd.date_range(min_date, max_date, freq="D").date
+    daily = (daily.set_index("date_tz")
+                  .reindex(full_range)
+                  .reset_index()
+                  .rename(columns={"index": "date_tz"}))
+    daily["spend"]  = daily["spend"].fillna(0)
+    daily["orders"] = daily["orders"].fillna(0)
+    daily["unin"]   = daily["unin"].fillna(0)
+    daily = daily.tail(n_days)
+    daily["cac"]       = daily.apply(
+        lambda r: r["spend"] / r["orders"] if r["orders"] > 0 else float("nan"), axis=1)
+    daily["unin_rate"] = daily.apply(
+        lambda r: r["unin"] / r["orders"] * 100 if r["orders"] > 0 else float("nan"), axis=1)
     fig = go.Figure()
     # Spend bars (y3, right-2)
     fig.add_trace(go.Bar(
@@ -401,10 +416,10 @@ def _build_trend_fig(filter_df: pd.DataFrame, label: str, n_days: int = 14):
 
 
 @st.dialog("📈 CAC, Spend & Uninstall Trend", width="large")
-def show_trend_dialog(label: str, filter_df: pd.DataFrame):
+def show_trend_dialog(label: str, filter_df: pd.DataFrame, end_date=None):
     st.markdown(f"<div style='font-size:0.82rem;color:#888;margin-bottom:12px'>{label}</div>",
                 unsafe_allow_html=True)
-    fig, daily = _build_trend_fig(filter_df, label)
+    fig, daily = _build_trend_fig(filter_df, label, end_date=end_date)
     if fig is None:
         st.info("No historical data available for this selection.")
         return
@@ -1404,6 +1419,12 @@ def morning_pulse_view(df: pd.DataFrame, app: str, color: str, mode: str = "unin
                     f"background:#0a0a0a;text-align:{'left' if i==0 else 'right'}'>{lbl}</div>",
                     unsafe_allow_html=True)
 
+    # Max date from full dataset — used to extend trend charts past last-spend date
+    _df_max_date = df["date_tz"].max() if not df.empty and "date_tz" in df.columns else None
+    _cr_max_date = (cr_raw["date_tz"].max()
+                    if cr_raw is not None and not cr_raw.empty and "date_tz" in cr_raw.columns
+                    else _df_max_date)
+
     # ══════════════════════════════════════════════════════════
     #  LEVEL 1 — CAMPAIGNS
     # ══════════════════════════════════════════════════════════
@@ -1507,7 +1528,7 @@ def morning_pulse_view(df: pd.DataFrame, app: str, color: str, mode: str = "unin
                 with cb:
                     if st.button("trend", key=f"chart_c1_{app}_{mode}_{ci}",
                                  use_container_width=True, help="7-day trend"):
-                        show_trend_dialog(camp_name, camp_df_s)
+                        show_trend_dialog(camp_name, camp_df_s, end_date=_df_max_date)
 
     # ══════════════════════════════════════════════════════════
     #  LEVEL 2 — AD SETS
@@ -1576,11 +1597,11 @@ def morning_pulse_view(df: pd.DataFrame, app: str, color: str, mode: str = "unin
                         with cb:
                             if st.button("trend", key=f"chart_a2_{app}_{mode}_{ai}",
                                          use_container_width=True, help="7-day trend"):
-                                show_trend_dialog(aname, adset_df_s)
+                                show_trend_dialog(aname, adset_df_s, end_date=_df_max_date)
                     else:
                         if st.button("trend", key=f"chart_a2_{app}_{mode}_{ai}",
                                      use_container_width=True, help="7-day trend"):
-                            show_trend_dialog(aname, adset_df_s)
+                            show_trend_dialog(aname, adset_df_s, end_date=_df_max_date)
 
     # ══════════════════════════════════════════════════════════
     #  LEVEL 3 — CREATIVES
@@ -1641,7 +1662,7 @@ def morning_pulse_view(df: pd.DataFrame, app: str, color: str, mode: str = "unin
                 with c6:
                     if st.button("trend", key=f"chart_cr_{app}_{mode}_{ri}",
                                  use_container_width=True, help="7-day trend"):
-                        show_trend_dialog(cr_name, cr_df_t)
+                        show_trend_dialog(cr_name, cr_df_t, end_date=_cr_max_date)
 
 
 
