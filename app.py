@@ -1477,7 +1477,7 @@ def morning_pulse_view(df: pd.DataFrame, app: str, color: str, mode: str = "unin
             dot_col, src_label = _src_dot_label(src)
             cac_cv    = camp_cac_map.get(camp_name,  {}).get("contribution")
             unin_cv   = camp_unin_map.get(camp_name, {}).get("contribution")
-            camp_df_s = df_sel[df_sel["campaign"] == camp_name] if "campaign" in df_sel.columns else pd.DataFrame()
+            camp_df_s = df[df["campaign"] == camp_name] if "campaign" in df.columns else pd.DataFrame()
             disp_name = (camp_name[:48] + "…") if len(camp_name) > 49 else camp_name
 
             c0, c1, c2, c3, c4, c5, c6 = st.columns(_CW)
@@ -1546,8 +1546,8 @@ def morning_pulse_view(df: pd.DataFrame, app: str, color: str, mode: str = "unin
                 unin_str = f"{unin_abs:.1f}%"    if unin_abs is not None else "—"
                 cac_col  = "#E24B4A" if cac_abs  is not None and cac_abs  > 500 else "#c0c0c0"
                 unin_col = "#E24B4A" if unin_abs is not None and unin_abs > 25  else "#c0c0c0"
-                adset_df_s = (df_sel[(df_sel["campaign"] == sel_camp) & (df_sel["ad_set"] == aname)]
-                              if "ad_set" in df_sel.columns else pd.DataFrame())
+                adset_df_s = (df[(df["campaign"] == sel_camp) & (df["ad_set"] == aname)]
+                              if "ad_set" in df.columns else pd.DataFrame())
                 disp_name = (aname[:48] + "…") if len(aname) > 49 else aname
 
                 c0, c1, c2, c3, c4, c5, c6 = st.columns(_CW)
@@ -1623,7 +1623,7 @@ def morning_pulse_view(df: pd.DataFrame, app: str, color: str, mode: str = "unin
                 cac_cv   = kit_cr_cac_map.get(cr_name,  {}).get("contribution")
                 unin_cv  = kit_cr_unin_map.get(cr_name, {}).get("contribution")
                 _sp      = f"{crow['spend_pct']:.1f}%"
-                cr_df_t  = cr_sel[cr_sel["ad_creative"] == cr_name] if cr_sel is not None else pd.DataFrame()
+                cr_df_t  = cr_raw[cr_raw["ad_creative"] == cr_name] if cr_raw is not None else pd.DataFrame()
                 disp_name = (cr_name[:52] + "…") if len(cr_name) > 53 else cr_name
 
                 c0, c1, c2, c3, c4, c5, c6 = st.columns(_CW)
