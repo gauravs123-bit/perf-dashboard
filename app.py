@@ -2220,6 +2220,217 @@ def category_mix_view(app: str = "Seekho"):
 
 
 # ════════════════════════════════════════════════════════════════════════════
+#  Daily Adviser — prioritised budget action recommendations
+# ════════════════════════════════════════════════════════════════════════════
+
+CAC_TARGET   = 500.0
+UNIN_TARGET  = 15.0   # percent
+
+# Spend floors to filter noise
+_MIN_SPEND_CREATIVE  = 2_000
+_MIN_SPEND_ADSET     = 5_000
+_MIN_SPEND_CAMPAIGN  = 10_000
+
+def _adviser_score(cac, unin, spend, cac_target=CAC_TARGET, unin_target=UNIN_TARGET):
+    """Return (action, urgency, reason_parts) for a single entity."""
+    cac_ratio  = cac  / cac_target  if cac_target  else 0
+    unin_ratio = unin / unin_target if unin_target else 0
+
+    if cac_ratio >= 1.4 and unin_ratio >= 1.5:
+        return "PAUSE", "urgent", [f"CAC ₹{cac:,.0f} ({cac_ratio:.1f}x target)", f"Uninstall {unin:.1f}% ({unin_ratio:.1f}x target)"]
+    if cac_ratio >= 2.0:
+        return "PAUSE", "urgent", [f"CAC ₹{cac:,.0f} ({cac_ratio:.1f}x target) — extremely high"]
+    if unin_ratio >= 2.5:
+        return "PAUSE", "urgent", [f"Uninstall {unin:.1f}% ({unin_ratio:.1f}x target) — very high churn"]
+    if cac_ratio >= 1.2 and unin_ratio >= 1.2:
+        return "DECREASE BUDGET", "warn", [f"CAC ₹{cac:,.0f} ({cac_ratio:.1f}x target)", f"Uninstall {unin:.1f}% ({unin_ratio:.1f}x target)"]
+    if cac_ratio >= 1.2:
+        return "DECREASE BUDGET", "warn", [f"CAC ₹{cac:,.0f} ({cac_ratio:.1f}x target)", f"Uninstall {unin:.1f}% (ok)"]
+    if unin_ratio >= 1.5:
+        return "DECREASE BUDGET", "warn", [f"Uninstall {unin:.1f}% ({unin_ratio:.1f}x target)", f"CAC ₹{cac:,.0f} (ok)"]
+    if cac_ratio <= 0.8 and unin_ratio <= 0.85:
+        return "SCALE", "good", [f"CAC ₹{cac:,.0f} ({cac_ratio:.1f}x target) — efficient", f"Uninstall {unin:.1f}% — low churn"]
+    if cac_ratio <= 0.9 and unin_ratio <= 1.0:
+        return "INCREASE BUDGET", "good", [f"CAC ₹{cac:,.0f} — below target", f"Uninstall {unin:.1f}% — within target"]
+    return "WATCH", "neutral", [f"CAC ₹{cac:,.0f} ({cac_ratio:.1f}x target)", f"Uninstall {unin:.1f}% ({unin_ratio:.1f}x target)"]
+
+
+def _agg_3day(df: pd.DataFrame, group_col: str, days: int = 3) -> pd.DataFrame:
+    """Aggregate last N days cumulatively by group_col."""
+    if df.empty or group_col not in df.columns:
+        return pd.DataFrame()
+    cutoff = sorted(df["date_tz"].unique())[-days] if len(df["date_tz"].unique()) >= days else df["date_tz"].min()
+    sub = df[df["date_tz"] >= cutoff]
+    agg = (sub.groupby(group_col)
+              .agg(spend=("total_cost", "sum"),
+                   paid=("D0_paid_users", "sum"),
+                   unin=("p0_unin_users", "sum"))
+              .reset_index())
+    agg["cac"]  = agg["spend"] / agg["paid"].clip(lower=1)
+    agg["unin_rate"] = (agg["unin"] / agg["paid"].clip(lower=1) * 100)
+    return agg
+
+
+def _action_card(name: str, level: str, action: str, urgency: str,
+                 reasons: list, spend: float, paid: int, color: str) -> str:
+    _ACTION_COLORS = {
+        "PAUSE":           ("#E24B4A", "🛑"),
+        "DECREASE BUDGET": ("#E8883A", "📉"),
+        "SCALE":           ("#1D9E75", "🚀"),
+        "INCREASE BUDGET": ("#378ADD", "📈"),
+        "SHIFT BUDGET":    ("#9B59B6", "🔀"),
+        "WATCH":           ("#555",    "👀"),
+    }
+    ac, icon = _ACTION_COLORS.get(action, ("#555", "•"))
+    urgency_badge = {"urgent": f"<span style='background:#E24B4A22;color:#E24B4A;font-size:0.6rem;padding:1px 6px;border-radius:3px;font-weight:700'>URGENT</span>",
+                     "warn":   f"<span style='background:#E8883A22;color:#E8883A;font-size:0.6rem;padding:1px 6px;border-radius:3px;font-weight:700'>REVIEW</span>",
+                     "good":   f"<span style='background:#1D9E7522;color:#1D9E75;font-size:0.6rem;padding:1px 6px;border-radius:3px;font-weight:700'>OPPORTUNITY</span>",
+                     "neutral":f"<span style='background:#33333322;color:#666;font-size:0.6rem;padding:1px 6px;border-radius:3px;font-weight:700'>MONITOR</span>",
+    }.get(urgency, "")
+    level_badge = f"<span style='font-size:0.58rem;color:#444;text-transform:uppercase;letter-spacing:.06em'>{level}</span>"
+    reason_html = "".join(f"<div style='font-size:0.72rem;color:#666;margin-top:2px'>· {r}</div>" for r in reasons)
+    spend_str = f"₹{spend/1000:.0f}k" if spend >= 1000 else f"₹{spend:.0f}"
+    meta = f"<div style='font-size:0.7rem;color:#444;margin-top:4px'>Spend {spend_str} · {paid} paid users (3d)</div>"
+    disp = (name[:55] + "…") if len(name) > 56 else name
+    return f"""
+<div style='border-left:3px solid {ac};padding:10px 14px;margin:6px 0;background:#0e0e0e;border-radius:0 6px 6px 0'>
+  <div style='display:flex;align-items:center;gap:8px;margin-bottom:4px'>
+    <span style='font-size:1rem'>{icon}</span>
+    <span style='font-size:0.88rem;font-weight:700;color:{ac}'>{action}</span>
+    {urgency_badge}
+    {level_badge}
+  </div>
+  <div style='font-size:0.8rem;color:#ccc;font-weight:500'>{disp}</div>
+  {reason_html}
+  {meta}
+</div>"""
+
+
+def adviser_view(df: pd.DataFrame, cr_raw, app: str, color: str):
+    """Daily budget action adviser — campaign / adset / creative level."""
+    st.markdown(
+        "<div style='font-size:0.6rem;text-transform:uppercase;letter-spacing:.12em;color:#333;margin-bottom:2px'>DAILY ADVISER</div>"
+        f"<div style='font-size:1.1rem;font-weight:700;color:#e0e0e0;margin-bottom:2px'>Budget Actions</div>"
+        f"<div style='font-size:0.72rem;color:#444;margin-bottom:16px'>Target CAC ₹{CAC_TARGET:,.0f} · Uninstall {UNIN_TARGET:.0f}% · Based on last 3 days</div>",
+        unsafe_allow_html=True)
+
+    cards = []  # list of (urgency_rank, html)
+    urgency_rank = {"urgent": 0, "warn": 1, "good": 2, "neutral": 3}
+
+    # ── Campaign level ────────────────────────────────────────────────────
+    camp_agg = _agg_3day(df, "campaign")
+    for _, row in camp_agg.iterrows():
+        if row["spend"] < _MIN_SPEND_CAMPAIGN: continue
+        action, urgency, reasons = _adviser_score(row["cac"], row["unin_rate"])
+        if action == "WATCH": continue
+        reasons.append(f"Campaign-level signal")
+        html = _action_card(row["campaign"], "Campaign", action, urgency,
+                            reasons, row["spend"], int(row["paid"]), color)
+        cards.append((urgency_rank[urgency], html))
+
+    # ── Ad set level ──────────────────────────────────────────────────────
+    if "ad_set" in df.columns:
+        adset_agg = _agg_3day(df, "ad_set")
+        for _, row in adset_agg.iterrows():
+            if row["spend"] < _MIN_SPEND_ADSET: continue
+            action, urgency, reasons = _adviser_score(row["cac"], row["unin_rate"])
+            if action == "WATCH": continue
+            html = _action_card(row["ad_set"], "Ad Set", action, urgency,
+                                reasons, row["spend"], int(row["paid"]), color)
+            cards.append((urgency_rank[urgency], html))
+
+    # ── Creative level ────────────────────────────────────────────────────
+    if cr_raw is not None and not cr_raw.empty and "ad_creative" in cr_raw.columns:
+        cr_agg = _agg_3day(cr_raw, "ad_creative")
+        for _, row in cr_agg.iterrows():
+            if row["spend"] < _MIN_SPEND_CREATIVE: continue
+            action, urgency, reasons = _adviser_score(row["cac"], row["unin_rate"])
+            if action == "WATCH": continue
+            html = _action_card(row["ad_creative"], "Creative", action, urgency,
+                                reasons, row["spend"], int(row["paid"]), color)
+            cards.append((urgency_rank[urgency], html))
+
+    # ── Shift budget signals ───────────────────────────────────────────────
+    # Find campaigns that have both good and bad adsets
+    if "ad_set" in df.columns and "campaign" in df.columns:
+        cutoff = sorted(df["date_tz"].unique())[-3] if len(df["date_tz"].unique()) >= 3 else df["date_tz"].min()
+        sub = df[df["date_tz"] >= cutoff]
+        camp_adset = (sub.groupby(["campaign", "ad_set"])
+                        .agg(spend=("total_cost", "sum"),
+                             paid=("D0_paid_users", "sum"),
+                             unin=("p0_unin_users", "sum"))
+                        .reset_index())
+        camp_adset["cac"] = camp_adset["spend"] / camp_adset["paid"].clip(lower=1)
+        camp_adset["unin_rate"] = camp_adset["unin"] / camp_adset["paid"].clip(lower=1) * 100
+        camp_adset = camp_adset[camp_adset["spend"] >= _MIN_SPEND_ADSET]
+        for camp, grp in camp_adset.groupby("campaign"):
+            good = grp[grp["cac"] <= CAC_TARGET * 0.85]
+            bad  = grp[grp["cac"] >= CAC_TARGET * 1.3]
+            if good.empty or bad.empty: continue
+            best  = good.sort_values("cac").iloc[0]
+            worst = bad.sort_values("cac", ascending=False).iloc[0]
+            reasons = [
+                f"Move budget from '{worst['ad_set'][:40]}' (CAC ₹{worst['cac']:,.0f})",
+                f"To '{best['ad_set'][:40]}' (CAC ₹{best['cac']:,.0f})",
+            ]
+            html = _action_card(camp, "Campaign", "SHIFT BUDGET", "warn",
+                                reasons, grp["spend"].sum(), int(grp["paid"].sum()), color)
+            cards.append((1, html))
+
+    # ── Render ────────────────────────────────────────────────────────────
+    if not cards:
+        st.markdown(
+            "<div style='padding:32px;text-align:center;color:#333;font-size:0.85rem'>"
+            "✅ All campaigns within target — no actions needed today.</div>",
+            unsafe_allow_html=True)
+        return
+
+    cards.sort(key=lambda x: x[0])
+
+    # Summary bar
+    counts = {"urgent": 0, "warn": 0, "good": 0}
+    all_camp  = _agg_3day(df, "campaign")
+    for _, row in all_camp.iterrows():
+        if row["spend"] < _MIN_SPEND_CAMPAIGN: continue
+        _, urg, _ = _adviser_score(row["cac"], row["unin_rate"])
+        if urg in counts: counts[urg] += 1
+
+    summary_html = (
+        "<div style='display:flex;gap:10px;margin-bottom:16px;flex-wrap:wrap'>"
+        f"<div style='background:#E24B4A22;border:1px solid #E24B4A44;border-radius:6px;padding:8px 14px'>"
+        f"<div style='font-size:1.1rem;font-weight:700;color:#E24B4A'>{sum(1 for r,_ in cards if r==0)}</div>"
+        f"<div style='font-size:0.65rem;color:#E24B4A;text-transform:uppercase'>Urgent</div></div>"
+        f"<div style='background:#E8883A22;border:1px solid #E8883A44;border-radius:6px;padding:8px 14px'>"
+        f"<div style='font-size:1.1rem;font-weight:700;color:#E8883A'>{sum(1 for r,_ in cards if r==1)}</div>"
+        f"<div style='font-size:0.65rem;color:#E8883A;text-transform:uppercase'>Review</div></div>"
+        f"<div style='background:#1D9E7522;border:1px solid #1D9E7544;border-radius:6px;padding:8px 14px'>"
+        f"<div style='font-size:1.1rem;font-weight:700;color:#1D9E75'>{sum(1 for r,_ in cards if r==2)}</div>"
+        f"<div style='font-size:0.65rem;color:#1D9E75;text-transform:uppercase'>Opportunity</div></div>"
+        "</div>"
+    )
+    st.markdown(summary_html, unsafe_allow_html=True)
+
+    # Filter tabs
+    filter_col, _ = st.columns([4, 6])
+    with filter_col:
+        level_filter = st.pills("Show", ["All", "Campaign", "Ad Set", "Creative"],
+                                default="All", key=f"adv_filter_{app}")
+
+    for rank, html in cards:
+        level_in_html = ("Campaign" if "Campaign-level" in html or ">Campaign<" in html
+                         else "Ad Set" if ">Ad Set<" in html
+                         else "Creative")
+        # parse level from badge
+        if ">Campaign<" in html: lev = "Campaign"
+        elif ">Ad Set<" in html: lev = "Ad Set"
+        elif ">Creative<" in html: lev = "Creative"
+        else: lev = "Campaign"
+        if level_filter != "All" and level_filter != lev:
+            continue
+        st.markdown(html, unsafe_allow_html=True)
+
+
+# ════════════════════════════════════════════════════════════════════════════
 #  Ad Set Analysis — source → ad set, 7-day cumulative
 # ════════════════════════════════════════════════════════════════════════════
 
@@ -2381,7 +2592,7 @@ def main():
     color   = APP_COLORS[app]
     hex_col = color.lstrip("#")
     r, g, b = int(hex_col[0:2], 16), int(hex_col[2:4], 16), int(hex_col[4:6], 16)
-    section_options = ["🌅 Morning Pulse", "📊 Category Mix", "🔍 Ad Set Analysis"]
+    section_options = ["🌅 Morning Pulse", "📊 Category Mix", "🔍 Ad Set Analysis", "🎯 Adviser"]
     if st.session_state.get("sb_section") not in section_options:
         st.session_state["sb_section"] = section_options[0]
     section = st.session_state["sb_section"]
@@ -2456,6 +2667,16 @@ def main():
 
     if section == "🔍 Ad Set Analysis":
         adset_analysis_view(df, app=app, color=color)
+        return
+
+    if section == "🎯 Adviser":
+        cr_raw = None
+        if app in CREATIVE_QUERY_IDS:
+            try:
+                cr_raw = add_derived_metrics(fetch_creative_data(app))
+            except Exception:
+                pass
+        adviser_view(df, cr_raw, app=app, color=color)
         return
 
     # Debug: show what app_name values are in the fetched data
