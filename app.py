@@ -1451,7 +1451,7 @@ def morning_pulse_view(df: pd.DataFrame, app: str, color: str, mode: str = "unin
                 unsafe_allow_html=True)
 
         # ── Source-level summary bar ──────────────────────────────────────
-        src_summary = source_split(df_sel, "p0_uninstall_rate") if not df_sel.empty else pd.DataFrame()
+        src_summary = source_split(df_sel, "p0_uninstall_rate") if not df_sel.empty and "source" in df_sel.columns else pd.DataFrame()
         if not src_summary.empty:
             _SRC_COLORS = {"Facebook": "#378ADD", "Google": "#34A853", "Other": "#666"}
             cards_html = "<div style='display:flex;gap:8px;margin:10px 0 14px;flex-wrap:wrap'>"
