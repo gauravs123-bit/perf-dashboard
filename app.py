@@ -2076,9 +2076,26 @@ def category_mix_view(app: str = "Seekho"):
         cr7 = cr_df[cr_df["date_tz"].isin(set(cr_dates[-7:]))].copy()
 
     # ── assign categories ──
-    df7["category"] = df7["campaign"].apply(_parse_cat)
-    if not cr7.empty:
-        cr7["category"] = cr7["campaign"].apply(_parse_cat)
+    # Creative names are the source of truth for categories.
+    # For Meta: each campaign is assigned the category of its most-spent creative.
+    # For Google (no creative data): fall back to campaign name parsing.
+    if not cr7.empty and "ad_creative" in cr7.columns:
+        cr7["category"] = cr7["ad_creative"].apply(_parse_cat)
+        # build campaign → dominant_category map from creative data
+        camp_cat_map = (cr7.groupby(["campaign", "category"])["total_cost"]
+                        .sum().reset_index()
+                        .sort_values("total_cost", ascending=False)
+                        .drop_duplicates("campaign")
+                        .set_index("campaign")["category"]
+                        .to_dict())
+    else:
+        camp_cat_map = {}
+
+    def _assign_cat(row) -> str:
+        # Use creative-derived category if available, else parse from campaign name
+        return camp_cat_map.get(row["campaign"], _parse_cat(row["campaign"]))
+
+    df7["category"] = df7.apply(_assign_cat, axis=1)
 
     # ── category totals (all sources) ──
     cat_stats = (df7.groupby("category")
