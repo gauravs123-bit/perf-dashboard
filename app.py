@@ -2042,7 +2042,11 @@ def category_mix_view(app: str = "Seekho"):
             height=h, margin=dict(l=4, r=4, t=28, b=4),
             showlegend=legend,
             legend=dict(orientation="h", y=1.18, x=0, font=dict(size=9)) if legend else {},
-            xaxis=dict(showgrid=False, tickfont=dict(size=9, color="#8A857D"), zeroline=False),
+            xaxis=dict(
+                showgrid=False, zeroline=False,
+                type="date", tickformat="%b %d",
+                tickfont=dict(size=9, color="#8A857D"),
+            ),
         )
         return fig
 
@@ -2150,7 +2154,7 @@ def category_mix_view(app: str = "Seekho"):
             lambda r: r["spend"] / r["orders"] if r["orders"] > 0 else None, axis=1)
         daily["unin_rate"] = daily.apply(
             lambda r: r["unin"] / r["orders"] * 100 if r["orders"] > 0 else None, axis=1)
-        daily["ds"] = daily["date_tz"].astype(str).str[-5:]
+        daily["ds"] = daily["date_tz"].astype(str)
         rc, gc, bc = _hex_to_rgb(src_color)
 
         fig = _base_fig(h=200, legend=True)
@@ -2188,13 +2192,13 @@ def category_mix_view(app: str = "Seekho"):
         cr_daily = (camp_cr.groupby("date_tz")
                     .agg(n_creatives=("ad_creative", "nunique"))
                     .reset_index().sort_values("date_tz"))
-        cr_daily["ds"] = cr_daily["date_tz"].astype(str).str[-5:]
+        cr_daily["ds"] = cr_daily["date_tz"].astype(str)
 
         top80_s = (camp_cr.groupby("date_tz")
                    .apply(_top80_creatives)
                    .reset_index().rename(columns={0: "n_top80"})
                    .sort_values("date_tz"))
-        top80_s["ds"] = top80_s["date_tz"].astype(str).str[-5:]
+        top80_s["ds"] = top80_s["date_tz"].astype(str)
 
         c1, c2 = st.columns(2)
         with c1:
@@ -2228,13 +2232,13 @@ def category_mix_view(app: str = "Seekho"):
         as_daily = (camp_goog.groupby("date_tz")
                     .agg(n_adsets=("ad_set", "nunique"))
                     .reset_index().sort_values("date_tz"))
-        as_daily["ds"] = as_daily["date_tz"].astype(str).str[-5:]
+        as_daily["ds"] = as_daily["date_tz"].astype(str)
 
         top80_s = (camp_goog.groupby("date_tz")
                    .apply(_top80_adsets)
                    .reset_index().rename(columns={0: "n_top80"})
                    .sort_values("date_tz"))
-        top80_s["ds"] = top80_s["date_tz"].astype(str).str[-5:]
+        top80_s["ds"] = top80_s["date_tz"].astype(str)
 
         c1, c2 = st.columns(2)
         with c1:
@@ -2267,7 +2271,7 @@ def category_mix_view(app: str = "Seekho"):
                           n_units=(unit_col, "nunique"))
                      .reset_index().sort_values("date_tz"))
         daily_agg["avg"] = daily_agg["total_spend"] / daily_agg["n_units"]
-        daily_agg["ds"]  = daily_agg["date_tz"].astype(str).str[-5:]
+        daily_agg["ds"]  = daily_agg["date_tz"].astype(str)
 
         def _p80(grp):
             per_unit = grp.groupby(unit_col)["total_cost"].sum()
@@ -2277,7 +2281,7 @@ def category_mix_view(app: str = "Seekho"):
                  .apply(_p80)
                  .reset_index().rename(columns={0: "p80"})
                  .sort_values("date_tz"))
-        p80_s["ds"] = p80_s["date_tz"].astype(str).str[-5:]
+        p80_s["ds"] = p80_s["date_tz"].astype(str)
 
         rc, gc, bc = _hex_to_rgb(color)
         c1, c2 = st.columns(2)
