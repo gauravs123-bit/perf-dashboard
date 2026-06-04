@@ -418,6 +418,8 @@ def morning_pulse(df: pd.DataFrame, ref_date=None) -> dict:
 
     # campaign-level movers
     def _camp_agg(d):
+        if "campaign" not in d.columns:
+            return pd.DataFrame(columns=["campaign","spend","orders","unin","cac","unin_rate"])
         g = d.groupby("campaign", as_index=False).agg(
             spend=("total_cost", "sum"),
             orders=("D0_paid_users", "sum"),

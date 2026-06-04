@@ -405,7 +405,7 @@ def _build_trend_fig(filter_df: pd.DataFrame, label: str, n_days: int = 14,
 
 @st.dialog("📈 CAC, Spend & Uninstall Trend", width="large")
 def show_trend_dialog(label: str, filter_df: pd.DataFrame, end_date=None):
-    st.markdown(f"<div style='font-size:0.82rem;color:#888;margin-bottom:12px'>{label}</div>",
+    st.markdown(f"<div style='font-size:0.82rem;color:#6B665E;margin-bottom:12px'>{label}</div>",
                 unsafe_allow_html=True)
     fig, daily = _build_trend_fig(filter_df, label, end_date=end_date)
     if fig is None:
@@ -1126,12 +1126,12 @@ def morning_pulse_view(df: pd.DataFrame, app: str, color: str, mode: str = "unin
         unin_rt = unin / orders * 100 if orders > 0 else 0
         is_today = (dt == sel_date)
         is_yday  = (dt == pulse["d1_date"])
-        row_bg  = "#181824" if is_today else ("#111" if is_yday else "transparent")
-        date_lbl = f"<b style='color:#ddd'>{dt}</b>" if is_today else f"<span style='color:#555'>{dt}</span>"
+        row_bg  = "#E8E1D6" if is_today else ("#F0EBE3" if is_yday else "transparent")
+        date_lbl = f"<b style='color:#1C1A17'>{dt}</b>" if is_today else f"<span style='color:#4A4540'>{dt}</span>"
 
         def _delta_cell(now, prev, fmt, higher_is_bad=True):
             if prev is None or prev == 0:
-                return "<td style='text-align:right;padding:5px 10px;color:#333'>—</td>"
+                return "<td style='text-align:right;padding:5px 10px;color:#C5C0B6'>—</td>"
             diff = now - prev
             is_bad = (diff > 0 and higher_is_bad) or (diff < 0 and not higher_is_bad)
             col = "#E24B4A" if is_bad else "#1D9E75"
@@ -1143,14 +1143,14 @@ def morning_pulse_view(df: pd.DataFrame, app: str, color: str, mode: str = "unin
         spend_delta_cell= _delta_cell(sp,      prev_spend, lambda v: f"₹{v:,.0f}", False)
 
         rows_html += (
-            f"<tr style='background:{row_bg};border-bottom:1px solid #111'>"
+            f"<tr style='background:{row_bg};border-bottom:1px solid #E5E0D6'>"
             f"<td style='padding:5px 10px;font-size:0.75rem;white-space:nowrap'>{date_lbl}</td>"
-            f"<td style='text-align:right;padding:5px 10px;font-size:0.78rem;color:#ccc'>₹{sp:,.0f}</td>"
+            f"<td style='text-align:right;padding:5px 10px;font-size:0.78rem;color:#2A2520'>₹{sp:,.0f}</td>"
             f"{spend_delta_cell}"
-            f"<td style='text-align:right;padding:5px 10px;font-size:0.78rem;color:#ccc'>{orders:,.0f}</td>"
-            f"<td style='text-align:right;padding:5px 10px;font-size:0.78rem;color:#ccc'>₹{cac:,.0f}</td>"
+            f"<td style='text-align:right;padding:5px 10px;font-size:0.78rem;color:#2A2520'>{orders:,.0f}</td>"
+            f"<td style='text-align:right;padding:5px 10px;font-size:0.78rem;color:#2A2520'>₹{cac:,.0f}</td>"
             f"{cac_delta_cell}"
-            f"<td style='text-align:right;padding:5px 10px;font-size:0.78rem;color:#ccc'>{unin_rt:.1f}%</td>"
+            f"<td style='text-align:right;padding:5px 10px;font-size:0.78rem;color:#2A2520'>{unin_rt:.1f}%</td>"
             f"{unin_delta_cell}"
             f"</tr>"
         )
@@ -1158,8 +1158,8 @@ def morning_pulse_view(df: pd.DataFrame, app: str, color: str, mode: str = "unin
         prev_unin  = unin_rt
         prev_spend = sp
 
-    th = "style='text-align:right;padding:5px 10px;font-size:0.65rem;color:#333;font-weight:600;text-transform:uppercase;letter-spacing:.06em;border-bottom:1px solid #1e1e1e'"
-    thl = "style='padding:5px 10px;font-size:0.65rem;color:#333;font-weight:600;text-transform:uppercase;letter-spacing:.06em;border-bottom:1px solid #1e1e1e'"
+    th = "style='text-align:right;padding:5px 10px;font-size:0.65rem;color:#8A857D;font-weight:600;text-transform:uppercase;letter-spacing:.06em;border-bottom:1px solid #E5E0D6'"
+    thl = "style='padding:5px 10px;font-size:0.65rem;color:#8A857D;font-weight:600;text-transform:uppercase;letter-spacing:.06em;border-bottom:1px solid #E5E0D6'"
     st.markdown(
         f"<div style='margin-bottom:20px;overflow-x:auto'>"
         f"<table style='width:100%;border-collapse:collapse'>"
@@ -1210,15 +1210,15 @@ def morning_pulse_view(df: pd.DataFrame, app: str, color: str, mode: str = "unin
         <div class="contrib-card" style="border-left:3px solid {accent}">
           <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px">
             <div style="flex:1;min-width:0">
-              <div style="font-size:0.84rem;font-weight:600;color:#ddd;margin-bottom:6px;line-height:1.3">{short}</div>
+              <div style="font-size:0.84rem;font-weight:600;color:#2A2520;margin-bottom:6px;line-height:1.3">{short}</div>
               <div style="display:flex;gap:5px;flex-wrap:wrap">
                 <span class="contrib-tag" style="color:{re_col}">Rate&nbsp;{re_arrow}&nbsp;{re_str}</span>
                 <span class="contrib-tag" style="color:{me_col}">Mix&nbsp;{me_arrow}&nbsp;{me_str}</span>
               </div>
             </div>
             <div style="text-align:right;flex-shrink:0;min-width:70px">
-              <div style="font-size:0.62rem;color:#444;text-transform:uppercase;letter-spacing:.08em;margin-bottom:2px">{rate_lbl}</div>
-              <div style="font-size:0.88rem;color:#888;margin-bottom:4px">{rate_str}</div>
+              <div style="font-size:0.62rem;color:#8A857D;text-transform:uppercase;letter-spacing:.08em;margin-bottom:2px">{rate_lbl}</div>
+              <div style="font-size:0.88rem;color:#4A4540;margin-bottom:4px">{rate_str}</div>
               <div style="font-size:1.05rem;font-weight:700;color:{c_col};letter-spacing:-.01em">{contrib_str}</div>
             </div>
           </div>
@@ -1226,13 +1226,13 @@ def morning_pulse_view(df: pd.DataFrame, app: str, color: str, mode: str = "unin
 
     def _render_kit_col(kit_df, is_cac):
         if kit_df.empty:
-            st.markdown("<div style='color:#444;font-size:0.82rem;padding:8px'>No data</div>", unsafe_allow_html=True)
+            st.markdown("<div style='color:#8A857D;font-size:0.82rem;padding:8px'>No data</div>", unsafe_allow_html=True)
             return
         worsened = kit_df[kit_df["contribution"] > 0].head(3)
         improved = kit_df[kit_df["contribution"] < 0].tail(2)
         st.markdown("<div style='font-size:0.72rem;color:#E24B4A;font-weight:600;margin-bottom:5px;letter-spacing:.06em;text-transform:uppercase'>↑ Worsened</div>", unsafe_allow_html=True)
         if worsened.empty:
-            st.markdown("<div style='color:#333;font-size:0.8rem;margin-bottom:8px'>—</div>", unsafe_allow_html=True)
+            st.markdown("<div style='color:#C5C0B6;font-size:0.8rem;margin-bottom:8px'>—</div>", unsafe_allow_html=True)
         for _, row in worsened.iterrows():
             st.markdown(_kit_card(row, "#E24B4A", is_cac), unsafe_allow_html=True)
         st.markdown("<div style='font-size:0.72rem;color:#1D9E75;font-weight:600;margin:10px 0 5px;letter-spacing:.06em;text-transform:uppercase'>↓ Improved</div>", unsafe_allow_html=True)
@@ -1345,9 +1345,9 @@ def morning_pulse_view(df: pd.DataFrame, app: str, color: str, mode: str = "unin
         return (f"<span style='background:{bg};color:{col};font-size:0.72rem;font-weight:700;"
                 f"padding:3px 9px;border-radius:6px;white-space:nowrap'>{arr} {fmt_fn(abs(val))}</span>")
 
-    _TH_s = ("font-size:0.62rem;text-transform:uppercase;letter-spacing:0.1em;color:#A8A39A;"
+    _TH_s = ("font-size:0.62rem;text-transform:uppercase;letter-spacing:0.1em;color:#8A857D;"
              "padding:9px 12px;font-weight:600;border-bottom:1px solid #E5E0D6;background:#F5F2ED;")
-    _TD_s = "font-size:0.82rem;color:#5A554D;padding:10px 12px;border-bottom:1px solid #EDE8DE;"
+    _TD_s = "font-size:0.82rem;color:#2A2520;padding:10px 12px;border-bottom:1px solid #EDE8DE;"
 
     def _tbl_wrap(headers, inner_rows):
         hdr = "".join(
@@ -1380,7 +1380,7 @@ def morning_pulse_view(df: pd.DataFrame, app: str, color: str, mode: str = "unin
     # col widths: name | spend | cac | uninst | cac_contrib | unin_contrib | [drill+trend]
     _CW = [4.2, 1.0, 1.0, 1.0, 1.5, 1.5, 1.3]
 
-    def _cell(txt, align="right", color="#5A554D", bold=False):
+    def _cell(txt, align="right", color="#2A2520", bold=False):
         fw = "600" if bold else "400"
         return (f"<div style='font-size:0.8rem;color:{color};padding:9px 4px;"
                 f"border-bottom:1px solid #EDE8DE;text-align:{align};"
