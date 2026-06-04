@@ -2211,6 +2211,96 @@ def category_mix_view(app: str = "Seekho"):
         )
         st.plotly_chart(fig, use_container_width=True)
 
+    def _render_saturation(camp_cr: pd.DataFrame):
+        """Combined chart: Spend bars + CAC line + # Creatives line, with saturation annotation."""
+        daily = (camp_cr.groupby("date_tz")
+                 .agg(spend=("total_cost", "sum"),
+                      orders=("D0_paid_users", "sum"),
+                      n_creatives=("ad_creative", "nunique"))
+                 .reset_index().sort_values("date_tz"))
+        daily["cac"] = daily.apply(
+            lambda r: r["spend"] / r["orders"] if r["orders"] > 0 else None, axis=1)
+        daily["ds"] = daily["date_tz"].astype(str)
+
+        if daily["cac"].dropna().empty:
+            return
+
+        # Saturation point = day with lowest CAC (best efficiency)
+        best_idx  = daily["cac"].idxmin()
+        best_date = daily.loc[best_idx, "ds"]
+        best_cac  = daily.loc[best_idx, "cac"]
+        best_ncr  = daily.loc[best_idx, "n_creatives"]
+        curr_ncr  = daily["n_creatives"].iloc[-1]
+        curr_cac  = daily["cac"].dropna().iloc[-1]
+
+        # Signal: compare current creative count to optimal
+        delta_cr   = curr_ncr - best_ncr
+        delta_cac  = curr_cac - best_cac if pd.notna(curr_cac) else 0
+        if delta_cr > 2 and delta_cac > 50:
+            signal = ("⚠ Possible dilution", "#E24B4A",
+                      f"Running {curr_ncr} creatives now vs {best_ncr} at best CAC. "
+                      f"CAC up ₹{abs(delta_cac):.0f} since saturation point.")
+        elif delta_cr < -2 and delta_cac > 50:
+            signal = ("↓ Under-diversified", "#D85A30",
+                      f"Only {curr_ncr} creatives running vs {best_ncr} at best CAC. "
+                      f"Consider adding creatives.")
+        else:
+            signal = ("✓ Creative count healthy", "#1D9E75",
+                      f"Current {curr_ncr} creatives near optimal ({best_ncr} at best CAC ₹{best_cac:.0f}).")
+
+        rc, gc, bc = _hex_to_rgb("#378ADD")
+        fig = _base_fig(h=220, legend=True)
+        fig.add_trace(go.Bar(
+            x=daily["ds"], y=daily["spend"], name="Spend",
+            marker_color=f"rgba({rc},{gc},{bc},0.18)", yaxis="y3",
+            hovertemplate="₹%{y:,.0f}<extra>Spend</extra>",
+        ))
+        fig.add_trace(go.Scatter(
+            x=daily["ds"], y=daily["cac"], name="CAC ₹",
+            mode="lines+markers",
+            line=dict(color="#E24B4A", width=2),
+            marker=dict(size=5, color="#E24B4A"),
+            hovertemplate="₹%{y:,.0f}<extra>CAC</extra>",
+        ))
+        fig.add_trace(go.Scatter(
+            x=daily["ds"], y=daily["n_creatives"], name="# Creatives",
+            mode="lines+markers",
+            line=dict(color="#378ADD", width=2, dash="dot"),
+            marker=dict(size=5, color="#378ADD"),
+            yaxis="y2",
+            hovertemplate="%{y} creatives<extra></extra>",
+        ))
+        # Saturation point annotation
+        fig.add_annotation(
+            x=best_date, y=best_cac,
+            text=f"Best CAC<br>({best_ncr} cr)",
+            showarrow=True, arrowhead=2, arrowcolor="#1D9E75",
+            font=dict(size=9, color="#1D9E75"),
+            bgcolor="rgba(255,255,255,0.85)",
+            bordercolor="#1D9E75", borderwidth=1,
+            ax=0, ay=-36,
+        )
+        fig.update_layout(
+            yaxis=dict(title="CAC ₹", gridcolor="#F0EBE1", tickprefix="₹",
+                       tickfont=dict(size=9), zeroline=False),
+            yaxis2=dict(title="# Creatives", overlaying="y", side="right",
+                        tickfont=dict(size=9), zeroline=False, showgrid=False),
+            yaxis3=dict(overlaying="y", side="right", showticklabels=False, showgrid=False, zeroline=False),
+        )
+        st.plotly_chart(fig, use_container_width=True)
+
+        # Insight pill
+        sig_label, sig_col, sig_msg = signal
+        st.markdown(
+            f"<div style='background:rgba({','.join(str(x) for x in _hex_to_rgb(sig_col))},0.08);"
+            f"border:1px solid {sig_col};border-radius:8px;padding:8px 14px;margin-top:-6px;"
+            f"display:flex;align-items:flex-start;gap:10px'>"
+            f"<span style='font-size:0.72rem;font-weight:700;color:{sig_col};white-space:nowrap'>{sig_label}</span>"
+            f"<span style='font-size:0.72rem;color:#4A4540'>{sig_msg}</span>"
+            f"</div>",
+            unsafe_allow_html=True,
+        )
+
     def _render_sparklines_meta(camp_cr: pd.DataFrame):
         """Creatives running (daily) + creatives at 80% spend (daily)."""
         cr_daily = (camp_cr.groupby("date_tz")
@@ -2370,7 +2460,7 @@ def category_mix_view(app: str = "Seekho"):
 
                 if not meta_camp_cr.empty:
                     # Use creative data for ALL Meta panels — keeps spend consistent
-                    _render_trend(meta_camp_cr, "#378ADD")
+                    _render_saturation(meta_camp_cr)
                     _render_sparklines_meta(meta_camp_cr)
                     _render_spend_dist(meta_camp_cr, "ad_creative", "Creative", "#378ADD")
                 else:
