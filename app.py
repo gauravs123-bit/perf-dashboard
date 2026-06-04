@@ -303,21 +303,22 @@ st.markdown("""
     font-weight: 600 !important;
     text-transform: uppercase !important;
     letter-spacing: 0.08em !important;
-    padding: 3px 11px !important;
-    min-height: 26px !important;
-    height: 26px !important;
-    line-height: 26px !important;
-    background: #F5F2ED !important;
-    border: 1px solid #DDD8CE !important;
-    color: #8A857D !important;
-    box-shadow: none !important;
+    padding: 3px 14px !important;
+    min-height: 28px !important;
+    height: 28px !important;
+    line-height: 28px !important;
+    background: linear-gradient(180deg, #FDFAF7 0%, #EDE8DE 100%) !important;
+    border: 1px solid #C8C3B8 !important;
+    color: #6B665E !important;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.10), inset 0 1px 0 rgba(255,255,255,0.85) !important;
     flex: 0 0 auto !important;
-    transition: border-color .12s, color .12s, background .12s !important;
+    transition: all .12s !important;
   }
   [data-baseweb="button-group"] button:hover {
-    border-color: #C5C0B6 !important;
-    color: #4A4540 !important;
-    background: #EBE6DC !important;
+    border-color: #B0AB9F !important;
+    color: #2A2520 !important;
+    background: linear-gradient(180deg, #F5F0E8 0%, #E5DFD4 100%) !important;
+    box-shadow: 0 3px 6px rgba(0,0,0,0.12), inset 0 1px 0 rgba(255,255,255,0.75) !important;
   }
   [class*="e8vg11g11"],
   [data-baseweb="button-group"] button[aria-pressed="true"],
@@ -1430,7 +1431,7 @@ def morning_pulse_view(df: pd.DataFrame, app: str, color: str, mode: str = "unin
             st.markdown(
                 "<div style='font-size:0.6rem;text-transform:uppercase;letter-spacing:0.12em;"
                 "color:#333;margin-bottom:2px'>DRILLDOWN</div>"
-                "<div style='font-size:1.05rem;font-weight:700;color:#e0e0e0'>Top campaigns</div>",
+                "<div style='font-size:1.05rem;font-weight:700;color:#1C1A17'>Top campaigns</div>",
                 unsafe_allow_html=True)
         with hdr_r:
             st.markdown(
@@ -1480,8 +1481,8 @@ def morning_pulse_view(df: pd.DataFrame, app: str, color: str, mode: str = "unin
             spend_str = _fmt_spend(spend_val)
             cac_str   = f"₹{cac_val:,.0f}"  if cac_val  is not None and pd.notna(cac_val)  else "—"
             unin_str  = f"{unin_val:.1f}%"   if unin_val is not None and pd.notna(unin_val) else "—"
-            cac_col   = "#E24B4A" if cac_val  is not None and pd.notna(cac_val)  and cac_val  > 500 else "#c0c0c0"
-            unin_col  = "#E24B4A" if unin_val is not None and pd.notna(unin_val) and unin_val > 25  else "#c0c0c0"
+            cac_col   = "#E24B4A" if cac_val  is not None and pd.notna(cac_val)  and cac_val  > 500 else "#4A4540"
+            unin_col  = "#E24B4A" if unin_val is not None and pd.notna(unin_val) and unin_val > 25  else "#4A4540"
             src       = camp_source_map.get(camp_name, "")
             dot_col, src_label = _src_dot_label(src)
             cac_cv    = camp_cac_map.get(camp_name,  {}).get("contribution")
@@ -1492,15 +1493,15 @@ def morning_pulse_view(df: pd.DataFrame, app: str, color: str, mode: str = "unin
             c0, c1, c2, c3, c4, c5, c6 = st.columns(_CW)
             with c0:
                 st.markdown(
-                    f"<div style='padding:10px 4px;border-bottom:1px solid #0f0f0f;"
+                    f"<div style='padding:10px 4px;border-bottom:1px solid #E5E0D6;"
                     f"display:flex;align-items:center;gap:7px'>"
                     f"<span style='width:6px;height:6px;border-radius:50%;background:{dot_col};"
                     f"flex-shrink:0;display:inline-block'></span>"
-                    f"<span style='font-size:0.8rem;color:#e0e0e0;font-weight:500;min-width:0;"
+                    f"<span style='font-size:0.8rem;color:#1C1A17;font-weight:500;min-width:0;"
                     f"overflow:hidden;text-overflow:ellipsis;white-space:nowrap'>{disp_name}</span>"
                     f"<span style='font-size:0.65rem;color:#333;flex-shrink:0'>{src_label}</span>"
                     f"</div>", unsafe_allow_html=True)
-            with c1: st.markdown(_cell(spend_str, bold=True, color="#e0e0e0"), unsafe_allow_html=True)
+            with c1: st.markdown(_cell(spend_str, bold=True, color="#1C1A17"), unsafe_allow_html=True)
             with c2: st.markdown(_cell(cac_str, color=cac_col), unsafe_allow_html=True)
             with c3: st.markdown(_cell(unin_str, color=unin_col), unsafe_allow_html=True)
             with c4: st.markdown(_contrib_cell(cac_cv,  lambda v: f"₹{v:.0f}"), unsafe_allow_html=True)
@@ -1528,7 +1529,7 @@ def morning_pulse_view(df: pd.DataFrame, app: str, color: str, mode: str = "unin
             st.markdown(
                 "<div style='font-size:0.6rem;text-transform:uppercase;letter-spacing:0.12em;"
                 "color:#333;margin-bottom:2px'>DRILLDOWN</div>"
-                f"<div style='font-size:1.05rem;font-weight:700;color:#e0e0e0'>Ad sets</div>",
+                f"<div style='font-size:1.05rem;font-weight:700;color:#1C1A17'>Ad sets</div>",
                 unsafe_allow_html=True)
         with hdr_r:
             st.markdown(
@@ -1553,8 +1554,8 @@ def morning_pulse_view(df: pd.DataFrame, app: str, color: str, mode: str = "unin
                 _sp      = f"{arow['spend_pct']:.1f}%" if pd.notna(arow.get("spend_pct")) else "—"
                 cac_str  = f"₹{cac_abs:,.0f}"   if cac_abs  is not None else "—"
                 unin_str = f"{unin_abs:.1f}%"    if unin_abs is not None else "—"
-                cac_col  = "#E24B4A" if cac_abs  is not None and cac_abs  > 500 else "#c0c0c0"
-                unin_col = "#E24B4A" if unin_abs is not None and unin_abs > 25  else "#c0c0c0"
+                cac_col  = "#E24B4A" if cac_abs  is not None and cac_abs  > 500 else "#4A4540"
+                unin_col = "#E24B4A" if unin_abs is not None and unin_abs > 25  else "#4A4540"
                 adset_df_s = (df[(df["campaign"] == sel_camp) & (df["ad_set"] == aname)]
                               if "ad_set" in df.columns else pd.DataFrame())
                 disp_name = (aname[:48] + "…") if len(aname) > 49 else aname
@@ -1562,11 +1563,11 @@ def morning_pulse_view(df: pd.DataFrame, app: str, color: str, mode: str = "unin
                 c0, c1, c2, c3, c4, c5, c6 = st.columns(_CW)
                 with c0:
                     st.markdown(
-                        f"<div style='padding:10px 4px 10px 10px;border-bottom:1px solid #0f0f0f;"
+                        f"<div style='padding:10px 4px 10px 10px;border-bottom:1px solid #E5E0D6;"
                         f"border-left:2px solid {b_col};display:flex;align-items:center;gap:7px'>"
                         f"<span style='font-size:0.62rem;padding:1px 5px;border-radius:3px;"
                         f"background:{b_col}20;color:{b_col};flex-shrink:0'>{sig.split()[0]}</span>"
-                        f"<span style='font-size:0.8rem;color:#d0d0d0;min-width:0;overflow:hidden;"
+                        f"<span style='font-size:0.8rem;color:#1C1A17;min-width:0;overflow:hidden;"
                         f"text-overflow:ellipsis;white-space:nowrap'>{disp_name}</span>"
                         f"</div>", unsafe_allow_html=True)
                 with c1: st.markdown(_cell(_sp), unsafe_allow_html=True)
@@ -1601,7 +1602,7 @@ def morning_pulse_view(df: pd.DataFrame, app: str, color: str, mode: str = "unin
             st.markdown(
                 "<div style='font-size:0.6rem;text-transform:uppercase;letter-spacing:0.12em;"
                 "color:#333;margin-bottom:2px'>DRILLDOWN</div>"
-                f"<div style='font-size:1.05rem;font-weight:700;color:#e0e0e0'>Creatives</div>",
+                f"<div style='font-size:1.05rem;font-weight:700;color:#1C1A17'>Creatives</div>",
                 unsafe_allow_html=True)
         with hdr_r:
             st.markdown(
@@ -1627,8 +1628,8 @@ def morning_pulse_view(df: pd.DataFrame, app: str, color: str, mode: str = "unin
                 cr_unin_rate = crow["unin"]  / crow["orders"] * 100 if crow["orders"] > 0 else None
                 cac_str  = f"₹{cr_cac:,.0f}"     if cr_cac       is not None else "—"
                 unin_str = f"{cr_unin_rate:.1f}%" if cr_unin_rate is not None else "—"
-                cac_col  = "#E24B4A" if cr_cac       is not None and cr_cac       > 500 else "#c0c0c0"
-                unin_col = "#E24B4A" if cr_unin_rate is not None and cr_unin_rate > 30  else "#c0c0c0"
+                cac_col  = "#E24B4A" if cr_cac       is not None and cr_cac       > 500 else "#4A4540"
+                unin_col = "#E24B4A" if cr_unin_rate is not None and cr_unin_rate > 30  else "#4A4540"
                 cac_cv   = kit_cr_cac_map.get(cr_name,  {}).get("contribution")
                 unin_cv  = kit_cr_unin_map.get(cr_name, {}).get("contribution")
                 _sp      = f"{crow['spend_pct']:.1f}%"
@@ -1638,8 +1639,8 @@ def morning_pulse_view(df: pd.DataFrame, app: str, color: str, mode: str = "unin
                 c0, c1, c2, c3, c4, c5, c6 = st.columns(_CW)
                 with c0:
                     st.markdown(
-                        f"<div style='padding:10px 4px 10px 10px;border-bottom:1px solid #0f0f0f;"
-                        f"border-left:2px solid {cr_col};font-size:0.8rem;color:#e0e0e0;font-weight:500;"
+                        f"<div style='padding:10px 4px 10px 10px;border-bottom:1px solid #E5E0D6;"
+                        f"border-left:2px solid {cr_col};font-size:0.8rem;color:#1C1A17;font-weight:500;"
                         f"white-space:nowrap;overflow:hidden;text-overflow:ellipsis' title='{cr_name}'>"
                         f"{disp_name}</div>", unsafe_allow_html=True)
                 with c1: st.markdown(_cell(_sp), unsafe_allow_html=True)
@@ -2305,7 +2306,7 @@ def adviser_view(df: pd.DataFrame, cr_raw, app: str, color: str):
     """Daily budget action adviser — campaign / adset / creative level."""
     st.markdown(
         "<div style='font-size:0.6rem;text-transform:uppercase;letter-spacing:.12em;color:#333;margin-bottom:2px'>DAILY ADVISER</div>"
-        f"<div style='font-size:1.1rem;font-weight:700;color:#e0e0e0;margin-bottom:2px'>Budget Actions</div>"
+        f"<div style='font-size:1.1rem;font-weight:700;color:#1C1A17;margin-bottom:2px'>Budget Actions</div>"
         f"<div style='font-size:0.72rem;color:#444;margin-bottom:16px'>Target CAC ₹{CAC_TARGET:,.0f} · Uninstall {UNIN_TARGET:.0f}% · Based on last 3 days</div>",
         unsafe_allow_html=True)
 
@@ -2496,8 +2497,8 @@ def adset_analysis_view(df: pd.DataFrame, app: str, color: str):
     st.markdown(
         f"<div style='font-size:0.72rem;color:#444;margin-bottom:18px'>"
         f"7-day window · {window_dates[0]} → {window_dates[-1]} · "
-        f"avg CAC <span style='color:#c0c0c0;font-weight:600'>₹{avg_cac:,.0f}</span> · "
-        f"avg uninstall <span style='color:#c0c0c0;font-weight:600'>{avg_unin:.1f}%</span>"
+        f"avg CAC <span style='color:#4A4540;font-weight:600'>₹{avg_cac:,.0f}</span> · "
+        f"avg uninstall <span style='color:#4A4540;font-weight:600'>{avg_unin:.1f}%</span>"
         f"</div>",
         unsafe_allow_html=True,
     )
@@ -2544,7 +2545,7 @@ def adset_analysis_view(df: pd.DataFrame, app: str, color: str):
             aname = row["ad_set"]
             sig_label, sig_col = _signal(row)
             cac_col  = "#E24B4A" if row["cac"]       > avg_cac  * 1.25 else "#5A554D"
-            unin_col = "#E24B4A" if row["unin_rate"] > avg_unin * 1.25 else "#c0c0c0"
+            unin_col = "#E24B4A" if row["unin_rate"] > avg_unin * 1.25 else "#4A4540"
             disp = (aname[:60] + "…") if len(aname) > 61 else aname
 
             signal_html = (
@@ -2554,14 +2555,14 @@ def adset_analysis_view(df: pd.DataFrame, app: str, color: str):
 
             st.markdown(
                 f"<div style='display:flex;align-items:center;gap:16px;padding:7px 12px 7px 20px;"
-                f"border-bottom:1px solid #0d0d0d'>"
-                f"<span style='font-size:0.78rem;color:#c0c0c0;flex:1;min-width:0;"
+                f"border-bottom:1px solid #E5E0D6'>"
+                f"<span style='font-size:0.78rem;color:#1C1A17;flex:1;min-width:0;"
                 f"overflow:hidden;text-overflow:ellipsis;white-space:nowrap'>{disp}</span>"
                 f"{signal_html}"
                 f"<span style='font-size:0.65rem;color:#444;flex-shrink:0'>spend</span>"
-                f"<span style='font-size:0.82rem;font-weight:600;color:#d0d0d0;flex-shrink:0'>"
+                f"<span style='font-size:0.82rem;font-weight:600;color:#1C1A17;flex-shrink:0'>"
                 f"{_fmt_spend(row['spend'])}"
-                f"<span style='font-size:0.62rem;color:#333;margin-left:3px'>{row['spend_pct']:.1f}%</span>"
+                f"<span style='font-size:0.62rem;color:#8A857D;margin-left:3px'>{row['spend_pct']:.1f}%</span>"
                 f"</span>"
                 f"<span style='font-size:0.65rem;color:#444;flex-shrink:0'>cac</span>"
                 f"<span style='font-size:0.82rem;font-weight:600;color:{cac_col};flex-shrink:0'>"
@@ -2584,13 +2585,13 @@ def adset_analysis_view(df: pd.DataFrame, app: str, color: str):
 def main():
     # ── init session state ──────────────────────────────────────────────────
     if "sb_app"     not in st.session_state: st.session_state["sb_app"]     = "Seekho"
-    if "sb_section" not in st.session_state: st.session_state["sb_section"] = "🌅 Morning Pulse"
+    if "sb_section" not in st.session_state: st.session_state["sb_section"] = "Morning Pulse"
 
     app     = st.session_state.get("sb_app", APPS[0])
     color   = APP_COLORS[app]
     hex_col = color.lstrip("#")
     r, g, b = int(hex_col[0:2], 16), int(hex_col[2:4], 16), int(hex_col[4:6], 16)
-    section_options = ["🌅 Morning Pulse", "📊 Category Mix", "🔍 Ad Set Analysis", "🎯 Adviser"]
+    section_options = ["Morning Pulse", "Category Mix", "Ad Set Analysis", "Adviser"]
     if st.session_state.get("sb_section") not in section_options:
         st.session_state["sb_section"] = section_options[0]
     section = st.session_state["sb_section"]
@@ -2603,10 +2604,11 @@ def main():
       [class*="e8vg11g11"],
       [data-baseweb="button-group"] button[aria-pressed="true"],
       [data-baseweb="button-group"] button[aria-checked="true"] {{
-        background: rgba({_r},{_g},{_b},0.13) !important;
+        background: linear-gradient(180deg, rgba({_r},{_g},{_b},0.18) 0%, rgba({_r},{_g},{_b},0.28) 100%) !important;
         border-color: {_c} !important;
         color: {_c} !important;
         font-weight: 700 !important;
+        box-shadow: 0 1px 3px rgba({_r},{_g},{_b},0.25), inset 0 1px 0 rgba(255,255,255,0.6) !important;
       }}
     </style>""", unsafe_allow_html=True)
 
@@ -2617,7 +2619,7 @@ def main():
                            key="pills_app", label_visibility="collapsed")
         if sel_app and sel_app != st.session_state["sb_app"]:
             st.session_state["sb_app"]     = sel_app
-            st.session_state["sb_section"] = "🌅 Morning Pulse"
+            st.session_state["sb_section"] = "Morning Pulse"
             st.rerun()
     with nav_sec:
         sel_sec = st.pills("Section", section_options,
@@ -2634,7 +2636,7 @@ def main():
 
     app     = st.session_state.get("sb_app", APPS[0])
     color   = APP_COLORS[app]
-    section = st.session_state.get("sb_section", "🌅 Morning Pulse")
+    section = st.session_state.get("sb_section", "Morning Pulse")
 
     # ── main content header ───────────────────────────────────────────────────
     hex_col = color.lstrip("#")
@@ -2654,7 +2656,7 @@ def main():
         unsafe_allow_html=True,
     )
 
-    if section == "📊 Category Mix":
+    if section == "Category Mix":
         category_mix_view(app=app)
         return
 
@@ -2663,11 +2665,11 @@ def main():
         st.warning(f"No data loaded for {app}.")
         return
 
-    if section == "🔍 Ad Set Analysis":
+    if section == "Ad Set Analysis":
         adset_analysis_view(df, app=app, color=color)
         return
 
-    if section == "🎯 Adviser":
+    if section == "Adviser":
         cr_raw = None
         if app in CREATIVE_QUERY_IDS:
             try:
