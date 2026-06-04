@@ -1985,227 +1985,350 @@ def cac_scatter(df: pd.DataFrame, app_color: str, app: str = ""):
 # ════════════════════════════════════════════════════════════════════════════
 
 def category_mix_view(app: str = "Seekho"):
-    """Creative category breakdown for a single app: Category → Campaign, with YD + DBY metrics."""
+    """Category → Meta/Google campaign drill-down: 7-day trend + creative/adset analysis."""
 
-    # ── load data for selected app only ──
-    all_dfs = {}
-    all_cr  = {}
-    d = safe_fetch(app)
-    if not d.empty:
-        all_dfs[app] = d
+    SOUTH_LANGS = {"tamil", "telugu", "kannada", "malayalam"}
+    app_color = APP_COLORS.get(app, "#B8944A")
+
+    def _parse_cat(name: str) -> str:
+        if not isinstance(name, str):
+            return "Unknown"
+        parts = [p for p in name.lower().split("_") if p]
+        if not parts:
+            return "Unknown"
+        if app.lower() == "seekho" and len(parts) >= 3 and parts[1] in SOUTH_LANGS:
+            return parts[2].replace("-", " ").title()
+        return parts[0].replace("-", " ").title()
+
+    def _fmt_spend(v):
+        if v is None or (isinstance(v, float) and pd.isna(v)):
+            return "—"
+        if v >= 1e7: return f"₹{v/1e7:.1f}Cr"
+        if v >= 1e5: return f"₹{v/1e5:.1f}L"
+        if v >= 1e3: return f"₹{v/1e3:.0f}k"
+        return f"₹{int(v)}"
+
+    def _base_fig(h: int = 190, legend: bool = False) -> go.Figure:
+        fig = go.Figure()
+        fig.update_layout(
+            paper_bgcolor="#FFFFFF", plot_bgcolor="#FAFAF8",
+            font=dict(family="Inter,sans-serif", color="#5A554D", size=10),
+            height=h, margin=dict(l=4, r=4, t=28, b=4),
+            showlegend=legend,
+            legend=dict(orientation="h", y=1.18, x=0, font=dict(size=9)) if legend else {},
+            xaxis=dict(showgrid=False, tickfont=dict(size=9, color="#8A857D"), zeroline=False),
+        )
+        return fig
+
+    def _section_label(text: str, dot_color: str):
+        st.markdown(
+            f"<div style='display:flex;align-items:center;gap:7px;margin:10px 0 6px'>"
+            f"<span style='width:8px;height:8px;border-radius:50%;background:{dot_color};"
+            f"display:inline-block;flex-shrink:0'></span>"
+            f"<span style='font-size:0.62rem;font-weight:700;text-transform:uppercase;"
+            f"letter-spacing:.12em;color:{dot_color}'>{text}</span></div>",
+            unsafe_allow_html=True,
+        )
+
+    def _chart_label(text: str):
+        st.markdown(
+            f"<div style='font-size:0.6rem;color:#A8A39A;text-transform:uppercase;"
+            f"letter-spacing:.1em;margin-bottom:2px'>{text}</div>",
+            unsafe_allow_html=True,
+        )
+
+    # ── helpers for top-80% count ──
+    def _top80_creatives(grp: pd.DataFrame) -> int:
+        s = grp.sort_values("total_cost", ascending=False)
+        tot = s["total_cost"].sum()
+        if tot == 0: return 0
+        cum = s["total_cost"].cumsum()
+        return int((cum <= tot * 0.8).sum()) + 1
+
+    def _top80_adsets(grp: pd.DataFrame) -> int:
+        s = grp.groupby("ad_set")["total_cost"].sum().sort_values(ascending=False)
+        tot = s.sum()
+        if tot == 0: return 0
+        cum = s.cumsum()
+        return int((cum <= tot * 0.8).sum()) + 1
+
+    # ── load data ──
+    df = safe_fetch(app)
+    if df.empty:
+        st.warning(f"No data for {app}.")
+        return
+
+    cr_df = pd.DataFrame()
     if app in CREATIVE_QUERY_IDS:
         try:
-            cr = add_derived_metrics(fetch_creative_data(app))
-            if not cr.empty:
-                all_cr[app] = cr
+            cr_df = add_derived_metrics(fetch_creative_data(app))
         except Exception:
             pass
 
-    if not all_cr:
-        st.warning(f"No creative data available for {app}.")
-        return
+    # ── 7-day window ──
+    all_dates = sorted(df["date_tz"].unique())
+    last7 = set(all_dates[-7:])
+    df7 = df[df["date_tz"].isin(last7)].copy()
 
-    # find selectable dates using creative data dates (not main app data)
-    cr_dates_combined = sorted(set().union(*[set(cr["date_tz"].unique()) for cr in all_cr.values()]))
-    if len(cr_dates_combined) < 2:
-        st.warning("Need at least 2 days of creative data.")
-        return
-    avail_dates = cr_dates_combined[-8:]
-    selectable  = [d for d in avail_dates if cr_dates_combined.index(d) > 0]
-    # also need a full list for prior-day lookup
-    all_dates_combined = cr_dates_combined
-    if not selectable:
-        st.warning("Need at least 2 days of data.")
-        return
+    cr7 = pd.DataFrame()
+    if not cr_df.empty and "date_tz" in cr_df.columns:
+        cr_dates = sorted(cr_df["date_tz"].unique())
+        cr7 = cr_df[cr_df["date_tz"].isin(set(cr_dates[-7:]))].copy()
 
-    date_key = "catmix_date"
-    if date_key not in st.session_state or st.session_state[date_key] not in selectable:
-        st.session_state[date_key] = selectable[-1]
+    # ── assign categories ──
+    df7["category"] = df7["campaign"].apply(_parse_cat)
+    if not cr7.empty:
+        cr7["category"] = cr7["campaign"].apply(_parse_cat)
 
-    # pill date buttons
-    btn_cols = st.columns(len(selectable) + 4)
-    for i, d in enumerate(reversed(selectable)):
-        label  = "Today" if d == selectable[-1] else str(d)
-        is_sel = st.session_state[date_key] == d
-        with btn_cols[i]:
-            if is_sel:
-                st.markdown(
-                    f"<div style='background:#F0EBE1;border:1px solid #D8D3C9;border-radius:20px;"
-                    f"padding:5px 0;text-align:center;font-size:0.72rem;color:#1C1A17;font-weight:700'>{label}</div>",
-                    unsafe_allow_html=True,
+    # ── category totals (all sources) ──
+    cat_stats = (df7.groupby("category")
+                 .agg(spend=("total_cost", "sum"),
+                      orders=("D0_paid_users", "sum"),
+                      unin=("p0_unin_users", "sum"))
+                 .reset_index())
+    cat_stats["cac"] = cat_stats.apply(
+        lambda r: r["spend"] / r["orders"] if r["orders"] > 0 else None, axis=1)
+    cat_stats["unin_rate"] = cat_stats.apply(
+        lambda r: r["unin"] / r["orders"] * 100 if r["orders"] > 0 else None, axis=1)
+    cat_stats = cat_stats.sort_values("spend", ascending=False)
+
+    # ── panel renderers ──
+
+    def _render_trend(camp_df: pd.DataFrame, src_color: str):
+        """7-day Spend bars + CAC line + Uninstall% line."""
+        daily = (camp_df.groupby("date_tz")
+                 .agg(spend=("total_cost", "sum"),
+                      orders=("D0_paid_users", "sum"),
+                      unin=("p0_unin_users", "sum"))
+                 .reset_index().sort_values("date_tz"))
+        daily["cac"] = daily.apply(
+            lambda r: r["spend"] / r["orders"] if r["orders"] > 0 else None, axis=1)
+        daily["unin_rate"] = daily.apply(
+            lambda r: r["unin"] / r["orders"] * 100 if r["orders"] > 0 else None, axis=1)
+        daily["ds"] = daily["date_tz"].astype(str).str[-5:]
+        rc, gc, bc = _hex_to_rgb(src_color)
+
+        fig = _base_fig(h=200, legend=True)
+        fig.add_trace(go.Bar(
+            x=daily["ds"], y=daily["spend"], name="Spend",
+            marker_color=f"rgba({rc},{gc},{bc},0.22)", yaxis="y3",
+            hovertemplate="₹%{y:,.0f}<extra>Spend</extra>",
+        ))
+        fig.add_trace(go.Scatter(
+            x=daily["ds"], y=daily["cac"], name="CAC ₹",
+            mode="lines+markers",
+            line=dict(color="#E24B4A", width=2),
+            marker=dict(size=5, color="#E24B4A"),
+            hovertemplate="₹%{y:,.0f}<extra>CAC</extra>",
+        ))
+        fig.add_trace(go.Scatter(
+            x=daily["ds"], y=daily["unin_rate"], name="Unin%",
+            mode="lines+markers",
+            line=dict(color="#D4537E", width=2, dash="dot"),
+            marker=dict(size=5, color="#D4537E"),
+            yaxis="y2",
+            hovertemplate="%{y:.1f}%<extra>Unin</extra>",
+        ))
+        fig.update_layout(
+            yaxis=dict(title="CAC ₹", gridcolor="#F0EBE1", tickprefix="₹",
+                       tickfont=dict(size=9), zeroline=False),
+            yaxis2=dict(title="Unin%", overlaying="y", side="right",
+                        ticksuffix="%", tickfont=dict(size=9), zeroline=False, showgrid=False),
+            yaxis3=dict(overlaying="y", side="right", showticklabels=False, showgrid=False, zeroline=False),
+        )
+        st.plotly_chart(fig, use_container_width=True)
+
+    def _render_sparklines_meta(camp_cr: pd.DataFrame):
+        """Creatives running (daily) + creatives at 80% spend (daily)."""
+        cr_daily = (camp_cr.groupby("date_tz")
+                    .agg(n_creatives=("ad_creative", "nunique"))
+                    .reset_index().sort_values("date_tz"))
+        cr_daily["ds"] = cr_daily["date_tz"].astype(str).str[-5:]
+
+        top80_s = (camp_cr.groupby("date_tz")
+                   .apply(_top80_creatives)
+                   .reset_index().rename(columns={0: "n_top80"})
+                   .sort_values("date_tz"))
+        top80_s["ds"] = top80_s["date_tz"].astype(str).str[-5:]
+
+        c1, c2 = st.columns(2)
+        with c1:
+            _chart_label("Creatives Running · Meta")
+            fig = _base_fig(h=120)
+            fig.add_trace(go.Scatter(
+                x=cr_daily["ds"], y=cr_daily["n_creatives"], mode="lines+markers",
+                line=dict(color="#378ADD", width=2),
+                fill="tozeroy", fillcolor="rgba(55,138,221,0.08)",
+                hovertemplate="%{y} creatives<extra></extra>",
+            ))
+            fig.update_layout(yaxis=dict(gridcolor="#F0EBE1", tickfont=dict(size=9), zeroline=False))
+            st.plotly_chart(fig, use_container_width=True)
+        with c2:
+            _chart_label("Creatives at 80% Spend · Meta")
+            fig = _base_fig(h=120)
+            fig.add_trace(go.Scatter(
+                x=top80_s["ds"], y=top80_s["n_top80"], mode="lines+markers",
+                line=dict(color="#B8944A", width=2),
+                fill="tozeroy", fillcolor="rgba(184,148,74,0.08)",
+                hovertemplate="%{y} creatives<extra></extra>",
+            ))
+            fig.update_layout(yaxis=dict(gridcolor="#F0EBE1", tickfont=dict(size=9), zeroline=False))
+            st.plotly_chart(fig, use_container_width=True)
+
+    def _render_sparklines_google(camp_goog: pd.DataFrame):
+        """Ad sets running (daily) + ad sets at 80% spend (daily)."""
+        if "ad_set" not in camp_goog.columns:
+            st.info("No ad set data.")
+            return
+        as_daily = (camp_goog.groupby("date_tz")
+                    .agg(n_adsets=("ad_set", "nunique"))
+                    .reset_index().sort_values("date_tz"))
+        as_daily["ds"] = as_daily["date_tz"].astype(str).str[-5:]
+
+        top80_s = (camp_goog.groupby("date_tz")
+                   .apply(_top80_adsets)
+                   .reset_index().rename(columns={0: "n_top80"})
+                   .sort_values("date_tz"))
+        top80_s["ds"] = top80_s["date_tz"].astype(str).str[-5:]
+
+        c1, c2 = st.columns(2)
+        with c1:
+            _chart_label("Ad Sets Running · Google")
+            fig = _base_fig(h=120)
+            fig.add_trace(go.Scatter(
+                x=as_daily["ds"], y=as_daily["n_adsets"], mode="lines+markers",
+                line=dict(color="#34A853", width=2),
+                fill="tozeroy", fillcolor="rgba(52,168,83,0.08)",
+                hovertemplate="%{y} ad sets<extra></extra>",
+            ))
+            fig.update_layout(yaxis=dict(gridcolor="#F0EBE1", tickfont=dict(size=9), zeroline=False))
+            st.plotly_chart(fig, use_container_width=True)
+        with c2:
+            _chart_label("Ad Sets at 80% Spend · Google")
+            fig = _base_fig(h=120)
+            fig.add_trace(go.Scatter(
+                x=top80_s["ds"], y=top80_s["n_top80"], mode="lines+markers",
+                line=dict(color="#B8944A", width=2),
+                fill="tozeroy", fillcolor="rgba(184,148,74,0.08)",
+                hovertemplate="%{y} ad sets<extra></extra>",
+            ))
+            fig.update_layout(yaxis=dict(gridcolor="#F0EBE1", tickfont=dict(size=9), zeroline=False))
+            st.plotly_chart(fig, use_container_width=True)
+
+    def _render_spend_dist(data_df: pd.DataFrame, unit_col: str, unit_label: str, color: str):
+        """Avg spend per unit/day + 80th‑%ile unit spend/day (both line charts)."""
+        daily_agg = (data_df.groupby("date_tz")
+                     .agg(total_spend=("total_cost", "sum"),
+                          n_units=(unit_col, "nunique"))
+                     .reset_index().sort_values("date_tz"))
+        daily_agg["avg"] = daily_agg["total_spend"] / daily_agg["n_units"]
+        daily_agg["ds"]  = daily_agg["date_tz"].astype(str).str[-5:]
+
+        def _p80(grp):
+            per_unit = grp.groupby(unit_col)["total_cost"].sum()
+            return float(per_unit.quantile(0.8)) if not per_unit.empty else None
+
+        p80_s = (data_df.groupby("date_tz")
+                 .apply(_p80)
+                 .reset_index().rename(columns={0: "p80"})
+                 .sort_values("date_tz"))
+        p80_s["ds"] = p80_s["date_tz"].astype(str).str[-5:]
+
+        rc, gc, bc = _hex_to_rgb(color)
+        c1, c2 = st.columns(2)
+        with c1:
+            _chart_label(f"Avg Spend / {unit_label}")
+            fig = _base_fig(h=140)
+            fig.add_trace(go.Scatter(
+                x=daily_agg["ds"], y=daily_agg["avg"], mode="lines+markers",
+                line=dict(color=color, width=2),
+                fill="tozeroy", fillcolor=f"rgba({rc},{gc},{bc},0.08)",
+                hovertemplate="₹%{y:,.0f}<extra></extra>",
+            ))
+            fig.update_layout(yaxis=dict(gridcolor="#F0EBE1", tickprefix="₹",
+                                         tickfont=dict(size=9), zeroline=False))
+            st.plotly_chart(fig, use_container_width=True)
+        with c2:
+            _chart_label(f"80th %ile {unit_label} Spend")
+            fig = _base_fig(h=140)
+            fig.add_trace(go.Scatter(
+                x=p80_s["ds"], y=p80_s["p80"], mode="lines+markers",
+                line=dict(color="#D85A30", width=2),
+                fill="tozeroy", fillcolor="rgba(216,90,48,0.08)",
+                hovertemplate="₹%{y:,.0f}<extra></extra>",
+            ))
+            fig.update_layout(yaxis=dict(gridcolor="#F0EBE1", tickprefix="₹",
+                                         tickfont=dict(size=9), zeroline=False))
+            st.plotly_chart(fig, use_container_width=True)
+
+    # ── per-category render ──
+    for _, cat_row in cat_stats.iterrows():
+        cat      = cat_row["category"]
+        cac_str  = f"₹{int(cat_row['cac'])}"      if (cat_row["cac"]      and pd.notna(cat_row["cac"]))      else "—"
+        unin_str = f"{cat_row['unin_rate']:.1f}%"  if (cat_row["unin_rate"] and pd.notna(cat_row["unin_rate"])) else "—"
+        n_camps  = df7[df7["category"] == cat]["campaign"].nunique()
+
+        with st.expander(
+            f"{cat}  ·  {_fmt_spend(cat_row['spend'])}  ·  CAC {cac_str}  ·  Unin {unin_str}  ·  {n_camps} campaigns",
+            expanded=False,
+        ):
+            cat_df = df7[df7["category"] == cat]
+
+            has_src = "source" in cat_df.columns
+            cat_meta_df = cat_df[cat_df["source"].str.lower() == "facebook"] if has_src else pd.DataFrame()
+            cat_goog_df = cat_df[cat_df["source"].str.lower() == "google"]   if has_src else pd.DataFrame()
+
+            # ════ META ════
+            if not cat_meta_df.empty:
+                _section_label("Meta", "#378ADD")
+
+                meta_camps = (cat_meta_df.groupby("campaign")["total_cost"]
+                              .sum().sort_values(ascending=False).index.tolist())
+                sel_meta = st.selectbox(
+                    "Meta Campaign", meta_camps,
+                    key=f"cm_meta_{app}_{cat}",
+                    label_visibility="collapsed",
                 )
-            else:
-                if st.button(label, key=f"catmix_date_{d}", use_container_width=True):
-                    st.session_state[date_key] = d
-                    st.rerun()
+                meta_camp_df = cat_meta_df[cat_meta_df["campaign"] == sel_meta]
+                meta_camp_cr = (cr7[(cr7["category"] == cat) & (cr7["campaign"] == sel_meta)]
+                                if not cr7.empty else pd.DataFrame())
 
-    sel_date = st.session_state[date_key]
-    prior_date = all_dates_combined[all_dates_combined.index(sel_date) - 1]
+                _render_trend(meta_camp_df, "#378ADD")
 
-    st.markdown(
-        f"<div style='font-size:0.72rem;color:#444;margin:6px 0 20px'>"
-        f"Showing <b style='color:#888'>{sel_date}</b> vs <b style='color:#555'>{prior_date}</b></div>",
-        unsafe_allow_html=True,
-    )
+                if not meta_camp_cr.empty:
+                    _render_sparklines_meta(meta_camp_cr)
+                    _render_spend_dist(meta_camp_cr, "ad_creative", "Creative", "#378ADD")
+                else:
+                    st.markdown(
+                        "<div style='background:#F8F5F0;border-radius:8px;padding:10px 14px;"
+                        "font-size:0.78rem;color:#8A857D;text-align:center;margin:4px 0'>"
+                        "No Meta creative data for this campaign</div>",
+                        unsafe_allow_html=True,
+                    )
 
-    def _parse_category(name: str) -> str:
-        if not isinstance(name, str):
-            return "Unknown"
-        seg = name.split("_")[0].strip().lower()
-        return seg.title() if seg else "Unknown"
+            # ════ GOOGLE ════
+            if not cat_goog_df.empty:
+                if not cat_meta_df.empty:
+                    st.markdown("<div style='height:1px;background:#EDE8DE;margin:14px 0 4px'></div>",
+                                unsafe_allow_html=True)
+                _section_label("Google", "#34A853")
 
-    def _agg(cr_df, date):
-        d = cr_df[cr_df["date_tz"] == date] if "date_tz" in cr_df.columns else cr_df
-        if d.empty:
-            return pd.DataFrame()
-        d = d.copy()
-        d["category"] = d["ad_creative"].apply(_parse_category)
-        g = d.groupby(["category", "campaign"], as_index=False).agg(
-            spend=("total_cost", "sum"),
-            orders=("D0_paid_users", "sum"),
-            uninstalls=("p0_unin_users", "sum"),
-        )
-        g["cac"]      = g.apply(lambda r: r["spend"] / r["orders"] if r["orders"] > 0 else None, axis=1)
-        g["unin_rate"]= g.apply(lambda r: r["uninstalls"] / r["orders"] * 100 if r["orders"] > 0 else None, axis=1)
-        return g
+                goog_camps = (cat_goog_df.groupby("campaign")["total_cost"]
+                              .sum().sort_values(ascending=False).index.tolist())
+                sel_goog = st.selectbox(
+                    "Google Campaign", goog_camps,
+                    key=f"cm_goog_{app}_{cat}",
+                    label_visibility="collapsed",
+                )
+                goog_camp_df = cat_goog_df[cat_goog_df["campaign"] == sel_goog]
 
-    # aggregate across all apps for sel_date and prior_date
-    frames_yd, frames_pr = [], []
-    for a, cr in all_cr.items():
-        yd = _agg(cr, sel_date);   yd["app"] = a if not yd.empty else None
-        pr = _agg(cr, prior_date); pr["app"] = a if not pr.empty else None
-        if not yd.empty: frames_yd.append(yd)
-        if not pr.empty: frames_pr.append(pr)
+                _render_trend(goog_camp_df, "#34A853")
+                _render_sparklines_google(goog_camp_df)
+                if "ad_set" in goog_camp_df.columns:
+                    _render_spend_dist(goog_camp_df, "ad_set", "Ad Set", "#34A853")
 
-    if not frames_yd:
-        st.info("No creative data for selected date.")
-        return
-
-    yd_all = pd.concat(frames_yd, ignore_index=True)
-    pr_all = pd.concat(frames_pr, ignore_index=True) if frames_pr else pd.DataFrame()
-
-    # roll up to category → campaign across apps
-    yd_grp = yd_all.groupby(["category", "campaign"], as_index=False).agg(
-        spend=("spend", "sum"), orders=("orders", "sum"), uninstalls=("uninstalls", "sum"),
-    )
-    yd_grp["cac"]       = yd_grp.apply(lambda r: r["spend"] / r["orders"]       if r["orders"] > 0 else None, axis=1)
-    yd_grp["unin_rate"] = yd_grp.apply(lambda r: r["uninstalls"] / r["orders"] * 100 if r["orders"] > 0 else None, axis=1)
-
-    pr_grp = pd.DataFrame()
-    if not pr_all.empty:
-        pr_grp = pr_all.groupby(["category", "campaign"], as_index=False).agg(
-            spend_pr=("spend", "sum"), orders_pr=("orders", "sum"), uninstalls_pr=("uninstalls", "sum"),
-        )
-        pr_grp["cac_pr"]       = pr_grp.apply(lambda r: r["spend_pr"] / r["orders_pr"]           if r["orders_pr"] > 0 else None, axis=1)
-        pr_grp["unin_rate_pr"] = pr_grp.apply(lambda r: r["uninstalls_pr"] / r["orders_pr"] * 100 if r["orders_pr"] > 0 else None, axis=1)
-
-    # merge yd + prior
-    if not pr_grp.empty:
-        merged = yd_grp.merge(pr_grp[["category","campaign","spend_pr","orders_pr","cac_pr","unin_rate_pr"]],
-                              on=["category","campaign"], how="left")
-    else:
-        merged = yd_grp.copy()
-        for c in ["spend_pr","orders_pr","cac_pr","unin_rate_pr"]:
-            merged[c] = None
-
-    # category-level rollup
-    cat_totals = merged.groupby("category", as_index=False).agg(
-        spend=("spend","sum"), orders=("orders","sum"), uninstalls=("uninstalls","sum"),
-        spend_pr=("spend_pr","sum"),
-    )
-    cat_totals["cac"] = cat_totals.apply(lambda r: r["spend"]/r["orders"] if r["orders"]>0 else None, axis=1)
-    cat_totals = cat_totals.sort_values("spend", ascending=False)
-
-    def _delta_html(now, prev, fmt, higher_is_bad=True):
-        if prev is None or pd.isna(prev) or prev == 0:
-            return ""
-        diff = now - prev
-        if diff == 0:
-            return ""
-        is_bad  = (diff > 0 and higher_is_bad) or (diff < 0 and not higher_is_bad)
-        col     = "#E24B4A" if is_bad else "#1D9E75"
-        arrow   = "▲" if diff > 0 else "▼"
-        return (f"<span style='font-size:0.65rem;color:{col};font-weight:700;"
-                f"background:rgba({'226,75,74' if is_bad else '29,158,117'},.1);"
-                f"border-radius:6px;padding:1px 5px;margin-left:4px'>{arrow}{fmt(abs(diff))}</span>")
-
-    # ── render ──
-    cat_open_key = "catmix_open"
-    if cat_open_key not in st.session_state:
-        st.session_state[cat_open_key] = None
-
-    for _, cat_row in cat_totals.iterrows():
-        cat     = cat_row["category"]
-        is_open = st.session_state[cat_open_key] == cat
-        bg      = "#F0EBE8" if is_open else "#FFFFFF"
-        chevron = "▾" if is_open else "›"
-        ch_col  = "#1C1A17" if is_open else "#8A857D"
-
-        # category header
-        sp_delta  = _delta_html(cat_row["spend"],  cat_row.get("spend_pr"),  lambda v: f"₹{v:,.0f}", higher_is_bad=False)
-        n_camps   = len(merged[merged["category"] == cat])
-
-        ch_left, ch_btn = st.columns([11, 1])
-        with ch_left:
-            st.markdown(
-                f"<div style='background:{bg};border:1px solid {'#D8D3C9' if is_open else '#E2DDD3'};"
-                f"border-left:3px solid #C5C0B6;border-radius:10px;padding:10px 16px;margin-bottom:3px'>"
-                f"<div style='display:flex;align-items:center;justify-content:space-between'>"
-                f"<div style='display:flex;align-items:center;gap:8px'>"
-                f"<span style='color:{ch_col};font-size:1rem'>{chevron}</span>"
-                f"<span style='font-weight:700;font-size:0.9rem;color:#1C1A17'>{cat}</span>"
-                f"<span style='font-size:0.65rem;color:#7A756D;background:#EDE8DE;border:1px solid #DDD8CE;"
-                f"border-radius:6px;padding:1px 6px'>{n_camps} campaigns</span>"
-                f"</div>"
-                f"<div style='display:flex;gap:16px;font-size:0.75rem;color:#6B665E'>"
-                f"<span>₹{cat_row['spend']:,.0f}{sp_delta}</span>"
-                f"<span>{int(cat_row['orders'])} orders</span>"
-                f"<span>{'₹'+str(int(cat_row['cac'])) if (cat_row['cac'] and pd.notna(cat_row['cac'])) else '—'} CAC</span>"
-                f"</div>"
-                f"</div></div>",
-                unsafe_allow_html=True,
-            )
-        with ch_btn:
-            if st.button("⋯", key=f"catmix_btn_{cat}", use_container_width=True):
-                st.session_state[cat_open_key] = None if is_open else cat
-                st.rerun()
-
-        if not is_open:
-            continue
-
-        # campaign rows within category
-        camp_rows = merged[merged["category"] == cat].sort_values("spend", ascending=False)
-        st.markdown("<div style='padding-left:16px;border-left:2px solid #1e1e1e;margin-left:6px;margin-bottom:6px'>", unsafe_allow_html=True)
-
-        for _, row in camp_rows.iterrows():
-            cac_now  = row["cac"]
-            cac_pr   = row.get("cac_pr")
-            unin_now = row["unin_rate"]
-            unin_pr  = row.get("unin_rate_pr")
-
-            sp_d   = _delta_html(row["spend"],    row.get("spend_pr"),    lambda v: f"₹{v:,.0f}",  False)
-            ord_d  = _delta_html(row["orders"],   row.get("orders_pr"),   lambda v: f"{v:,.0f}",   False)
-            cac_d  = _delta_html(cac_now,  cac_pr,  lambda v: f"₹{v:.0f}",  True)  if (cac_now  and pd.notna(cac_now))  else ""
-            unin_d = _delta_html(unin_now, unin_pr, lambda v: f"{v:.1f}pp", True)  if (unin_now and pd.notna(unin_now)) else ""
-
-            cac_str  = f"₹{int(cac_now)}"   if (cac_now  and pd.notna(cac_now))  else "—"
-            unin_str = f"{unin_now:.1f}%"   if (unin_now and pd.notna(unin_now)) else "—"
-
-            st.markdown(
-                f"<div style='background:#FFFFFF;border:1px solid #E2DDD3;border-radius:8px;"
-                f"padding:8px 14px;margin-bottom:3px;display:flex;justify-content:space-between;align-items:center'>"
-                f"<span style='font-size:0.82rem;color:#2A2520;flex:1;min-width:0;white-space:nowrap;"
-                f"overflow:hidden;text-overflow:ellipsis'>{row['campaign']}</span>"
-                f"<div style='display:flex;gap:14px;font-size:0.72rem;color:#6B665E;flex-shrink:0;margin-left:12px;align-items:center'>"
-                f"<span>₹{row['spend']:,.0f}{sp_d}</span>"
-                f"<span>{int(row['orders'])} ord{ord_d}</span>"
-                f"<span>{cac_str}{cac_d}</span>"
-                f"<span>{unin_str}{unin_d}</span>"
-                f"</div></div>",
-                unsafe_allow_html=True,
-            )
-
-        st.markdown("</div>", unsafe_allow_html=True)
+            if cat_meta_df.empty and cat_goog_df.empty:
+                st.info("No campaign data found for this category.")
 
 
 # ════════════════════════════════════════════════════════════════════════════
