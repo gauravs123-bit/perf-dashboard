@@ -62,8 +62,8 @@ def trend_bar(trend_df: pd.DataFrame, metric_col: str,
         paper_bgcolor="rgba(0,0,0,0)",
         plot_bgcolor="rgba(0,0,0,0)",
         xaxis=dict(showgrid=False),
-        yaxis=dict(showgrid=True, gridcolor="#2a2a2a"),
-        font=dict(color="#e0e0e0"),
+        yaxis=dict(showgrid=True, gridcolor="#E5E0D6"),
+        font=dict(color="#5A554D"),
     )
     return fig
 
@@ -82,7 +82,7 @@ def source_donut(src_df: pd.DataFrame, metric_col: str, title: str = "") -> go.F
         title=title, height=280,
         margin=dict(l=10, r=10, t=40, b=10),
         paper_bgcolor="rgba(0,0,0,0)",
-        font=dict(color="#e0e0e0"),
+        font=dict(color="#5A554D"),
         showlegend=False,
     )
     return fig
@@ -132,9 +132,9 @@ def campaign_bar(camp_df: pd.DataFrame, metric_col: str, color: str,
         margin=dict(l=10, r=10, t=40, b=10),
         paper_bgcolor="rgba(0,0,0,0)",
         plot_bgcolor="rgba(0,0,0,0)",
-        xaxis=dict(showgrid=True, gridcolor="#2a2a2a"),
+        xaxis=dict(showgrid=True, gridcolor="#E5E0D6"),
         yaxis=dict(showgrid=False),
-        font=dict(color="#e0e0e0"),
+        font=dict(color="#5A554D"),
     )
     return fig
 
@@ -173,8 +173,8 @@ def kitagawa_waterfall(kit_df: pd.DataFrame, title: str = "Kitagawa Decompositio
         paper_bgcolor="rgba(0,0,0,0)",
         plot_bgcolor="rgba(0,0,0,0)",
         xaxis=dict(tickangle=-30, showgrid=False),
-        yaxis=dict(showgrid=True, gridcolor="#2a2a2a"),
-        font=dict(color="#e0e0e0"),
+        yaxis=dict(showgrid=True, gridcolor="#E5E0D6"),
+        font=dict(color="#5A554D"),
         legend=dict(orientation="h", y=1.12),
     )
     return fig
@@ -225,9 +225,9 @@ def l7d_trend(app_series: dict[str, dict], metric_label: str,
         paper_bgcolor="rgba(0,0,0,0)",
         plot_bgcolor="rgba(0,0,0,0)",
         xaxis=dict(showgrid=False, tickangle=-20),
-        yaxis=dict(showgrid=True, gridcolor="#2a2a2a",
+        yaxis=dict(showgrid=True, gridcolor="#E5E0D6",
                    tickprefix=prefix, ticksuffix=suffix),
-        font=dict(color="#e0e0e0"),
+        font=dict(color="#5A554D"),
         legend=dict(orientation="h", y=1.12, x=0),
         hovermode="x unified",
     )
@@ -302,9 +302,9 @@ def l3d_group_trend(df: "pd.DataFrame", group_col: str, metric_col: str,
         paper_bgcolor="rgba(0,0,0,0)",
         plot_bgcolor="rgba(0,0,0,0)",
         xaxis=dict(showgrid=False, type="category"),
-        yaxis=dict(showgrid=True, gridcolor="#2a2a2a",
+        yaxis=dict(showgrid=True, gridcolor="#E5E0D6",
                    tickprefix=prefix, ticksuffix=suffix),
-        font=dict(color="#e0e0e0"),
+        font=dict(color="#5A554D"),
         legend=dict(orientation="v", x=1.01, y=1, font=dict(size=10)),
         hovermode="x unified",
     )
@@ -373,9 +373,9 @@ def creative_trend(long_df: "pd.DataFrame", metric_label: str,
         paper_bgcolor="rgba(0,0,0,0)",
         plot_bgcolor="rgba(0,0,0,0)",
         xaxis=dict(showgrid=False),
-        yaxis=dict(showgrid=True, gridcolor="#2a2a2a",
+        yaxis=dict(showgrid=True, gridcolor="#E5E0D6",
                    tickprefix=prefix, ticksuffix=suffix),
-        font=dict(color="#e0e0e0"),
+        font=dict(color="#5A554D"),
         legend=dict(orientation="v", x=1.01, y=1, font=dict(size=10)),
         hovermode="x unified",
     )
@@ -492,8 +492,8 @@ def kitagawa_heatmap(
         textfont=dict(size=10, color="#111111"),
         hovertemplate=hover_template,
         colorbar=dict(
-            title=dict(text="Contribution", font=dict(color="#e0e0e0")),
-            tickfont=dict(color="#e0e0e0"),
+            title=dict(text="Contribution", font=dict(color="#5A554D")),
+            tickfont=dict(color="#5A554D"),
         ),
     ))
 
@@ -504,7 +504,7 @@ def kitagawa_heatmap(
         margin=dict(l=10, r=10, t=50, b=80),
         paper_bgcolor="rgba(0,0,0,0)",
         plot_bgcolor="rgba(0,0,0,0)",
-        font=dict(color="#e0e0e0"),
+        font=dict(color="#5A554D"),
         xaxis=dict(tickangle=-30, side="bottom"),
         yaxis=dict(autorange="reversed"),   # biggest mover at top
     )
@@ -558,9 +558,9 @@ def spend_cac_scatter(adset_df: pd.DataFrame, app_color: str = "#7F77DD") -> go.
         margin=dict(l=10, r=10, t=50, b=10),
         paper_bgcolor="rgba(0,0,0,0)",
         plot_bgcolor="rgba(0,0,0,0)",
-        font=dict(color="#e0e0e0"),
-        xaxis=dict(showgrid=True, gridcolor="#2a2a2a"),
-        yaxis=dict(showgrid=True, gridcolor="#2a2a2a"),
+        font=dict(color="#5A554D"),
+        xaxis=dict(showgrid=True, gridcolor="#E5E0D6"),
+        yaxis=dict(showgrid=True, gridcolor="#E5E0D6"),
         legend=dict(title="Source"),
     )
     return fig
@@ -611,7 +611,7 @@ def overview_trend_chart(
         name=primary_label or primary_col,
         mode="lines+markers",
         line=dict(color=color, width=2.5),
-        marker=dict(color=color, size=7, line=dict(color="#0d0d0d", width=2)),
+        marker=dict(color=color, size=7, line=dict(color="#FFFFFF", width=2)),
         fill="tozeroy",
         fillcolor=fill_color,
         hovertemplate=(
@@ -624,14 +624,14 @@ def overview_trend_chart(
         margin=dict(l=0, r=0, t=10, b=0),
         paper_bgcolor="rgba(0,0,0,0)",
         plot_bgcolor="rgba(0,0,0,0)",
-        font=dict(color="#e0e0e0", size=11),
+        font=dict(color="#5A554D", size=11),
         xaxis=dict(showgrid=False, tickangle=-20, tickfont=dict(size=10, color="#555")),
         hovermode="x unified",
         legend=dict(orientation="h", y=1.12, x=0, font=dict(size=10)),
         bargap=0.25,
     )
     fig.update_yaxes(
-        showgrid=True, gridcolor="#1e1e1e",
+        showgrid=True, gridcolor="#E5E0D6",
         tickprefix=primary_prefix, ticksuffix=primary_suffix,
         tickfont=dict(color="#555", size=10),
         secondary_y=False, title_text="",
@@ -688,14 +688,14 @@ def pivot_bar_chart(pivot_df: pd.DataFrame, dimension: str,
         margin=dict(l=10, r=10, t=40, b=10),
         paper_bgcolor="rgba(0,0,0,0)",
         plot_bgcolor="rgba(0,0,0,0)",
-        font=dict(color="#e0e0e0"),
+        font=dict(color="#5A554D"),
         xaxis=dict(showgrid=False, tickangle=-20),
         legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1),
         bargap=0.3,
     )
     fig.update_yaxes(
         title_text="Spend L7D (₹)", secondary_y=False,
-        showgrid=True, gridcolor="#2a2a2a",
+        showgrid=True, gridcolor="#E5E0D6",
     )
     fig.update_yaxes(
         title_text="Avg D0 CAC (₹)", secondary_y=True,

@@ -33,25 +33,25 @@ st.set_page_config(
     initial_sidebar_state="collapsed",
 )
 
-# ── dark theme tweaks ────────────────────────────────────────────────────────
+# ── light cream theme ────────────────────────────────────────────────────────
 st.markdown("""
 <style>
   @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
 
   /* ── Base ── */
   html, body, [class*="css"] { font-family: 'Inter', -apple-system, sans-serif !important; }
-  [data-testid="stAppViewContainer"] { background:#080808; }
-  [data-testid="stHeader"]           { background:#080808; display:none; }
+  [data-testid="stAppViewContainer"] { background:#F0EBE1; }
+  [data-testid="stHeader"]           { background:#F0EBE1; display:none; }
   .block-container { padding-top:1.5rem; padding-bottom:2rem; max-width:1200px; }
 
   /* scrollbar */
   ::-webkit-scrollbar { width:4px; height:4px; }
-  ::-webkit-scrollbar-track { background:#0d0d0d; }
-  ::-webkit-scrollbar-thumb { background:#222; border-radius:4px; }
+  ::-webkit-scrollbar-track { background:#E8E3D9; }
+  ::-webkit-scrollbar-thumb { background:#C8C3B8; border-radius:4px; }
 
   /* ── Streamlit metric cards (used in non-pulse views) ── */
   [data-testid="metric-container"] {
-      background:#111; border:1px solid #1c1c1c; border-radius:12px; padding:14px 18px;
+      background:#FFFFFF; border:1px solid #DDD8CE; border-radius:12px; padding:14px 18px;
   }
   [data-testid="stMetricValue"] { font-size:1.35rem; font-weight:700; letter-spacing:-.02em; }
   [data-testid="stMetricDelta"] { font-size:0.75rem; }
@@ -60,38 +60,38 @@ st.markdown("""
 
   /* ── Sidebar ── */
   [data-testid="stSidebar"] {
-      background:#111 !important;
-      border-right:1px solid #252525 !important;
+      background:#EBE6DC !important;
+      border-right:1px solid #D0CBC1 !important;
       min-width:220px !important;
   }
   [data-testid="stSidebar"] > div:first-child { padding:1.4rem 1rem 1rem; }
 
   /* sidebar collapse button (inside open sidebar) */
   [data-testid="stSidebarCollapseButton"] {
-      opacity:1 !important; color:#555 !important;
+      opacity:1 !important; color:#9A958C !important;
   }
-  [data-testid="stSidebarCollapseButton"]:hover { color:#aaa !important; }
-  [data-testid="stSidebarCollapseButton"] svg { stroke:#555 !important; }
+  [data-testid="stSidebarCollapseButton"]:hover { color:#5A554D !important; }
+  [data-testid="stSidebarCollapseButton"] svg { stroke:#9A958C !important; }
 
   /* sidebar EXPAND button — shown on left edge when sidebar is collapsed */
   [data-testid="stSidebarCollapsedControl"] {
-      background:#1e1e1e !important;
-      border:1px solid #333 !important;
+      background:#DDD8CE !important;
+      border:1px solid #C5C0B6 !important;
       border-left:none !important;
       border-radius:0 8px 8px 0 !important;
       width:28px !important;
       opacity:1 !important;
       top:50% !important;
-      box-shadow:2px 0 8px rgba(0,0,0,0.4) !important;
+      box-shadow:2px 0 8px rgba(0,0,0,0.08) !important;
   }
   [data-testid="stSidebarCollapsedControl"] button {
-      color:#aaa !important;
+      color:#6B665E !important;
   }
   [data-testid="stSidebarCollapsedControl"] svg {
-      stroke:#aaa !important; fill:none !important;
+      stroke:#6B665E !important; fill:none !important;
   }
   [data-testid="stSidebarCollapsedControl"]:hover {
-      background:#2a2a2a !important; border-color:#444 !important;
+      background:#D0CBC1 !important; border-color:#B8B3A9 !important;
   }
 
   /* hide radio circles */
@@ -99,153 +99,146 @@ st.markdown("""
   [data-testid="stSidebar"] .stRadio > div { gap:2px !important; }
   [data-testid="stSidebar"] .stRadio label {
       font-size:0.83rem; padding:7px 12px !important; border-radius:7px;
-      color:#777 !important; font-weight:500; transition:background .1s, color .1s;
+      color:#7A756D !important; font-weight:500; transition:background .1s, color .1s;
       cursor:pointer; display:flex !important; align-items:center; gap:7px; width:100%;
   }
   [data-testid="stSidebar"] .stRadio label:hover {
-      background:#161616 !important; color:#ccc !important;
+      background:#DDD8CE !important; color:#2A2520 !important;
   }
   [data-testid="stSidebar"] .stRadio [data-testid="stMarkdownContainer"] p { margin:0; }
   [data-testid="stSidebar"] .stRadio [data-testid="stWidgetLabel"] { display:none; }
-  [data-testid="stSidebar"] hr { border-color:#1e1e1e; margin:10px 0; }
+  [data-testid="stSidebar"] hr { border-color:#D8D3C9; margin:10px 0; }
 
   /* ── nav buttons ── */
   [data-testid="stSidebar"] .nav-btn button,
   [data-testid="stSidebar"] .nav-btn [data-testid="stBaseButton-secondary"] {
       background:transparent !important; border:none !important; box-shadow:none !important;
-      color:#777 !important; font-size:0.83rem !important;
+      color:#7A756D !important; font-size:0.83rem !important;
       font-weight:500 !important; text-align:left !important;
       padding:8px 12px !important; border-radius:8px !important;
       width:100% !important; transition:background .12s, color .12s !important;
       justify-content:flex-start !important;
   }
   [data-testid="stSidebar"] .nav-btn button:hover {
-      background:#161616 !important; color:#ccc !important;
+      background:#DDD8CE !important; color:#2A2520 !important;
   }
   [data-testid="stSidebar"] .nav-btn-active button,
   [data-testid="stSidebar"] .nav-btn-active [data-testid="stBaseButton-secondary"] {
-      background:var(--app-color-subtle, #1a1a1a) !important;
-      color:var(--app-color, #e8e8e8) !important;
+      background:var(--app-color-subtle, #E5E0D5) !important;
+      color:var(--app-color, #1C1A17) !important;
       font-weight:600 !important; border:none !important; box-shadow:none !important;
   }
   [data-testid="stSidebar"] .nav-btn-active button:hover {
-      background:var(--app-color-subtle, #1a1a1a) !important;
-      color:var(--app-color, #e8e8e8) !important;
+      background:var(--app-color-subtle, #E5E0D5) !important;
+      color:var(--app-color, #1C1A17) !important;
   }
 
   /* sidebar group label */
   .sb-group-label {
       font-size:0.6rem; font-weight:700; letter-spacing:.16em;
-      text-transform:uppercase; color:#3a3a3a; margin:20px 0 6px 4px;
+      text-transform:uppercase; color:#B0AB9F; margin:20px 0 6px 4px;
   }
 
   /* sidebar action buttons (refresh etc) */
   [data-testid="stSidebar"] .stButton > button {
-      background:#111 !important; border:1px solid #222 !important;
-      color:#666 !important; border-radius:8px !important;
+      background:#EBE6DC !important; border:1px solid #D5D0C6 !important;
+      color:#7A756D !important; border-radius:8px !important;
       font-size:0.79rem !important; font-weight:500 !important;
       padding:8px 14px !important; width:100%; transition:all .15s;
   }
   [data-testid="stSidebar"] .stButton > button:hover {
-      background:#1a1a1a !important; color:#bbb !important; border-color:#333 !important;
+      background:#DDD8CE !important; color:#2A2520 !important; border-color:#C5C0B6 !important;
   }
 
   /* ── Morning Pulse KPI cards ── */
   .pulse-card {
-      background:#0d0d0d; border:1px solid #181818; border-radius:12px;
+      background:#FFFFFF; border:1px solid #E2DDD3; border-radius:12px;
       padding:16px 16px; height:100%; position:relative; overflow:hidden;
       transition: border-color .15s, background .15s;
   }
-  .pulse-card:hover { border-color:#252525; background:#0f0f0f; }
+  .pulse-card:hover { border-color:#D0CBC1; background:#F8F5F0; }
   .pulse-card::after {
       content:''; position:absolute; top:0; left:0; right:0; height:2px;
       border-radius:12px 12px 0 0;
   }
   .pulse-card-red::after   { background:linear-gradient(90deg,#E24B4A,transparent); }
   .pulse-card-green::after { background:linear-gradient(90deg,#1D9E75,transparent); }
-  .pulse-card-grey::after  { background:linear-gradient(90deg,#2a2a2a,transparent); }
-  .pulse-label { font-size:0.58rem; color:#3a3a3a; text-transform:uppercase;
+  .pulse-card-grey::after  { background:linear-gradient(90deg,#C8C3B8,transparent); }
+  .pulse-label { font-size:0.58rem; color:#A8A39A; text-transform:uppercase;
                  letter-spacing:.16em; margin-bottom:10px; font-weight:700; }
-  .pulse-value { font-size:1.75rem; font-weight:700; color:#f2f2f2;
+  .pulse-value { font-size:1.75rem; font-weight:700; color:#1C1A17;
                  letter-spacing:-.03em; line-height:1; margin-bottom:4px; }
-  .pulse-yday  { font-size:0.66rem; color:#2e2e2e; margin-bottom:10px; }
+  .pulse-yday  { font-size:0.66rem; color:#B0AB9F; margin-bottom:10px; }
   .pulse-delta-row { display:flex; align-items:center; justify-content:space-between; }
   .pulse-delta-bad  { display:inline-flex; align-items:center; gap:3px; font-size:0.68rem;
                       font-weight:700; padding:3px 10px; border-radius:20px;
-                      background:rgba(226,75,74,.12); color:#E24B4A;
-                      border:1px solid rgba(226,75,74,.18); }
+                      background:rgba(226,75,74,.10); color:#E24B4A;
+                      border:1px solid rgba(226,75,74,.20); }
   .pulse-delta-good { display:inline-flex; align-items:center; gap:3px; font-size:0.68rem;
                       font-weight:700; padding:3px 10px; border-radius:20px;
-                      background:rgba(29,158,117,.12); color:#1D9E75;
-                      border:1px solid rgba(29,158,117,.18); }
+                      background:rgba(29,158,117,.10); color:#1D9E75;
+                      border:1px solid rgba(29,158,117,.20); }
   .pulse-delta-neu  { display:inline-flex; align-items:center; gap:3px; font-size:0.68rem;
                       padding:3px 10px; border-radius:20px;
-                      background:#111; color:#333; border:1px solid #1a1a1a; }
-  .pulse-pct { font-size:0.62rem; color:#2e2e2e; }
+                      background:#F0EBE1; color:#A8A39A; border:1px solid #DDD8CE; }
+  .pulse-pct { font-size:0.62rem; color:#B0AB9F; }
 
   /* ── Section header ── */
   .section-hdr { display:flex; align-items:center; gap:10px; margin:28px 0 14px; }
-  .section-hdr-line { flex:1; height:1px; background:#131313; }
+  .section-hdr-line { flex:1; height:1px; background:#E5E0D6; }
   .section-hdr-text { font-size:0.58rem; font-weight:700; letter-spacing:.16em;
-                      text-transform:uppercase; color:#2e2e2e; white-space:nowrap; }
+                      text-transform:uppercase; color:#B0AB9F; white-space:nowrap; }
 
   /* ── Alert pills ── */
   .alert-pill { display:inline-flex; align-items:center; gap:5px; padding:5px 13px;
                 border-radius:20px; font-size:0.78rem; font-weight:500; margin:0 4px 5px 0; }
-  .alert-pill-red    { background:rgba(226,75,74,.1);  color:#ff8080; border:1px solid rgba(226,75,74,.2); }
-  .alert-pill-green  { background:rgba(29,158,117,.1); color:#4cdf96; border:1px solid rgba(29,158,117,.2); }
-  .alert-pill-yellow { background:rgba(255,180,0,.08); color:#ffc947; border:1px solid rgba(255,180,0,.2); }
+  .alert-pill-red    { background:rgba(226,75,74,.08);  color:#C0392B; border:1px solid rgba(226,75,74,.2); }
+  .alert-pill-green  { background:rgba(29,158,117,.08); color:#1A7A5E; border:1px solid rgba(29,158,117,.2); }
+  .alert-pill-yellow { background:rgba(180,130,0,.07);  color:#8B6914; border:1px solid rgba(180,130,0,.2); }
 
   /* ── Shared section label ── */
   .section-label { font-size:0.6rem; text-transform:uppercase; letter-spacing:.14em;
-                   color:#3a3a3a; margin-bottom:12px; margin-top:0; font-weight:700; }
+                   color:#A8A39A; margin-bottom:12px; margin-top:0; font-weight:700; }
 
   /* ── Contributor cards ── */
-  .contrib-card { background:#0d0d0d; border:1px solid #161616; border-radius:12px;
+  .contrib-card { background:#FFFFFF; border:1px solid #E5E0D6; border-radius:12px;
                   padding:13px 15px; margin-bottom:6px; }
   .contrib-tag  { display:inline-flex; align-items:center; gap:3px; font-size:0.67rem;
-                  background:#131313; padding:3px 9px; border-radius:10px;
-                  border:1px solid #1c1c1c; margin-right:4px; }
+                  background:#F0EBE1; padding:3px 9px; border-radius:10px;
+                  border:1px solid #DDD8CE; margin-right:4px; }
 
   /* ── Campaign table ── */
   .camp-table { width:100%; border-collapse:collapse; }
   .camp-table th {
-      font-size:0.58rem; color:#2e2e2e; text-transform:uppercase; letter-spacing:.12em;
-      font-weight:700; padding:8px 12px; text-align:right; border-bottom:1px solid #161616;
-      background:#090909;
+      font-size:0.58rem; color:#B0AB9F; text-transform:uppercase; letter-spacing:.12em;
+      font-weight:700; padding:8px 12px; text-align:right; border-bottom:1px solid #E5E0D6;
+      background:#F5F2ED;
   }
   .camp-table th:first-child { text-align:left; }
   .camp-table td {
-      padding:9px 12px; font-size:0.78rem; color:#999; border-bottom:1px solid #0f0f0f;
+      padding:9px 12px; font-size:0.78rem; color:#5A554D; border-bottom:1px solid #EDE8DE;
       text-align:right; white-space:nowrap;
   }
   .camp-table td:first-child { text-align:left; }
-  .camp-table tr:hover td { background:#0d0d0d; }
+  .camp-table tr:hover td { background:#F8F5F0; }
   .camp-table tr:last-child td { border-bottom:none; }
   .src-dot { display:inline-block; width:7px; height:7px; border-radius:50%;
              margin-right:6px; flex-shrink:0; }
-  .src-badge { font-size:0.6rem; background:#161616; border:1px solid #1e1e1e;
-               border-radius:4px; padding:1px 6px; color:#444; margin-left:5px; }
+  .src-badge { font-size:0.6rem; background:#EDE8DE; border:1px solid #DDD8CE;
+               border-radius:4px; padding:1px 6px; color:#8A857D; margin-left:5px; }
   .dod-pill-bad  { display:inline-flex; align-items:center; font-size:0.68rem; font-weight:700;
-                   padding:2px 8px; border-radius:5px; background:rgba(226,75,74,.15); color:#E24B4A; }
+                   padding:2px 8px; border-radius:5px; background:rgba(226,75,74,.10); color:#E24B4A; }
   .dod-pill-good { display:inline-flex; align-items:center; font-size:0.68rem; font-weight:700;
-                   padding:2px 8px; border-radius:5px; background:rgba(29,158,117,.15); color:#1D9E75; }
+                   padding:2px 8px; border-radius:5px; background:rgba(29,158,117,.10); color:#1D9E75; }
   .dod-pill-neu  { display:inline-flex; align-items:center; font-size:0.68rem;
-                   padding:2px 8px; border-radius:5px; background:#141414; color:#333; }
+                   padding:2px 8px; border-radius:5px; background:#EDE8DE; color:#8A857D; }
 
   /* ── Drill + Trend buttons ─────────────────────────────────────────────── */
-  /* In Streamlit 1.50: stHorizontalBlock is a CSS CLASS (not data-testid).  */
-  /* stButton data-testid does NOT exist; stElementContainer wraps elements.  */
-  /* The action column (c6) is the ONLY nested .stHorizontalBlock in the app. */
-
-  /* Nuke spacing on the nested column row */
   [data-testid="stColumn"] > * > .stHorizontalBlock { gap:2px !important; padding:0 !important; }
-  /* Nuke wrapper padding on element containers inside nested cols */
   [data-testid="stColumn"] .stHorizontalBlock [data-testid="stElementContainer"],
   [data-testid="stColumn"] .stHorizontalBlock .element-container {
     margin:0 !important; padding:0 !important; min-height:0 !important;
   }
-  /* The actual button elements */
   [data-testid="stColumn"] .stHorizontalBlock button {
     min-height:20px !important; height:20px !important; line-height:20px !important;
     padding:0 5px !important; font-size:0.6rem !important; font-weight:600 !important;
@@ -255,24 +248,24 @@ st.markdown("""
   }
   /* drill ▸ — first sub-column */
   [data-testid="stColumn"] .stHorizontalBlock [data-testid="stColumn"]:first-child button {
-    background:transparent !important; border:1px solid #252525 !important; color:#404040 !important;
+    background:transparent !important; border:1px solid #D0CBC1 !important; color:#8A857D !important;
   }
   [data-testid="stColumn"] .stHorizontalBlock [data-testid="stColumn"]:first-child button:hover {
-    border-color:#444 !important; color:#888 !important; background:transparent !important;
+    border-color:#B8B3A9 !important; color:#4A4540 !important; background:transparent !important;
   }
   /* trend — second (last) sub-column */
   [data-testid="stColumn"] .stHorizontalBlock [data-testid="stColumn"]:last-child button {
-    background:#0d0d0d !important; border:1px solid #1e1e1e !important; color:#404040 !important;
+    background:#F5F2ED !important; border:1px solid #DDD8CE !important; color:#8A857D !important;
   }
   [data-testid="stColumn"] .stHorizontalBlock [data-testid="stColumn"]:last-child button:hover {
-    background:#141414 !important; border-color:rgba(226,75,74,0.3) !important; color:#E24B4A !important;
+    background:#EDE8DE !important; border-color:rgba(226,75,74,0.3) !important; color:#E24B4A !important;
   }
 
   /* ── Header strip ── */
-  .strip-card { background:#0d0d0d; border:1px solid #161616; border-radius:10px;
+  .strip-card { background:#FFFFFF; border:1px solid #E5E0D6; border-radius:10px;
                 padding:10px 14px; text-align:center; cursor:pointer;
                 transition:border-color .15s; }
-  .strip-app-name  { font-size:0.68rem; color:#444; margin-bottom:2px; font-weight:500; }
+  .strip-app-name  { font-size:0.68rem; color:#A8A39A; margin-bottom:2px; font-weight:500; }
   .strip-value     { font-size:1.05rem; font-weight:700; letter-spacing:-.02em; }
   .strip-delta-pos { color:#1D9E75; font-size:0.72rem; }
   .strip-delta-neg { color:#E24B4A; font-size:0.72rem; }
@@ -280,8 +273,8 @@ st.markdown("""
   /* strip switch button — compact pill */
   .strip-click-btn { margin-top:4px; }
   .strip-click-btn button {
-      background:#0d0d0d !important; border:1px solid #1e1e1e !important;
-      box-shadow:none !important; color:#333 !important;
+      background:#F5F2ED !important; border:1px solid #DDD8CE !important;
+      box-shadow:none !important; color:#8A857D !important;
       font-size:0.7rem !important; font-weight:500 !important;
       padding:3px 10px !important; border-radius:20px !important;
       width:auto !important; min-height:0 !important; height:auto !important;
@@ -289,15 +282,14 @@ st.markdown("""
       display:inline-flex !important;
   }
   .strip-click-btn button:hover {
-      color:#aaa !important; border-color:#333 !important;
-      background:#111 !important;
+      color:#2A2520 !important; border-color:#C5C0B6 !important;
+      background:#EBE6DC !important;
   }
 
   /* section pill nav */
   div[data-testid="stHorizontalBlock"] .stRadio [data-testid="stWidgetLabel"] { display:none; }
 
   /* ── Nav pills (app + section selectors) ──────────────────────────────── */
-  /* Force horizontal layout — baseweb ButtonGroup defaults to column in some configs */
   [data-baseweb="button-group"] {
     flex-direction: row !important;
     flex-wrap: wrap !important;
@@ -305,7 +297,6 @@ st.markdown("""
     padding: 0 !important;
     align-items: center !important;
   }
-  /* Base pill style */
   [data-baseweb="button-group"] button {
     border-radius: 20px !important;
     font-size: 0.68rem !important;
@@ -316,26 +307,23 @@ st.markdown("""
     min-height: 26px !important;
     height: 26px !important;
     line-height: 26px !important;
-    background: #0d0d0d !important;
-    border: 1px solid #1c1c1c !important;
-    color: #333 !important;
+    background: #F5F2ED !important;
+    border: 1px solid #DDD8CE !important;
+    color: #8A857D !important;
     box-shadow: none !important;
     flex: 0 0 auto !important;
     transition: border-color .12s, color .12s, background .12s !important;
   }
   [data-baseweb="button-group"] button:hover {
-    border-color: #2e2e2e !important;
-    color: #555 !important;
-    background: #111 !important;
+    border-color: #C5C0B6 !important;
+    color: #4A4540 !important;
+    background: #EBE6DC !important;
   }
-  /* Active pill — emotion target e8vg11g11 (Streamlit 1.50) + aria fallbacks */
   [class*="e8vg11g11"],
   [data-baseweb="button-group"] button[aria-pressed="true"],
   [data-baseweb="button-group"] button[aria-checked="true"] {
     font-weight: 700 !important;
   }
-  /* Hide the label above st.pills when label_visibility="collapsed" already handles it
-     but also hide any stray label containers that add vertical space */
   [data-testid="stWidgetLabel"]:has(+ [data-baseweb="button-group"]) {
     display: none !important;
     margin: 0 !important;
@@ -399,11 +387,11 @@ def _build_trend_fig(filter_df: pd.DataFrame, label: str, n_days: int = 14,
         hovertemplate="%{x}<br>Unin %{y:.1f}%<extra></extra>"))
     fig.update_layout(
         height=340, margin=dict(l=0, r=60, t=24, b=40),
-        paper_bgcolor="#0d0d0d", plot_bgcolor="#0d0d0d",
-        font=dict(color="#777", size=11),
+        paper_bgcolor="#FFFFFF", plot_bgcolor="#FFFFFF",
+        font=dict(color="#7A756D", size=11),
         legend=dict(orientation="h", y=1.12, x=0, font=dict(size=10)),
         xaxis=dict(showgrid=False, tickfont=dict(size=9), tickangle=-30),
-        yaxis=dict(title="CAC ₹", showgrid=True, gridcolor="#181818",
+        yaxis=dict(title="CAC ₹", showgrid=True, gridcolor="#E5E0D6",
                    tickfont=dict(size=9), tickprefix="₹"),
         yaxis2=dict(title="Unin %", overlaying="y", side="right",
                     showgrid=False, tickfont=dict(size=9), ticksuffix="%",
