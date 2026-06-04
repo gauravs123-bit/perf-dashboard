@@ -2211,8 +2211,9 @@ def category_mix_view(app: str = "Seekho"):
         )
         st.plotly_chart(fig, use_container_width=True)
 
-    def _render_saturation(camp_cr: pd.DataFrame):
-        """Combined chart: Spend bars + CAC line + # Creatives line, with saturation annotation."""
+    def _render_saturation(camp_cr: pd.DataFrame) -> bool:
+        """Combined chart: Spend bars + CAC line + # Creatives line, with saturation annotation.
+        Returns True if chart was rendered, False if not enough data (caller should fall back)."""
         daily = (camp_cr.groupby("date_tz")
                  .agg(spend=("total_cost", "sum"),
                       orders=("D0_paid_users", "sum"),
@@ -2223,7 +2224,7 @@ def category_mix_view(app: str = "Seekho"):
         daily["ds"] = daily["date_tz"].astype(str)
 
         if daily["cac"].dropna().empty:
-            return
+            return False
 
         # Saturation point = day with lowest CAC (best efficiency)
         best_idx  = daily["cac"].idxmin()
@@ -2300,6 +2301,7 @@ def category_mix_view(app: str = "Seekho"):
             f"</div>",
             unsafe_allow_html=True,
         )
+        return True
 
     def _render_sparklines_meta(camp_cr: pd.DataFrame):
         """Creatives running (daily) + creatives at 80% spend (daily)."""
@@ -2460,7 +2462,9 @@ def category_mix_view(app: str = "Seekho"):
 
                 if not meta_camp_cr.empty:
                     # Use creative data for ALL Meta panels — keeps spend consistent
-                    _render_saturation(meta_camp_cr)
+                    if not _render_saturation(meta_camp_cr):
+                        # No paid conversions (e.g. retention campaign) — fall back to trend
+                        _render_trend(meta_camp_cr, "#378ADD")
                     _render_sparklines_meta(meta_camp_cr)
                     _render_spend_dist(meta_camp_cr, "ad_creative", "Creative", "#378ADD")
                 else:
