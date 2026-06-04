@@ -572,20 +572,20 @@ def _overview_source_cards(src: pd.DataFrame, primary_col: str, primary_label: s
         pval  = row[primary_col] if primary_col in row else 0
         paid  = int(row["D0_paid_users"])
         cards_html += f"""
-        <div style="flex:1;min-width:120px;background:#0d0d0d;border:1px solid #1a1a1a;
+        <div style="flex:1;min-width:120px;background:#FFFFFF;border:1px solid #E2DDD3;
                     border-top:2px solid {sc};border-radius:10px;padding:12px 14px">
           <div style="font-size:0.6rem;color:{sc};font-weight:700;letter-spacing:.1em;
                       text-transform:uppercase;margin-bottom:8px">{s}</div>
-          <div style="font-size:0.75rem;color:#666;margin-bottom:2px">Spend</div>
-          <div style="font-size:1rem;font-weight:700;color:#ddd;margin-bottom:6px">
-            ₹{spend:,.0f} <span style="font-size:0.68rem;color:#444">({spct:.0f}%)</span>
+          <div style="font-size:0.75rem;color:#A8A39A;margin-bottom:2px">Spend</div>
+          <div style="font-size:1rem;font-weight:700;color:#1C1A17;margin-bottom:6px">
+            ₹{spend:,.0f} <span style="font-size:0.68rem;color:#7A756D">({spct:.0f}%)</span>
           </div>
-          <div style="font-size:0.75rem;color:#666;margin-bottom:2px">{primary_label}</div>
-          <div style="font-size:0.95rem;font-weight:600;color:#ccc;margin-bottom:6px">
+          <div style="font-size:0.75rem;color:#A8A39A;margin-bottom:2px">{primary_label}</div>
+          <div style="font-size:0.95rem;font-weight:600;color:#2A2520;margin-bottom:6px">
             {primary_prefix}{pval:.1f}{primary_suffix}
           </div>
-          <div style="font-size:0.75rem;color:#666;margin-bottom:2px">D0 Orders</div>
-          <div style="font-size:0.85rem;color:#aaa">{paid:,}</div>
+          <div style="font-size:0.75rem;color:#A8A39A;margin-bottom:2px">D0 Orders</div>
+          <div style="font-size:0.85rem;color:#5A554D">{paid:,}</div>
         </div>"""
     st.markdown(
         f"<div style='display:flex;gap:10px;flex-wrap:wrap'>{cards_html}</div>",
@@ -997,9 +997,9 @@ def morning_pulse_view(df: pd.DataFrame, app: str, color: str, mode: str = "unin
     pills_html = ""
     for d in reversed(selectable):
         is_sel = st.session_state[date_key] == d
-        bg     = f"rgba({r},{g},{b},0.15)" if is_sel else "#111"
-        border = color if is_sel else "#1e1e1e"
-        fc     = color if is_sel else "#555"
+        bg     = f"rgba({r},{g},{b},0.15)" if is_sel else "#F0EBE1"
+        border = color if is_sel else "#D8D3C9"
+        fc     = color if is_sel else "#7A756D"
         fw     = "700" if is_sel else "400"
         label  = "Today" if d == selectable[-1] else str(d)
         pills_html += (
@@ -1045,12 +1045,12 @@ def morning_pulse_view(df: pd.DataFrame, app: str, color: str, mode: str = "unin
     yday_lbl  = "Yesterday" if is_latest else str(d1_date)
     st.markdown(
         f"<div style='display:flex;align-items:center;gap:8px;margin-bottom:20px'>"
-        f"<div style='background:#111;border:1px solid #1e1e1e;border-radius:20px;"
-        f"padding:5px 14px;font-size:0.75rem;color:#666;display:inline-flex;align-items:center;gap:6px'>"
-        f"<span style='color:#555'>📅</span>"
-        f"<b style='color:#ddd'>{today_lbl} ({yd_date})</b>"
-        f"<span style='color:#333'>vs</span>"
-        f"<span style='color:#444'>{yday_lbl} ({d1_date})</span>"
+        f"<div style='background:#FFFFFF;border:1px solid #E2DDD3;border-radius:20px;"
+        f"padding:5px 14px;font-size:0.75rem;color:#7A756D;display:inline-flex;align-items:center;gap:6px'>"
+        f"<span style='color:#A8A39A'>📅</span>"
+        f"<b style='color:#1C1A17'>{today_lbl} ({yd_date})</b>"
+        f"<span style='color:#B0AB9F'>vs</span>"
+        f"<span style='color:#6B665E'>{yday_lbl} ({d1_date})</span>"
         f"</div></div>",
         unsafe_allow_html=True,
     )
@@ -1345,27 +1345,27 @@ def morning_pulse_view(df: pd.DataFrame, app: str, color: str, mode: str = "unin
         return (f"<span style='background:{bg};color:{col};font-size:0.72rem;font-weight:700;"
                 f"padding:3px 9px;border-radius:6px;white-space:nowrap'>{arr} {fmt_fn(abs(val))}</span>")
 
-    _TH_s = ("font-size:0.62rem;text-transform:uppercase;letter-spacing:0.1em;color:#363636;"
-             "padding:9px 12px;font-weight:600;border-bottom:1px solid #191919;background:#0a0a0a;")
-    _TD_s = "font-size:0.82rem;color:#c0c0c0;padding:10px 12px;border-bottom:1px solid #0f0f0f;"
+    _TH_s = ("font-size:0.62rem;text-transform:uppercase;letter-spacing:0.1em;color:#A8A39A;"
+             "padding:9px 12px;font-weight:600;border-bottom:1px solid #E5E0D6;background:#F5F2ED;")
+    _TD_s = "font-size:0.82rem;color:#5A554D;padding:10px 12px;border-bottom:1px solid #EDE8DE;"
 
     def _tbl_wrap(headers, inner_rows):
         hdr = "".join(
             f"<th style='{_TH_s}{';text-align:right' if i > 0 else ''}'>{h}</th>"
             for i, h in enumerate(headers))
-        return (f"<div style='margin-top:10px;border-radius:8px;overflow:hidden;border:1px solid #161616'>"
+        return (f"<div style='margin-top:10px;border-radius:8px;overflow:hidden;border:1px solid #E5E0D6'>"
                 f"<table style='width:100%;border-collapse:collapse'>"
                 f"<thead><tr>{hdr}</tr></thead>"
                 f"<tbody>{inner_rows}</tbody></table></div>")
 
     # ── Breadcrumb + back ──
     if sel_camp:
-        bc = (f"<span style='color:#3a3a3a'>Campaigns</span>"
-              f"<span style='color:#222'> › </span>"
-              f"<span style='color:#777'>{sel_camp[:50]}</span>")
+        bc = (f"<span style='color:#A8A39A'>Campaigns</span>"
+              f"<span style='color:#C5C0B6'> › </span>"
+              f"<span style='color:#5A554D'>{sel_camp[:50]}</span>")
         if sel_adset:
-            bc += (f"<span style='color:#222'> › </span>"
-                   f"<span style='color:#777'>{sel_adset[:50]}</span>")
+            bc += (f"<span style='color:#C5C0B6'> › </span>"
+                   f"<span style='color:#5A554D'>{sel_adset[:50]}</span>")
         st.markdown(f"<div style='font-size:0.72rem;margin-bottom:6px'>{bc}</div>",
                     unsafe_allow_html=True)
         bc1, _ = st.columns([1, 9])
@@ -1380,20 +1380,20 @@ def morning_pulse_view(df: pd.DataFrame, app: str, color: str, mode: str = "unin
     # col widths: name | spend | cac | uninst | cac_contrib | unin_contrib | [drill+trend]
     _CW = [4.2, 1.0, 1.0, 1.0, 1.5, 1.5, 1.3]
 
-    def _cell(txt, align="right", color="#c0c0c0", bold=False):
+    def _cell(txt, align="right", color="#5A554D", bold=False):
         fw = "600" if bold else "400"
         return (f"<div style='font-size:0.8rem;color:{color};padding:9px 4px;"
-                f"border-bottom:1px solid #0f0f0f;text-align:{align};"
+                f"border-bottom:1px solid #EDE8DE;text-align:{align};"
                 f"font-weight:{fw};white-space:nowrap'>{txt}</div>")
 
     def _contrib_cell(val, fmt_fn):
         if val is None or (isinstance(val, float) and pd.isna(val)) or val == 0:
-            return _cell("—", color="#252525")
+            return _cell("—", color="#C5C0B6")
         is_bad = val > 0
         col = "#E24B4A" if is_bad else "#1D9E75"
         bg  = "rgba(226,75,74,0.12)" if is_bad else "rgba(29,158,117,0.12)"
         arr = "↑" if val > 0 else "↓"
-        return (f"<div style='padding:9px 4px;border-bottom:1px solid #0f0f0f;text-align:right'>"
+        return (f"<div style='padding:9px 4px;border-bottom:1px solid #EDE8DE;text-align:right'>"
                 f"<span style='background:{bg};color:{col};font-size:0.7rem;font-weight:700;"
                 f"padding:2px 7px;border-radius:5px'>{arr} {fmt_fn(abs(val))}</span></div>")
 
@@ -1403,8 +1403,8 @@ def morning_pulse_view(df: pd.DataFrame, app: str, color: str, mode: str = "unin
             with col:
                 st.markdown(
                     f"<div style='font-size:0.58rem;text-transform:uppercase;letter-spacing:0.1em;"
-                    f"color:#2e2e2e;padding:7px 4px;border-bottom:1px solid #191919;"
-                    f"background:#0a0a0a;text-align:{'left' if i==0 else 'right'}'>{lbl}</div>",
+                    f"color:#A8A39A;padding:7px 4px;border-bottom:1px solid #E5E0D6;"
+                    f"background:#F5F2ED;text-align:{'left' if i==0 else 'right'}'>{lbl}</div>",
                     unsafe_allow_html=True)
 
     # Max date from full dataset — used to extend trend charts past last-spend date
@@ -1454,17 +1454,17 @@ def morning_pulse_view(df: pd.DataFrame, app: str, color: str, mode: str = "unin
                 cac_s = f"₹{cac:,.0f}" if cac else "—"
                 unin_s = f"{unin:.1f}%" if unin else "—"
                 cards_html += (
-                    f"<div style='background:#0d0d0d;border:1px solid #1a1a1a;border-left:3px solid {sc};"
+                    f"<div style='background:#FFFFFF;border:1px solid #E2DDD3;border-left:3px solid {sc};"
                     f"border-radius:6px;padding:7px 12px;display:flex;align-items:center;gap:16px'>"
                     f"<span style='font-size:0.7rem;font-weight:700;color:{sc};letter-spacing:0.06em;"
                     f"text-transform:uppercase;min-width:54px'>{sg}</span>"
-                    f"<span style='font-size:0.62rem;color:#555;margin-right:-8px'>spend</span>"
-                    f"<span style='font-size:0.82rem;font-weight:600;color:#c0c0c0'>{sp_s}"
-                    f"<span style='font-size:0.62rem;color:#333;margin-left:3px'>{spct:.0f}%</span></span>"
-                    f"<span style='font-size:0.62rem;color:#555;margin-right:-8px'>cac</span>"
-                    f"<span style='font-size:0.82rem;font-weight:600;color:#c0c0c0'>{cac_s}</span>"
-                    f"<span style='font-size:0.62rem;color:#555;margin-right:-8px'>unin</span>"
-                    f"<span style='font-size:0.82rem;font-weight:600;color:#c0c0c0'>{unin_s}</span>"
+                    f"<span style='font-size:0.62rem;color:#A8A39A;margin-right:-8px'>spend</span>"
+                    f"<span style='font-size:0.82rem;font-weight:600;color:#1C1A17'>{sp_s}"
+                    f"<span style='font-size:0.62rem;color:#8A857D;margin-left:3px'>{spct:.0f}%</span></span>"
+                    f"<span style='font-size:0.62rem;color:#A8A39A;margin-right:-8px'>cac</span>"
+                    f"<span style='font-size:0.82rem;font-weight:600;color:#1C1A17'>{cac_s}</span>"
+                    f"<span style='font-size:0.62rem;color:#A8A39A;margin-right:-8px'>unin</span>"
+                    f"<span style='font-size:0.82rem;font-weight:600;color:#1C1A17'>{unin_s}</span>"
                     f"</div>"
                 )
             cards_html += "</div>"
@@ -2029,8 +2029,8 @@ def category_mix_view(app: str = "Seekho"):
         with btn_cols[i]:
             if is_sel:
                 st.markdown(
-                    f"<div style='background:#1a1a1a;border:1px solid #444;border-radius:20px;"
-                    f"padding:5px 0;text-align:center;font-size:0.72rem;color:#ddd;font-weight:700'>{label}</div>",
+                    f"<div style='background:#F0EBE1;border:1px solid #D8D3C9;border-radius:20px;"
+                    f"padding:5px 0;text-align:center;font-size:0.72rem;color:#1C1A17;font-weight:700'>{label}</div>",
                     unsafe_allow_html=True,
                 )
             else:
@@ -2136,9 +2136,9 @@ def category_mix_view(app: str = "Seekho"):
     for _, cat_row in cat_totals.iterrows():
         cat     = cat_row["category"]
         is_open = st.session_state[cat_open_key] == cat
-        bg      = "#181824" if is_open else "#111"
+        bg      = "#F0EBE8" if is_open else "#FFFFFF"
         chevron = "▾" if is_open else "›"
-        ch_col  = "#ddd" if is_open else "#444"
+        ch_col  = "#1C1A17" if is_open else "#8A857D"
 
         # category header
         sp_delta  = _delta_html(cat_row["spend"],  cat_row.get("spend_pr"),  lambda v: f"₹{v:,.0f}", higher_is_bad=False)
@@ -2147,16 +2147,16 @@ def category_mix_view(app: str = "Seekho"):
         ch_left, ch_btn = st.columns([11, 1])
         with ch_left:
             st.markdown(
-                f"<div style='background:{bg};border:1px solid {'#333' if is_open else '#1a1a1a'};"
-                f"border-left:3px solid #333;border-radius:10px;padding:10px 16px;margin-bottom:3px'>"
+                f"<div style='background:{bg};border:1px solid {'#D8D3C9' if is_open else '#E2DDD3'};"
+                f"border-left:3px solid #C5C0B6;border-radius:10px;padding:10px 16px;margin-bottom:3px'>"
                 f"<div style='display:flex;align-items:center;justify-content:space-between'>"
                 f"<div style='display:flex;align-items:center;gap:8px'>"
                 f"<span style='color:{ch_col};font-size:1rem'>{chevron}</span>"
-                f"<span style='font-weight:700;font-size:0.9rem;color:#e0e0e0'>{cat}</span>"
-                f"<span style='font-size:0.65rem;color:#444;background:#1a1a1a;border:1px solid #222;"
+                f"<span style='font-weight:700;font-size:0.9rem;color:#1C1A17'>{cat}</span>"
+                f"<span style='font-size:0.65rem;color:#7A756D;background:#EDE8DE;border:1px solid #DDD8CE;"
                 f"border-radius:6px;padding:1px 6px'>{n_camps} campaigns</span>"
                 f"</div>"
-                f"<div style='display:flex;gap:16px;font-size:0.75rem;color:#777'>"
+                f"<div style='display:flex;gap:16px;font-size:0.75rem;color:#6B665E'>"
                 f"<span>₹{cat_row['spend']:,.0f}{sp_delta}</span>"
                 f"<span>{int(cat_row['orders'])} orders</span>"
                 f"<span>{'₹'+str(int(cat_row['cac'])) if (cat_row['cac'] and pd.notna(cat_row['cac'])) else '—'} CAC</span>"
@@ -2191,11 +2191,11 @@ def category_mix_view(app: str = "Seekho"):
             unin_str = f"{unin_now:.1f}%"   if (unin_now and pd.notna(unin_now)) else "—"
 
             st.markdown(
-                f"<div style='background:#0f0f0f;border:1px solid #1a1a1a;border-radius:8px;"
+                f"<div style='background:#FFFFFF;border:1px solid #E2DDD3;border-radius:8px;"
                 f"padding:8px 14px;margin-bottom:3px;display:flex;justify-content:space-between;align-items:center'>"
-                f"<span style='font-size:0.82rem;color:#ccc;flex:1;min-width:0;white-space:nowrap;"
+                f"<span style='font-size:0.82rem;color:#2A2520;flex:1;min-width:0;white-space:nowrap;"
                 f"overflow:hidden;text-overflow:ellipsis'>{row['campaign']}</span>"
-                f"<div style='display:flex;gap:14px;font-size:0.72rem;color:#666;flex-shrink:0;margin-left:12px;align-items:center'>"
+                f"<div style='display:flex;gap:14px;font-size:0.72rem;color:#6B665E;flex-shrink:0;margin-left:12px;align-items:center'>"
                 f"<span>₹{row['spend']:,.0f}{sp_d}</span>"
                 f"<span>{int(row['orders'])} ord{ord_d}</span>"
                 f"<span>{cac_str}{cac_d}</span>"
@@ -2280,22 +2280,22 @@ def _action_card(name: str, level: str, action: str, urgency: str,
     urgency_badge = {"urgent": f"<span style='background:#E24B4A22;color:#E24B4A;font-size:0.6rem;padding:1px 6px;border-radius:3px;font-weight:700'>URGENT</span>",
                      "warn":   f"<span style='background:#E8883A22;color:#E8883A;font-size:0.6rem;padding:1px 6px;border-radius:3px;font-weight:700'>REVIEW</span>",
                      "good":   f"<span style='background:#1D9E7522;color:#1D9E75;font-size:0.6rem;padding:1px 6px;border-radius:3px;font-weight:700'>OPPORTUNITY</span>",
-                     "neutral":f"<span style='background:#33333322;color:#666;font-size:0.6rem;padding:1px 6px;border-radius:3px;font-weight:700'>MONITOR</span>",
+                     "neutral":f"<span style='background:#8A857D22;color:#8A857D;font-size:0.6rem;padding:1px 6px;border-radius:3px;font-weight:700'>MONITOR</span>",
     }.get(urgency, "")
-    level_badge = f"<span style='font-size:0.58rem;color:#444;text-transform:uppercase;letter-spacing:.06em'>{level}</span>"
-    reason_html = "".join(f"<div style='font-size:0.72rem;color:#666;margin-top:2px'>· {r}</div>" for r in reasons)
+    level_badge = f"<span style='font-size:0.58rem;color:#8A857D;text-transform:uppercase;letter-spacing:.06em'>{level}</span>"
+    reason_html = "".join(f"<div style='font-size:0.72rem;color:#7A756D;margin-top:2px'>· {r}</div>" for r in reasons)
     spend_str = f"₹{spend/1000:.0f}k" if spend >= 1000 else f"₹{spend:.0f}"
-    meta = f"<div style='font-size:0.7rem;color:#444;margin-top:4px'>Spend {spend_str} · {paid} paid users (3d)</div>"
+    meta = f"<div style='font-size:0.7rem;color:#8A857D;margin-top:4px'>Spend {spend_str} · {paid} paid users (3d)</div>"
     disp = (name[:55] + "…") if len(name) > 56 else name
     return f"""
-<div style='border-left:3px solid {ac};padding:10px 14px;margin:6px 0;background:#0e0e0e;border-radius:0 6px 6px 0'>
+<div style='border-left:3px solid {ac};padding:10px 14px;margin:6px 0;background:#F8F5F0;border-radius:0 6px 6px 0'>
   <div style='display:flex;align-items:center;gap:8px;margin-bottom:4px'>
     <span style='font-size:1rem'>{icon}</span>
     <span style='font-size:0.88rem;font-weight:700;color:{ac}'>{action}</span>
     {urgency_badge}
     {level_badge}
   </div>
-  <div style='font-size:0.8rem;color:#ccc;font-weight:500'>{disp}</div>
+  <div style='font-size:0.8rem;color:#2A2520;font-weight:500'>{disp}</div>
   {reason_html}
   {meta}
 </div>"""
@@ -2522,19 +2522,19 @@ def adset_analysis_view(df: pd.DataFrame, app: str, color: str):
 
         # Source header card
         st.markdown(
-            f"<div style='background:#0d0d0d;border:1px solid #1a1a1a;border-left:3px solid {sc};"
+            f"<div style='background:#FFFFFF;border:1px solid #E2DDD3;border-left:3px solid {sc};"
             f"border-radius:8px;padding:10px 16px;margin-bottom:6px;"
             f"display:flex;align-items:center;gap:24px'>"
             f"<span style='font-size:0.82rem;font-weight:700;color:{sc};min-width:70px;"
             f"text-transform:uppercase;letter-spacing:0.07em'>{src_name}</span>"
-            f"<span style='font-size:0.68rem;color:#444'>{n_adsets} ad sets</span>"
-            f"<span style='font-size:0.68rem;color:#555'>spend</span>"
-            f"<span style='font-size:0.9rem;font-weight:700;color:#d0d0d0'>{_fmt_spend(src_spend)}"
-            f"<span style='font-size:0.65rem;color:#333;margin-left:4px'>{src_spct:.0f}%</span></span>"
-            f"<span style='font-size:0.68rem;color:#555'>cac</span>"
-            f"<span style='font-size:0.9rem;font-weight:700;color:#d0d0d0'>₹{src_cac:,.0f}</span>"
-            f"<span style='font-size:0.68rem;color:#555'>unin</span>"
-            f"<span style='font-size:0.9rem;font-weight:700;color:#d0d0d0'>{src_unin_rate:.1f}%</span>"
+            f"<span style='font-size:0.68rem;color:#8A857D'>{n_adsets} ad sets</span>"
+            f"<span style='font-size:0.68rem;color:#A8A39A'>spend</span>"
+            f"<span style='font-size:0.9rem;font-weight:700;color:#1C1A17'>{_fmt_spend(src_spend)}"
+            f"<span style='font-size:0.65rem;color:#8A857D;margin-left:4px'>{src_spct:.0f}%</span></span>"
+            f"<span style='font-size:0.68rem;color:#A8A39A'>cac</span>"
+            f"<span style='font-size:0.9rem;font-weight:700;color:#1C1A17'>₹{src_cac:,.0f}</span>"
+            f"<span style='font-size:0.68rem;color:#A8A39A'>unin</span>"
+            f"<span style='font-size:0.9rem;font-weight:700;color:#1C1A17'>{src_unin_rate:.1f}%</span>"
             f"</div>",
             unsafe_allow_html=True,
         )
@@ -2543,7 +2543,7 @@ def adset_analysis_view(df: pd.DataFrame, app: str, color: str):
         for _, row in src_df.iterrows():
             aname = row["ad_set"]
             sig_label, sig_col = _signal(row)
-            cac_col  = "#E24B4A" if row["cac"]       > avg_cac  * 1.25 else "#c0c0c0"
+            cac_col  = "#E24B4A" if row["cac"]       > avg_cac  * 1.25 else "#5A554D"
             unin_col = "#E24B4A" if row["unin_rate"] > avg_unin * 1.25 else "#c0c0c0"
             disp = (aname[:60] + "…") if len(aname) > 61 else aname
 
@@ -2650,7 +2650,7 @@ def main():
         f"<span style='color:#222'>/</span>"
         f"<span style='font-size:0.82rem;color:#444'>{section}</span>"
         f"</div>"
-        f"<div style='height:1px;background:#141414;margin-bottom:18px'></div>",
+        f"<div style='height:1px;background:#E5E0D6;margin-bottom:18px'></div>",
         unsafe_allow_html=True,
     )
 
