@@ -1990,15 +1990,41 @@ def category_mix_view(app: str = "Seekho"):
     SOUTH_LANGS = {"tamil", "telugu", "kannada", "malayalam"}
     app_color = APP_COLORS.get(app, "#B8944A")
 
+    # Prefixes that are app/language identifiers — skip and use next segment as category
+    _APP_PREFIXES = {
+        "seekho", "nerchuko", "arivu", "vidhya", "kali",
+        # compound seekho+language (no underscore in creative name)
+        "seekhotelugu", "seekhotamil", "seekhokannada", "seekhomalayalam",
+        "seekhohindi", "seekhobengali", "seekhomarathi", "seekhopunjabi",
+    }
+    # Abbreviation → full display name
+    _EXPAND = {
+        "eng": "English", "hin": "Hindi", "kan": "Kannada", "tel": "Telugu",
+        "tam": "Tamil",   "mal": "Malayalam", "ben": "Bengali", "mar": "Marathi",
+        "pun": "Punjabi", "biz": "Business",  "fin": "Finance", "astro": "Astrology",
+        "insta": "Instagram", "ret": "Retention", "acq": "Acquisition",
+        "sub": "Subscription", "p0": "P0", "p1": "P1",
+    }
+    # Values that mean "no category identified" → bucket under Google
+    _NULL_VALS = {"null", "none", "unknown", "nan", ""}
+
     def _parse_cat(name: str) -> str:
         if not isinstance(name, str):
-            return "Unknown"
-        parts = [p for p in name.lower().split("_") if p]
+            return "__google__"
+        cleaned = name.strip().lower()
+        if cleaned in _NULL_VALS:
+            return "__google__"
+        parts = [p for p in cleaned.split("_") if p]
         if not parts:
-            return "Unknown"
-        if app.lower() == "seekho" and len(parts) >= 3 and parts[1] in SOUTH_LANGS:
-            return parts[2].replace("-", " ").title()
-        return parts[0].replace("-", " ").title()
+            return "__google__"
+        seg = parts[0]
+        # If first segment is an app/language prefix, move to next
+        if seg in _APP_PREFIXES and len(parts) >= 2:
+            seg = parts[1]
+            # seekho + south-lang_underscore case: seekho_telugu_<cat>
+            if seg in SOUTH_LANGS and len(parts) >= 3:
+                seg = parts[2]
+        return _EXPAND.get(seg, seg.replace("-", " ").title())
 
     def _fmt_spend(v):
         if v is None or (isinstance(v, float) and pd.isna(v)):
@@ -2107,7 +2133,9 @@ def category_mix_view(app: str = "Seekho"):
         lambda r: r["spend"] / r["orders"] if r["orders"] > 0 else None, axis=1)
     cat_stats["unin_rate"] = cat_stats.apply(
         lambda r: r["unin"] / r["orders"] * 100 if r["orders"] > 0 else None, axis=1)
-    cat_stats = cat_stats.sort_values("spend", ascending=False)
+    # Sort by spend descending, but keep __google__ (uncategorised) last
+    cat_stats["_sort"] = cat_stats["category"].apply(lambda c: 1 if c == "__google__" else 0)
+    cat_stats = cat_stats.sort_values(["_sort", "spend"], ascending=[True, False]).drop(columns="_sort")
 
     # ── panel renderers ──
 
@@ -2280,13 +2308,14 @@ def category_mix_view(app: str = "Seekho"):
 
     # ── per-category render ──
     for _, cat_row in cat_stats.iterrows():
-        cat      = cat_row["category"]
-        cac_str  = f"₹{int(cat_row['cac'])}"      if (cat_row["cac"]      and pd.notna(cat_row["cac"]))      else "—"
-        unin_str = f"{cat_row['unin_rate']:.1f}%"  if (cat_row["unin_rate"] and pd.notna(cat_row["unin_rate"])) else "—"
-        n_camps  = df7[df7["category"] == cat]["campaign"].nunique()
+        cat       = cat_row["category"]
+        disp_cat  = "Google (Uncategorised)" if cat == "__google__" else cat
+        cac_str   = f"₹{int(cat_row['cac'])}"      if (cat_row["cac"]      and pd.notna(cat_row["cac"]))      else "—"
+        unin_str  = f"{cat_row['unin_rate']:.1f}%"  if (cat_row["unin_rate"] and pd.notna(cat_row["unin_rate"])) else "—"
+        n_camps   = df7[df7["category"] == cat]["campaign"].nunique()
 
         with st.expander(
-            f"{cat}  ·  {_fmt_spend(cat_row['spend'])}  ·  CAC {cac_str}  ·  Unin {unin_str}  ·  {n_camps} campaigns",
+            f"{disp_cat}  ·  {_fmt_spend(cat_row['spend'])}  ·  CAC {cac_str}  ·  Unin {unin_str}  ·  {n_camps} campaigns",
             expanded=False,
         ):
             cat_df = df7[df7["category"] == cat]
