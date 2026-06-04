@@ -2127,11 +2127,35 @@ def category_mix_view(app: str = "Seekho"):
 
     df7["category"] = df7.apply(_assign_cat, axis=1)
 
-    # ── category totals (all sources) ──
-    cat_stats = (df7.groupby("category")
-                 .agg(spend=("total_cost", "sum"),
-                      orders=("D0_paid_users", "sum"),
-                      unin=("p0_unin_users", "sum"))
+    # ── category totals ──
+    # Meta spend/orders/unin from creative data (source of truth for Meta categories).
+    # Google spend from df7 filtered by source=google.
+    meta_stats = pd.DataFrame()
+    if not cr7.empty:
+        meta_stats = (cr7.groupby("category")
+                      .agg(spend=("total_cost", "sum"),
+                           orders=("D0_paid_users", "sum"),
+                           unin=("p0_unin_users", "sum"))
+                      .reset_index())
+
+    goog_stats = pd.DataFrame()
+    if "source" in df7.columns:
+        goog_df7 = df7[df7["source"].str.lower() == "google"]
+        if not goog_df7.empty:
+            goog_stats = (goog_df7.groupby("category")
+                          .agg(spend=("total_cost", "sum"),
+                               orders=("D0_paid_users", "sum"),
+                               unin=("p0_unin_users", "sum"))
+                          .reset_index())
+
+    cat_stats = pd.concat([meta_stats, goog_stats], ignore_index=True)
+    if cat_stats.empty:
+        st.info("No data available.")
+        return
+    cat_stats = (cat_stats.groupby("category")
+                 .agg(spend=("spend", "sum"),
+                      orders=("orders", "sum"),
+                      unin=("unin", "sum"))
                  .reset_index())
     cat_stats["cac"] = cat_stats.apply(
         lambda r: r["spend"] / r["orders"] if r["orders"] > 0 else None, axis=1)
@@ -2329,26 +2353,29 @@ def category_mix_view(app: str = "Seekho"):
             cat_goog_df = cat_df[cat_df["source"].str.lower() == "google"]   if has_src else pd.DataFrame()
 
             # ════ META ════
-            if not cat_meta_df.empty:
+            cat_cr_df = cr7[cr7["category"] == cat] if not cr7.empty else pd.DataFrame()
+            if not cat_cr_df.empty:
                 _section_label("Meta", "#378ADD")
 
-                meta_camps = (cat_meta_df.groupby("campaign")["total_cost"]
+                # Campaign list and spend from creative data (consistent source)
+                meta_camps = (cat_cr_df.groupby("campaign")["total_cost"]
                               .sum().sort_values(ascending=False).index.tolist())
                 sel_meta = st.selectbox(
                     "Meta Campaign", meta_camps,
                     key=f"cm_meta_{app}_{cat}",
                     label_visibility="collapsed",
                 )
-                meta_camp_df = cat_meta_df[cat_meta_df["campaign"] == sel_meta]
-                meta_camp_cr = (cr7[(cr7["category"] == cat) & (cr7["campaign"] == sel_meta)]
-                                if not cr7.empty else pd.DataFrame())
-
-                _render_trend(meta_camp_df, "#378ADD")
+                meta_camp_df = cat_meta_df[cat_meta_df["campaign"] == sel_meta] if has_src else pd.DataFrame()
+                meta_camp_cr = cat_cr_df[cat_cr_df["campaign"] == sel_meta]
 
                 if not meta_camp_cr.empty:
+                    # Use creative data for ALL Meta panels — keeps spend consistent
+                    _render_trend(meta_camp_cr, "#378ADD")
                     _render_sparklines_meta(meta_camp_cr)
                     _render_spend_dist(meta_camp_cr, "ad_creative", "Creative", "#378ADD")
                 else:
+                    # Fall back to APP_QUERY_IDS for trend only
+                    _render_trend(meta_camp_df, "#378ADD")
                     st.markdown(
                         "<div style='background:#F8F5F0;border-radius:8px;padding:10px 14px;"
                         "font-size:0.78rem;color:#8A857D;text-align:center;margin:4px 0'>"
