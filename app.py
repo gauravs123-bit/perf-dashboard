@@ -2095,15 +2095,15 @@ def category_mix_view(app: str = "Seekho"):
         except Exception:
             pass
 
-    # ── 7-day window ──
+    # ── 14-day window ──
     all_dates = sorted(df["date_tz"].unique())
-    last7 = set(all_dates[-7:])
+    last7 = set(all_dates[-14:])
     df7 = df[df["date_tz"].isin(last7)].copy()
 
     cr7 = pd.DataFrame()
     if not cr_df.empty and "date_tz" in cr_df.columns:
         cr_dates = sorted(cr_df["date_tz"].unique())
-        cr7 = cr_df[cr_df["date_tz"].isin(set(cr_dates[-7:]))].copy()
+        cr7 = cr_df[cr_df["date_tz"].isin(set(cr_dates[-14:]))].copy()
 
     # ── assign categories ──
     # Creative names are the source of truth for categories.
@@ -2734,14 +2734,14 @@ def adset_analysis_view(df: pd.DataFrame, app: str, color: str):
                     unsafe_allow_html=True)
         return
 
-    # ── 7-day window ──────────────────────────────────────────────────────────
+    # ── 14-day window ──────────────────────────────────────────────────────────
     latest = df["date_tz"].max()
     all_dates = sorted(df["date_tz"].unique())
-    window_dates = all_dates[-7:]
+    window_dates = all_dates[-14:]
     df7 = df[df["date_tz"].isin(window_dates)].copy()
 
     if df7.empty:
-        st.markdown("<div style='color:#444;padding:24px 0'>No data in last 7 days.</div>",
+        st.markdown("<div style='color:#444;padding:24px 0'>No data in last 14 days.</div>",
                     unsafe_allow_html=True)
         return
 
