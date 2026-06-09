@@ -1263,7 +1263,6 @@ def morning_pulse_view(df: pd.DataFrame, app: str, color: str, mode: str = "unin
 
     # camps for drill-down fallback
     camps = pulse["campaigns"].copy()
-    camps = camps[camps["spend_yd"] > 0]
     # kit_df used by drill-down level 1 list — use CAC as primary ordering
     kit_df = kit_cac if not kit_cac.empty else kit_unin
 
