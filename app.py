@@ -2884,7 +2884,7 @@ def main():
     color   = APP_COLORS[app]
     hex_col = color.lstrip("#")
     r, g, b = int(hex_col[0:2], 16), int(hex_col[2:4], 16), int(hex_col[4:6], 16)
-    section_options = ["Morning Pulse", "Category Mix", "Ad Set Analysis", "Adviser"]
+    section_options = ["Morning Pulse", "Overview", "Category Mix", "Ad Set Analysis", "Adviser"]
     if st.session_state.get("sb_section") not in section_options:
         st.session_state["sb_section"] = section_options[0]
     section = st.session_state["sb_section"]
@@ -2950,6 +2950,10 @@ def main():
         unsafe_allow_html=True,
     )
 
+    if section == "Overview":
+        overview_view()
+        return
+
     if section == "Category Mix":
         category_mix_view(app=app)
         return
@@ -2981,6 +2985,132 @@ def main():
                        f"Check Redash query {__import__('utils.fetcher', fromlist=['APP_QUERY_IDS']).APP_QUERY_IDS.get(app)}.")
 
     morning_pulse_view(df, app=app, color=color, mode="uninstall")
+
+
+def overview_view():
+    """Combined yesterday snapshot across all apps."""
+    rows = []
+    for a in APPS:
+        df_a = safe_fetch(a)
+        if df_a.empty:
+            continue
+        dates_a = sorted(df_a["date_tz"].unique())
+        if len(dates_a) < 2:
+            continue
+        yd_date = dates_a[-1]
+        d1_date = dates_a[-2]
+        yd = df_a[df_a["date_tz"] == yd_date]
+        d1 = df_a[df_a["date_tz"] == d1_date]
+
+        def _agg(d):
+            spend  = d["total_cost"].sum()
+            orders = d["D0_paid_users"].sum()
+            unin   = d["p0_unin_users"].sum()
+            cac    = spend / orders if orders > 0 else 0
+            unin_r = unin / orders * 100 if orders > 0 else 0
+            return spend, orders, cac, unin_r
+
+        ys, yo, yc, yu = _agg(yd)
+        ds, do, dc, du = _agg(d1)
+        rows.append(dict(app=a, color=APP_COLORS[a],
+                         yd_date=str(yd_date), d1_date=str(d1_date),
+                         spend=ys, spend_d=ys-ds,
+                         orders=yo, orders_d=yo-do,
+                         cac=yc, cac_d=yc-dc,
+                         unin=yu, unin_d=yu-du))
+
+    if not rows:
+        st.warning("No data available.")
+        return
+
+    yd_date = rows[0]["yd_date"]
+    d1_date = rows[0]["d1_date"]
+    st.markdown(
+        f"<div style='display:flex;align-items:center;gap:8px;margin-bottom:20px'>"
+        f"<div style='background:#FFFFFF;border:1px solid #E2DDD3;border-radius:20px;"
+        f"padding:5px 14px;font-size:0.75rem;color:#7A756D;display:inline-flex;align-items:center;gap:6px'>"
+        f"<span style='color:#A8A39A'>📅</span>"
+        f"<b style='color:#1C1A17'>{yd_date}</b>"
+        f"<span style='color:#B0AB9F'>vs</span>"
+        f"<span style='color:#7A756D'>{d1_date}</span>"
+        f"</div></div>",
+        unsafe_allow_html=True,
+    )
+
+    def _delta(val, higher_is_bad=True, fmt=lambda v: f"{v:,.0f}"):
+        if val == 0:
+            return "<span style='color:#B0AB9F'>—</span>"
+        bad = (val > 0 and higher_is_bad) or (val < 0 and not higher_is_bad)
+        col = "#E24B4A" if bad else "#1D9E75"
+        arrow = "▲" if val > 0 else "▼"
+        return f"<span style='color:{col};font-size:0.78rem'>{arrow}{fmt(abs(val))}</span>"
+
+    # Build table HTML
+    hdr = ("<tr style='font-size:0.65rem;text-transform:uppercase;letter-spacing:.1em;"
+           "color:#B0AB9F;border-bottom:1px solid #E5E0D6'>"
+           "<th style='padding:8px 12px;text-align:left'>App</th>"
+           "<th style='padding:8px 12px;text-align:right'>Spend</th>"
+           "<th style='padding:8px 4px;text-align:right'>Δ</th>"
+           "<th style='padding:8px 12px;text-align:right'>Orders</th>"
+           "<th style='padding:8px 4px;text-align:right'>Δ</th>"
+           "<th style='padding:8px 12px;text-align:right'>CAC</th>"
+           "<th style='padding:8px 4px;text-align:right'>Δ</th>"
+           "<th style='padding:8px 12px;text-align:right'>Unin%</th>"
+           "<th style='padding:8px 4px;text-align:right'>Δ</th>"
+           "</tr>")
+
+    body = ""
+    tot = dict(spend=0, spend_d=0, orders=0, orders_d=0,
+               cac_num=0, unin_num=0)
+    for i, r in enumerate(rows):
+        bg = "#F8F5F1" if i % 2 == 0 else "transparent"
+        dot = f"<span style='display:inline-block;width:7px;height:7px;border-radius:50%;background:{r['color']};margin-right:5px'></span>"
+        body += (
+            f"<tr style='background:{bg};font-size:0.82rem'>"
+            f"<td style='padding:9px 12px;color:#1C1A17;font-weight:600'>{dot}{r['app']}</td>"
+            f"<td style='padding:9px 12px;text-align:right;color:#1C1A17'>₹{r['spend']:,.0f}</td>"
+            f"<td style='padding:9px 4px;text-align:right'>{_delta(r['spend_d'], higher_is_bad=False, fmt=lambda v: f'₹{v:,.0f}')}</td>"
+            f"<td style='padding:9px 12px;text-align:right;color:#1C1A17'>{r['orders']:,.0f}</td>"
+            f"<td style='padding:9px 4px;text-align:right'>{_delta(r['orders_d'], higher_is_bad=False, fmt=lambda v: f'{v:,.0f}')}</td>"
+            f"<td style='padding:9px 12px;text-align:right;color:#1C1A17'>₹{r['cac']:,.0f}</td>"
+            f"<td style='padding:9px 4px;text-align:right'>{_delta(r['cac_d'], higher_is_bad=True, fmt=lambda v: f'₹{v:.0f}')}</td>"
+            f"<td style='padding:9px 12px;text-align:right;color:#1C1A17'>{r['unin']:.1f}%</td>"
+            f"<td style='padding:9px 4px;text-align:right'>{_delta(r['unin_d'], higher_is_bad=True, fmt=lambda v: f'{v:.1f}pp')}</td>"
+            f"</tr>"
+        )
+        tot["spend"]   += r["spend"];  tot["spend_d"]  += r["spend_d"]
+        tot["orders"]  += r["orders"]; tot["orders_d"] += r["orders_d"]
+        tot["cac_num"] += r["spend"];  tot["unin_num"] += r["unin"] * r["orders"]
+
+    tot_orders = sum(r["orders"] for r in rows)
+    tot_d1_orders = sum(r["orders"] - r["orders_d"] for r in rows)
+    tot_cac    = tot["cac_num"] / tot_orders if tot_orders else 0
+    tot_d1_cac = (sum((r["spend"] - r["spend_d"]) for r in rows) /
+                  tot_d1_orders if tot_d1_orders else 0)
+    tot_unin   = tot["unin_num"] / tot_orders if tot_orders else 0
+    tot_d1_unin = sum((r["unin"] - r["unin_d"]) * (r["orders"] - r["orders_d"]) for r in rows)
+    tot_d1_unin = tot_d1_unin / tot_d1_orders if tot_d1_orders else 0
+
+    body += (
+        f"<tr style='background:#EDE8DE;font-size:0.82rem;font-weight:700;border-top:2px solid #D5D0C6'>"
+        f"<td style='padding:10px 12px;color:#1C1A17'>All Apps</td>"
+        f"<td style='padding:10px 12px;text-align:right;color:#1C1A17'>₹{tot['spend']:,.0f}</td>"
+        f"<td style='padding:10px 4px;text-align:right'>{_delta(tot['spend_d'], higher_is_bad=False, fmt=lambda v: f'₹{v:,.0f}')}</td>"
+        f"<td style='padding:10px 12px;text-align:right;color:#1C1A17'>{tot_orders:,.0f}</td>"
+        f"<td style='padding:10px 4px;text-align:right'>{_delta(tot['orders_d'], higher_is_bad=False, fmt=lambda v: f'{v:,.0f}')}</td>"
+        f"<td style='padding:10px 12px;text-align:right;color:#1C1A17'>₹{tot_cac:,.0f}</td>"
+        f"<td style='padding:10px 4px;text-align:right'>{_delta(tot_cac - tot_d1_cac, higher_is_bad=True, fmt=lambda v: f'₹{v:.0f}')}</td>"
+        f"<td style='padding:10px 12px;text-align:right;color:#1C1A17'>{tot_unin:.1f}%</td>"
+        f"<td style='padding:10px 4px;text-align:right'>{_delta(tot_unin - tot_d1_unin, higher_is_bad=True, fmt=lambda v: f'{v:.1f}pp')}</td>"
+        f"</tr>"
+    )
+
+    st.markdown(
+        f"<div style='background:#FFFFFF;border:1px solid #E5E0D6;border-radius:12px;overflow:hidden'>"
+        f"<table style='width:100%;border-collapse:collapse'>{hdr}<tbody>{body}</tbody></table>"
+        f"</div>",
+        unsafe_allow_html=True,
+    )
 
 
 if __name__ == "__main__":
