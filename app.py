@@ -2905,7 +2905,8 @@ def main():
       }}
     </style>""", unsafe_allow_html=True)
 
-    nav_app, nav_sec, nav_right = st.columns([5.5, 3.2, 1.5])
+    # Row 1: App selector + Refresh
+    nav_app, nav_right = st.columns([9, 1.2])
     with nav_app:
         sel_app = st.pills("App", list(APPS),
                            default=st.session_state["sb_app"],
@@ -2914,19 +2915,20 @@ def main():
             st.session_state["sb_app"]     = sel_app
             st.session_state["sb_section"] = "Morning Pulse"
             st.rerun()
-    with nav_sec:
-        sel_sec = st.pills("Section", section_options,
-                           default=st.session_state["sb_section"],
-                           key="pills_sec", label_visibility="collapsed")
-        if sel_sec and sel_sec != st.session_state["sb_section"]:
-            st.session_state["sb_section"] = sel_sec
-            st.rerun()
     with nav_right:
-        if st.button("↻  Refresh All", key="tnav_refresh", use_container_width=True):
+        if st.button("↻ Refresh All", key="tnav_refresh", use_container_width=True):
             with st.spinner("Refreshing all apps…"):
                 for _a in APPS:
                     refresh_app_data(_a)
             st.success("Done!")
+
+    # Row 2: Section selector (full width so pills never wrap)
+    sel_sec = st.pills("Section", section_options,
+                       default=st.session_state["sb_section"],
+                       key="pills_sec", label_visibility="collapsed")
+    if sel_sec and sel_sec != st.session_state["sb_section"]:
+        st.session_state["sb_section"] = sel_sec
+        st.rerun()
 
     app     = st.session_state.get("sb_app", APPS[0])
     color   = APP_COLORS[app]
@@ -2988,8 +2990,12 @@ def main():
 
 
 def overview_view():
-    """Combined yesterday snapshot across all apps."""
-    rows = []
+    """Combined yesterday snapshot across all apps — by app and by source."""
+
+    # ── collect per-app data ──────────────────────────────────────────────────
+    app_rows = []
+    all_yd_dfs, all_d1_dfs = [], []
+
     for a in APPS:
         df_a = safe_fetch(a)
         if df_a.empty:
@@ -2999,118 +3005,157 @@ def overview_view():
             continue
         yd_date = dates_a[-1]
         d1_date = dates_a[-2]
-        yd = df_a[df_a["date_tz"] == yd_date]
-        d1 = df_a[df_a["date_tz"] == d1_date]
+        yd = df_a[df_a["date_tz"] == yd_date].copy()
+        d1 = df_a[df_a["date_tz"] == d1_date].copy()
+        all_yd_dfs.append(yd)
+        all_d1_dfs.append(d1)
 
         def _agg(d):
-            spend  = d["total_cost"].sum()
-            orders = d["D0_paid_users"].sum()
-            unin   = d["p0_unin_users"].sum()
-            cac    = spend / orders if orders > 0 else 0
-            unin_r = unin / orders * 100 if orders > 0 else 0
-            return spend, orders, cac, unin_r
+            sp = d["total_cost"].sum()
+            or_ = d["D0_paid_users"].sum()
+            un = d["p0_unin_users"].sum()
+            return sp, or_, sp / or_ if or_ else 0, un / or_ * 100 if or_ else 0
 
         ys, yo, yc, yu = _agg(yd)
         ds, do, dc, du = _agg(d1)
-        rows.append(dict(app=a, color=APP_COLORS[a],
-                         yd_date=str(yd_date), d1_date=str(d1_date),
-                         spend=ys, spend_d=ys-ds,
-                         orders=yo, orders_d=yo-do,
-                         cac=yc, cac_d=yc-dc,
-                         unin=yu, unin_d=yu-du))
+        app_rows.append(dict(app=a, color=APP_COLORS[a],
+                             yd_date=str(yd_date), d1_date=str(d1_date),
+                             spend=ys, spend_d=ys - ds,
+                             orders=yo, orders_d=yo - do,
+                             cac=yc, cac_d=yc - dc,
+                             unin=yu, unin_d=yu - du))
 
-    if not rows:
+    if not app_rows:
         st.warning("No data available.")
         return
 
-    yd_date = rows[0]["yd_date"]
-    d1_date = rows[0]["d1_date"]
-    st.markdown(
-        f"<div style='display:flex;align-items:center;gap:8px;margin-bottom:20px'>"
-        f"<div style='background:#FFFFFF;border:1px solid #E2DDD3;border-radius:20px;"
-        f"padding:5px 14px;font-size:0.75rem;color:#7A756D;display:inline-flex;align-items:center;gap:6px'>"
-        f"<span style='color:#A8A39A'>📅</span>"
-        f"<b style='color:#1C1A17'>{yd_date}</b>"
-        f"<span style='color:#B0AB9F'>vs</span>"
-        f"<span style='color:#7A756D'>{d1_date}</span>"
-        f"</div></div>",
-        unsafe_allow_html=True,
-    )
+    yd_date = app_rows[0]["yd_date"]
+    d1_date = app_rows[0]["d1_date"]
 
-    def _delta(val, higher_is_bad=True, fmt=lambda v: f"{v:,.0f}"):
-        if val == 0:
+    # ── shared helpers ────────────────────────────────────────────────────────
+    def _delta(val, higher_is_bad=True, fmt=None):
+        fmt = fmt or (lambda v: f"{v:,.0f}")
+        if abs(val) < 0.01:
             return "<span style='color:#B0AB9F'>—</span>"
         bad = (val > 0 and higher_is_bad) or (val < 0 and not higher_is_bad)
         col = "#E24B4A" if bad else "#1D9E75"
         arrow = "▲" if val > 0 else "▼"
         return f"<span style='color:{col};font-size:0.78rem'>{arrow}{fmt(abs(val))}</span>"
 
-    # Build table HTML
-    hdr = ("<tr style='font-size:0.65rem;text-transform:uppercase;letter-spacing:.1em;"
-           "color:#B0AB9F;border-bottom:1px solid #E5E0D6'>"
-           "<th style='padding:8px 12px;text-align:left'>App</th>"
-           "<th style='padding:8px 12px;text-align:right'>Spend</th>"
-           "<th style='padding:8px 4px;text-align:right'>Δ</th>"
-           "<th style='padding:8px 12px;text-align:right'>Orders</th>"
-           "<th style='padding:8px 4px;text-align:right'>Δ</th>"
-           "<th style='padding:8px 12px;text-align:right'>CAC</th>"
-           "<th style='padding:8px 4px;text-align:right'>Δ</th>"
-           "<th style='padding:8px 12px;text-align:right'>Unin%</th>"
-           "<th style='padding:8px 4px;text-align:right'>Δ</th>"
-           "</tr>")
-
-    body = ""
-    tot = dict(spend=0, spend_d=0, orders=0, orders_d=0,
-               cac_num=0, unin_num=0)
-    for i, r in enumerate(rows):
-        bg = "#F8F5F1" if i % 2 == 0 else "transparent"
-        dot = f"<span style='display:inline-block;width:7px;height:7px;border-radius:50%;background:{r['color']};margin-right:5px'></span>"
+    def _table(section_label, tbl_rows, total_row):
+        """Render a labelled table card."""
+        P = "padding:9px 14px"
+        PT = "padding:10px 14px"
+        hdr = (
+            "<tr style='font-size:0.63rem;text-transform:uppercase;letter-spacing:.12em;"
+            "color:#B0AB9F;background:#F8F5F1;border-bottom:2px solid #E5E0D6'>"
+            "<th style='padding:8px 14px;text-align:left;font-weight:600'>" + section_label + "</th>"
+            "<th style='padding:8px 14px;text-align:right'>Spend</th>"
+            "<th style='padding:8px 6px;text-align:right'>Δ</th>"
+            "<th style='padding:8px 14px;text-align:right'>Orders</th>"
+            "<th style='padding:8px 6px;text-align:right'>Δ</th>"
+            "<th style='padding:8px 14px;text-align:right'>D0 CAC</th>"
+            "<th style='padding:8px 6px;text-align:right'>Δ</th>"
+            "<th style='padding:8px 14px;text-align:right'>Unin%</th>"
+            "<th style='padding:8px 6px;text-align:right'>Δ</th>"
+            "</tr>"
+        )
+        body = ""
+        for r in tbl_rows:
+            dot = (f"<span style='display:inline-block;width:8px;height:8px;"
+                   f"border-radius:50%;background:{r['color']};margin-right:6px;flex-shrink:0'></span>"
+                   if "color" in r else "")
+            body += (
+                f"<tr style='border-bottom:1px solid #F0EBE3;font-size:0.83rem'>"
+                f"<td style='{P};color:#1C1A17;font-weight:600'>"
+                f"<div style='display:flex;align-items:center'>{dot}{r['label']}</div></td>"
+                f"<td style='{P};text-align:right;color:#1C1A17'>₹{r['spend']:,.0f}</td>"
+                f"<td style='padding:9px 6px;text-align:right'>{_delta(r['spend_d'], False, lambda v: f'₹{v:,.0f}')}</td>"
+                f"<td style='{P};text-align:right;color:#1C1A17'>{r['orders']:,.0f}</td>"
+                f"<td style='padding:9px 6px;text-align:right'>{_delta(r['orders_d'], False, lambda v: f'{v:,.0f}')}</td>"
+                f"<td style='{P};text-align:right;color:#1C1A17'>₹{r['cac']:,.0f}</td>"
+                f"<td style='padding:9px 6px;text-align:right'>{_delta(r['cac_d'], True, lambda v: f'₹{v:.0f}')}</td>"
+                f"<td style='{P};text-align:right;color:#1C1A17'>{r['unin']:.1f}%</td>"
+                f"<td style='padding:9px 6px;text-align:right'>{_delta(r['unin_d'], True, lambda v: f'{v:.1f}pp')}</td>"
+                f"</tr>"
+            )
+        tr = total_row
         body += (
-            f"<tr style='background:{bg};font-size:0.82rem'>"
-            f"<td style='padding:9px 12px;color:#1C1A17;font-weight:600'>{dot}{r['app']}</td>"
-            f"<td style='padding:9px 12px;text-align:right;color:#1C1A17'>₹{r['spend']:,.0f}</td>"
-            f"<td style='padding:9px 4px;text-align:right'>{_delta(r['spend_d'], higher_is_bad=False, fmt=lambda v: f'₹{v:,.0f}')}</td>"
-            f"<td style='padding:9px 12px;text-align:right;color:#1C1A17'>{r['orders']:,.0f}</td>"
-            f"<td style='padding:9px 4px;text-align:right'>{_delta(r['orders_d'], higher_is_bad=False, fmt=lambda v: f'{v:,.0f}')}</td>"
-            f"<td style='padding:9px 12px;text-align:right;color:#1C1A17'>₹{r['cac']:,.0f}</td>"
-            f"<td style='padding:9px 4px;text-align:right'>{_delta(r['cac_d'], higher_is_bad=True, fmt=lambda v: f'₹{v:.0f}')}</td>"
-            f"<td style='padding:9px 12px;text-align:right;color:#1C1A17'>{r['unin']:.1f}%</td>"
-            f"<td style='padding:9px 4px;text-align:right'>{_delta(r['unin_d'], higher_is_bad=True, fmt=lambda v: f'{v:.1f}pp')}</td>"
+            f"<tr style='background:#EDE8DE;font-size:0.83rem;font-weight:700;"
+            f"border-top:2px solid #D5D0C6'>"
+            f"<td style='{PT};color:#1C1A17'>{tr['label']}</td>"
+            f"<td style='{PT};text-align:right;color:#1C1A17'>₹{tr['spend']:,.0f}</td>"
+            f"<td style='padding:10px 6px;text-align:right'>{_delta(tr['spend_d'], False, lambda v: f'₹{v:,.0f}')}</td>"
+            f"<td style='{PT};text-align:right;color:#1C1A17'>{tr['orders']:,.0f}</td>"
+            f"<td style='padding:10px 6px;text-align:right'>{_delta(tr['orders_d'], False, lambda v: f'{v:,.0f}')}</td>"
+            f"<td style='{PT};text-align:right;color:#1C1A17'>₹{tr['cac']:,.0f}</td>"
+            f"<td style='padding:10px 6px;text-align:right'>{_delta(tr['cac_d'], True, lambda v: f'₹{v:.0f}')}</td>"
+            f"<td style='{PT};text-align:right;color:#1C1A17'>{tr['unin']:.1f}%</td>"
+            f"<td style='padding:10px 6px;text-align:right'>{_delta(tr['unin_d'], True, lambda v: f'{v:.1f}pp')}</td>"
             f"</tr>"
         )
-        tot["spend"]   += r["spend"];  tot["spend_d"]  += r["spend_d"]
-        tot["orders"]  += r["orders"]; tot["orders_d"] += r["orders_d"]
-        tot["cac_num"] += r["spend"];  tot["unin_num"] += r["unin"] * r["orders"]
+        st.markdown(
+            f"<div style='background:#FFFFFF;border:1px solid #E5E0D6;border-radius:12px;"
+            f"overflow:hidden;margin-bottom:20px'>"
+            f"<table style='width:100%;border-collapse:collapse'>"
+            f"<thead>{hdr}</thead><tbody>{body}</tbody></table></div>",
+            unsafe_allow_html=True,
+        )
 
-    tot_orders = sum(r["orders"] for r in rows)
-    tot_d1_orders = sum(r["orders"] - r["orders_d"] for r in rows)
-    tot_cac    = tot["cac_num"] / tot_orders if tot_orders else 0
-    tot_d1_cac = (sum((r["spend"] - r["spend_d"]) for r in rows) /
-                  tot_d1_orders if tot_d1_orders else 0)
-    tot_unin   = tot["unin_num"] / tot_orders if tot_orders else 0
-    tot_d1_unin = sum((r["unin"] - r["unin_d"]) * (r["orders"] - r["orders_d"]) for r in rows)
-    tot_d1_unin = tot_d1_unin / tot_d1_orders if tot_d1_orders else 0
+    def _total_row(rows, label="Total"):
+        sp  = sum(r["spend"]    for r in rows)
+        spd = sum(r["spend_d"]  for r in rows)
+        o   = sum(r["orders"]   for r in rows)
+        od  = sum(r["orders_d"] for r in rows)
+        o1  = o - od
+        sp1 = sp - spd
+        cac  = sp  / o  if o  else 0
+        cac1 = sp1 / o1 if o1 else 0
+        unin  = sum(r["unin"]  * r["orders"]           for r in rows) / o  if o  else 0
+        unin1 = sum((r["unin"] - r["unin_d"]) * (r["orders"] - r["orders_d"]) for r in rows) / o1 if o1 else 0
+        return dict(label=label, spend=sp, spend_d=spd, orders=o, orders_d=od,
+                    cac=cac, cac_d=cac - cac1, unin=unin, unin_d=unin - unin1)
 
-    body += (
-        f"<tr style='background:#EDE8DE;font-size:0.82rem;font-weight:700;border-top:2px solid #D5D0C6'>"
-        f"<td style='padding:10px 12px;color:#1C1A17'>All Apps</td>"
-        f"<td style='padding:10px 12px;text-align:right;color:#1C1A17'>₹{tot['spend']:,.0f}</td>"
-        f"<td style='padding:10px 4px;text-align:right'>{_delta(tot['spend_d'], higher_is_bad=False, fmt=lambda v: f'₹{v:,.0f}')}</td>"
-        f"<td style='padding:10px 12px;text-align:right;color:#1C1A17'>{tot_orders:,.0f}</td>"
-        f"<td style='padding:10px 4px;text-align:right'>{_delta(tot['orders_d'], higher_is_bad=False, fmt=lambda v: f'{v:,.0f}')}</td>"
-        f"<td style='padding:10px 12px;text-align:right;color:#1C1A17'>₹{tot_cac:,.0f}</td>"
-        f"<td style='padding:10px 4px;text-align:right'>{_delta(tot_cac - tot_d1_cac, higher_is_bad=True, fmt=lambda v: f'₹{v:.0f}')}</td>"
-        f"<td style='padding:10px 12px;text-align:right;color:#1C1A17'>{tot_unin:.1f}%</td>"
-        f"<td style='padding:10px 4px;text-align:right'>{_delta(tot_unin - tot_d1_unin, higher_is_bad=True, fmt=lambda v: f'{v:.1f}pp')}</td>"
-        f"</tr>"
-    )
-
+    # ── date badge ────────────────────────────────────────────────────────────
     st.markdown(
-        f"<div style='background:#FFFFFF;border:1px solid #E5E0D6;border-radius:12px;overflow:hidden'>"
-        f"<table style='width:100%;border-collapse:collapse'>{hdr}<tbody>{body}</tbody></table>"
-        f"</div>",
+        f"<div style='display:inline-flex;align-items:center;gap:6px;background:#FFFFFF;"
+        f"border:1px solid #E2DDD3;border-radius:20px;padding:5px 14px;"
+        f"font-size:0.75rem;color:#7A756D;margin-bottom:20px'>"
+        f"<b style='color:#1C1A17'>{yd_date}</b>"
+        f"<span style='color:#B0AB9F'>vs</span>"
+        f"<span>{d1_date}</span></div>",
         unsafe_allow_html=True,
     )
+
+    # ── TABLE 1: by App ───────────────────────────────────────────────────────
+    _table("App", app_rows, _total_row(app_rows, "All Apps"))
+
+    # ── TABLE 2: by Source ────────────────────────────────────────────────────
+    if all_yd_dfs and "source" in all_yd_dfs[0].columns:
+        import pandas as pd
+        yd_all = pd.concat(all_yd_dfs, ignore_index=True)
+        d1_all = pd.concat(all_d1_dfs, ignore_index=True)
+
+        src_map = {"facebook": ("Meta",   "#378ADD"),
+                   "google":   ("Google", "#34A853")}
+        src_rows = []
+        for src_key, (src_label, src_color) in src_map.items():
+            yd_s = yd_all[yd_all["source"].str.lower() == src_key]
+            d1_s = d1_all[d1_all["source"].str.lower() == src_key]
+            def _agg_src(d):
+                sp = d["total_cost"].sum()
+                o  = d["D0_paid_users"].sum()
+                un = d["p0_unin_users"].sum()
+                return sp, o, sp/o if o else 0, un/o*100 if o else 0
+            ys, yo, yc, yu = _agg_src(yd_s)
+            ds, do, dc, du = _agg_src(d1_s)
+            src_rows.append(dict(label=src_label, color=src_color,
+                                 spend=ys, spend_d=ys-ds,
+                                 orders=yo, orders_d=yo-do,
+                                 cac=yc, cac_d=yc-dc,
+                                 unin=yu, unin_d=yu-du))
+
+        _table("Source", src_rows, _total_row(src_rows, "Combined"))
 
 
 if __name__ == "__main__":
