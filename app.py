@@ -1444,28 +1444,35 @@ def morning_pulse_view(df: pd.DataFrame, app: str, color: str, mode: str = "unin
             _SRC_COLORS = {"Facebook": "#378ADD", "Google": "#34A853", "Other": "#666"}
             cards_html = "<div style='display:flex;gap:8px;margin:10px 0 14px;flex-wrap:wrap'>"
             for _, srow in src_summary.sort_values("total_cost", ascending=False).iterrows():
-                sg  = srow["source_group"]
-                sc  = _SRC_COLORS.get(sg, "#666")
-                sp  = srow["total_cost"]
-                cac = srow["D0_CAC_calc"]
-                unin= srow["p0_uninstall_rate"]
-                spct= srow.get("spend_share", 0)
-                sp_s = _fmt_spend(sp) if sp else "—"
-                cac_s = f"₹{cac:,.0f}" if cac else "—"
+                sg   = srow["source_group"]
+                sc   = _SRC_COLORS.get(sg, "#666")
+                sp   = srow["total_cost"]
+                ord_ = srow["D0_paid_users"]
+                cac  = srow["D0_CAC_calc"]
+                unin = srow["p0_uninstall_rate"]
+                sp_s   = _fmt_spend(sp) if sp else "—"
+                ord_s  = f"{ord_:,.0f}" if ord_ else "—"
+                cac_s  = f"₹{cac:,.0f}" if cac else "—"
                 unin_s = f"{unin:.1f}%" if unin else "—"
+
+                def _kv(label, val):
+                    return (f"<div style='display:flex;flex-direction:column;align-items:flex-end;gap:1px'>"
+                            f"<span style='font-size:0.6rem;color:#A8A39A;text-transform:uppercase;"
+                            f"letter-spacing:.06em'>{label}</span>"
+                            f"<span style='font-size:0.85rem;font-weight:600;color:#1C1A17'>{val}</span>"
+                            f"</div>")
+
                 cards_html += (
                     f"<div style='background:#FFFFFF;border:1px solid #E2DDD3;border-left:3px solid {sc};"
-                    f"border-radius:6px;padding:7px 12px;display:flex;align-items:center;gap:16px'>"
-                    f"<span style='font-size:0.7rem;font-weight:700;color:{sc};letter-spacing:0.06em;"
-                    f"text-transform:uppercase;min-width:54px'>{sg}</span>"
-                    f"<span style='font-size:0.62rem;color:#A8A39A;margin-right:-8px'>spend</span>"
-                    f"<span style='font-size:0.82rem;font-weight:600;color:#1C1A17'>{sp_s}"
-                    f"<span style='font-size:0.62rem;color:#8A857D;margin-left:3px'>{spct:.0f}%</span></span>"
-                    f"<span style='font-size:0.62rem;color:#A8A39A;margin-right:-8px'>cac</span>"
-                    f"<span style='font-size:0.82rem;font-weight:600;color:#1C1A17'>{cac_s}</span>"
-                    f"<span style='font-size:0.62rem;color:#A8A39A;margin-right:-8px'>unin</span>"
-                    f"<span style='font-size:0.82rem;font-weight:600;color:#1C1A17'>{unin_s}</span>"
-                    f"</div>"
+                    f"border-radius:8px;padding:10px 16px;display:flex;align-items:center;gap:20px;flex:1'>"
+                    f"<span style='font-size:0.72rem;font-weight:700;color:{sc};letter-spacing:0.06em;"
+                    f"text-transform:uppercase;min-width:60px'>{sg}</span>"
+                    f"<div style='width:1px;height:28px;background:#EDE8DE'></div>"
+                    + _kv("Spend", sp_s)
+                    + _kv("Orders", ord_s)
+                    + _kv("CAC", cac_s)
+                    + _kv("Unin%", unin_s)
+                    + f"</div>"
                 )
             cards_html += "</div>"
             st.markdown(cards_html, unsafe_allow_html=True)
