@@ -2922,9 +2922,10 @@ def main():
             st.session_state["sb_section"] = sel_sec
             st.rerun()
     with nav_right:
-        if st.button(f"↻  Refresh {app}", key="tnav_refresh", use_container_width=True):
-            with st.spinner("Refreshing…"):
-                refresh_app_data(app)
+        if st.button("↻  Refresh All", key="tnav_refresh", use_container_width=True):
+            with st.spinner("Refreshing all apps…"):
+                for _a in APPS:
+                    refresh_app_data(_a)
             st.success("Done!")
 
     app     = st.session_state.get("sb_app", APPS[0])
