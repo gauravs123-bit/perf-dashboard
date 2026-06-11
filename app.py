@@ -1118,6 +1118,7 @@ def morning_pulse_view(df: pd.DataFrame, app: str, color: str, mode: str = "unin
     prev_cac   = None
     prev_unin  = None
     prev_spend = None
+    prev_canc  = None
     for i, dt in enumerate(dates_all):
         d_df    = df[df["date_tz"] == dt]
         sp      = d_df["total_cost"].sum()
@@ -1125,6 +1126,8 @@ def morning_pulse_view(df: pd.DataFrame, app: str, color: str, mode: str = "unin
         cac     = sp / orders if orders > 0 else 0
         unin    = d_df["p0_unin_users"].sum()
         unin_rt = unin / orders * 100 if orders > 0 else 0
+        canc_u  = d_df["p0_cancel_users"].sum() if "p0_cancel_users" in d_df.columns else 0
+        canc_rt = canc_u / orders * 100 if orders > 0 else 0
         is_today = (dt == sel_date)
         is_yday  = (dt == pulse["d1_date"])
         row_bg  = "#E8E1D6" if is_today else ("#F0EBE3" if is_yday else "transparent")
@@ -1142,6 +1145,7 @@ def morning_pulse_view(df: pd.DataFrame, app: str, color: str, mode: str = "unin
         cac_delta_cell  = _delta_cell(cac,     prev_cac,   lambda v: f"₹{v:.0f}",  True)
         unin_delta_cell = _delta_cell(unin_rt, prev_unin,  lambda v: f"{v:.1f}pp", True)
         spend_delta_cell= _delta_cell(sp,      prev_spend, lambda v: f"₹{v:,.0f}", False)
+        canc_delta_cell = _delta_cell(canc_rt, prev_canc,  lambda v: f"{v:.1f}pp", True)
 
         rows_html += (
             f"<tr style='background:{row_bg};border-bottom:1px solid #E5E0D6'>"
@@ -1153,11 +1157,14 @@ def morning_pulse_view(df: pd.DataFrame, app: str, color: str, mode: str = "unin
             f"{cac_delta_cell}"
             f"<td style='text-align:right;padding:5px 10px;font-size:0.78rem;color:#2A2520'>{unin_rt:.1f}%</td>"
             f"{unin_delta_cell}"
+            f"<td style='text-align:right;padding:5px 10px;font-size:0.78rem;color:#2A2520'>{canc_rt:.1f}%</td>"
+            f"{canc_delta_cell}"
             f"</tr>"
         )
         prev_cac   = cac
         prev_unin  = unin_rt
         prev_spend = sp
+        prev_canc  = canc_rt
 
     th = "style='text-align:right;padding:5px 10px;font-size:0.65rem;color:#8A857D;font-weight:600;text-transform:uppercase;letter-spacing:.06em;border-bottom:1px solid #E5E0D6'"
     thl = "style='padding:5px 10px;font-size:0.65rem;color:#8A857D;font-weight:600;text-transform:uppercase;letter-spacing:.06em;border-bottom:1px solid #E5E0D6'"
@@ -1170,6 +1177,7 @@ def morning_pulse_view(df: pd.DataFrame, app: str, color: str, mode: str = "unin
         f"<th {th}>Orders</th>"
         f"<th {th}>CAC</th><th {th}>Δ</th>"
         f"<th {th}>Unin%</th><th {th}>Δ</th>"
+        f"<th {th}>Canc%</th><th {th}>Δ</th>"
         f"</tr></thead>"
         f"<tbody>{rows_html}</tbody>"
         f"</table></div>",
@@ -1378,7 +1386,7 @@ def morning_pulse_view(df: pd.DataFrame, app: str, color: str, mode: str = "unin
                 st.rerun()
 
     # col widths: name | spend | cac | uninst | cac_contrib | unin_contrib | [drill+trend]
-    _CW = [4.2, 1.0, 1.0, 1.0, 1.5, 1.5, 1.3]
+    _CW = [4.2, 1.0, 1.0, 1.0, 1.0, 1.5, 1.5, 1.3]
 
     def _cell(txt, align="right", color="#2A2520", bold=False):
         fw = "600" if bold else "400"
@@ -1450,7 +1458,7 @@ def morning_pulse_view(df: pd.DataFrame, app: str, color: str, mode: str = "unin
                 ord_ = srow["D0_paid_users"]
                 cac  = srow["D0_CAC_calc"]
                 unin = srow["p0_uninstall_rate"]
-                canc = (srow["p0_cancel_users"] / ord_ * 100) if "p0_cancel_users" in srow and ord_ else 0
+                canc = srow.get("cancel_rate", 0)
                 sp_s   = _fmt_spend(sp) if sp else "—"
                 ord_s  = f"{ord_:,.0f}" if ord_ else "—"
                 cac_s  = f"₹{cac:,.0f}" if cac else "—"
@@ -1480,18 +1488,21 @@ def morning_pulse_view(df: pd.DataFrame, app: str, color: str, mode: str = "unin
             cards_html += "</div>"
             st.markdown(cards_html, unsafe_allow_html=True)
 
-        _tbl_header(["Campaign", "Spend", "CAC ₹", "Uninst%", "CAC contrib ₹", "Unin contrib pp", ""])
+        _tbl_header(["Campaign", "Spend", "CAC ₹", "Uninst%", "Canc%", "CAC contrib ₹", "Unin contrib pp", ""])
 
         for ci, camp_name in enumerate(filtered_camps):
             cm        = camps_metrics.get(camp_name)
-            spend_val = cm.get("spend_yd")     if cm is not None else None
-            cac_val   = cm.get("cac_yd")       if cm is not None else None
-            unin_val  = cm.get("unin_rate_yd") if cm is not None else None
+            spend_val = cm.get("spend_yd")      if cm is not None else None
+            cac_val   = cm.get("cac_yd")        if cm is not None else None
+            unin_val  = cm.get("unin_rate_yd")  if cm is not None else None
+            canc_val  = cm.get("cancel_rate_yd") if cm is not None else None
             spend_str = _fmt_spend(spend_val)
             cac_str   = f"₹{cac_val:,.0f}"  if cac_val  is not None and pd.notna(cac_val)  else "—"
             unin_str  = f"{unin_val:.1f}%"   if unin_val is not None and pd.notna(unin_val) else "—"
+            canc_str  = f"{canc_val:.1f}%"   if canc_val is not None and pd.notna(canc_val) else "—"
             cac_col   = "#E24B4A" if cac_val  is not None and pd.notna(cac_val)  and cac_val  > 500 else "#4A4540"
             unin_col  = "#E24B4A" if unin_val is not None and pd.notna(unin_val) and unin_val > 25  else "#4A4540"
+            canc_col  = "#E24B4A" if canc_val is not None and pd.notna(canc_val) and canc_val > 25  else "#4A4540"
             src       = camp_source_map.get(camp_name, "")
             dot_col, src_label = _src_dot_label(src)
             cac_cv    = camp_cac_map.get(camp_name,  {}).get("contribution")
@@ -1499,7 +1510,7 @@ def morning_pulse_view(df: pd.DataFrame, app: str, color: str, mode: str = "unin
             camp_df_s = df[df["campaign"] == camp_name] if "campaign" in df.columns else pd.DataFrame()
             disp_name = (camp_name[:48] + "…") if len(camp_name) > 49 else camp_name
 
-            c0, c1, c2, c3, c4, c5, c6 = st.columns(_CW)
+            c0, c1, c2, c3, c4, c5, c6, c7 = st.columns(_CW)
             with c0:
                 st.markdown(
                     f"<div style='padding:10px 4px;border-bottom:1px solid #E5E0D6;"
@@ -1513,9 +1524,10 @@ def morning_pulse_view(df: pd.DataFrame, app: str, color: str, mode: str = "unin
             with c1: st.markdown(_cell(spend_str, bold=True, color="#1C1A17"), unsafe_allow_html=True)
             with c2: st.markdown(_cell(cac_str, color=cac_col), unsafe_allow_html=True)
             with c3: st.markdown(_cell(unin_str, color=unin_col), unsafe_allow_html=True)
-            with c4: st.markdown(_contrib_cell(cac_cv,  lambda v: f"₹{v:.0f}"), unsafe_allow_html=True)
-            with c5: st.markdown(_contrib_cell(unin_cv, lambda v: f"{v:.2f}pp"), unsafe_allow_html=True)
-            with c6:
+            with c4: st.markdown(_cell(canc_str, color=canc_col), unsafe_allow_html=True)
+            with c5: st.markdown(_contrib_cell(cac_cv,  lambda v: f"₹{v:.0f}"), unsafe_allow_html=True)
+            with c6: st.markdown(_contrib_cell(unin_cv, lambda v: f"{v:.2f}pp"), unsafe_allow_html=True)
+            with c7:
                 ca, cb = st.columns(2, gap="small")
                 with ca:
                     if st.button("▸", key=f"drill_c1_{app}_{mode}_{ci}",
@@ -1550,7 +1562,7 @@ def morning_pulse_view(df: pd.DataFrame, app: str, color: str, mode: str = "unin
             st.markdown("<div style='color:#444;font-size:0.82rem;padding:16px 0'>No ad set data.</div>",
                         unsafe_allow_html=True)
         else:
-            _tbl_header(["Ad Set", "Spend%", "CAC ₹", "Uninst%", "CAC contrib ₹", "Unin contrib pp", ""])
+            _tbl_header(["Ad Set", "Spend%", "CAC ₹", "Uninst%", "Canc%", "CAC contrib ₹", "Unin contrib pp", ""])
 
             for ai, (_, arow) in enumerate(adset_contrib.iterrows()):
                 aname    = arow["ad_set"]
@@ -1558,18 +1570,21 @@ def morning_pulse_view(df: pd.DataFrame, app: str, color: str, mode: str = "unin
                 b_col    = "#E24B4A" if sig == "🔴 High Risk" else ("#1D9E75" if sig == "🟢 Efficient" else "#444")
                 cac_abs  = arow["spend"] / arow["orders"] if arow.get("orders", 0) > 0 else None
                 unin_abs = arow["unin"]  / arow["orders"] * 100 if arow.get("orders", 0) > 0 else None
+                canc_abs = arow["cancel"] / arow["orders"] * 100 if arow.get("orders", 0) > 0 and "cancel" in arow.index else None
                 cac_cv   = adset_cac_map.get(aname,  {}).get("contribution")
                 unin_cv  = adset_unin_map.get(aname, {}).get("contribution")
                 _sp      = f"{arow['spend_pct']:.1f}%" if pd.notna(arow.get("spend_pct")) else "—"
                 cac_str  = f"₹{cac_abs:,.0f}"   if cac_abs  is not None else "—"
                 unin_str = f"{unin_abs:.1f}%"    if unin_abs is not None else "—"
+                canc_str = f"{canc_abs:.1f}%"    if canc_abs is not None else "—"
                 cac_col  = "#E24B4A" if cac_abs  is not None and cac_abs  > 500 else "#4A4540"
                 unin_col = "#E24B4A" if unin_abs is not None and unin_abs > 25  else "#4A4540"
+                canc_col = "#E24B4A" if canc_abs is not None and canc_abs > 25  else "#4A4540"
                 adset_df_s = (df[(df["campaign"] == sel_camp) & (df["ad_set"] == aname)]
                               if "ad_set" in df.columns else pd.DataFrame())
                 disp_name = (aname[:48] + "…") if len(aname) > 49 else aname
 
-                c0, c1, c2, c3, c4, c5, c6 = st.columns(_CW)
+                c0, c1, c2, c3, c4, c5, c6, c7 = st.columns(_CW)
                 with c0:
                     st.markdown(
                         f"<div style='padding:10px 4px 10px 10px;border-bottom:1px solid #E5E0D6;"
@@ -1582,9 +1597,10 @@ def morning_pulse_view(df: pd.DataFrame, app: str, color: str, mode: str = "unin
                 with c1: st.markdown(_cell(_sp), unsafe_allow_html=True)
                 with c2: st.markdown(_cell(cac_str, color=cac_col), unsafe_allow_html=True)
                 with c3: st.markdown(_cell(unin_str, color=unin_col), unsafe_allow_html=True)
-                with c4: st.markdown(_contrib_cell(cac_cv,  lambda v: f"₹{v:.0f}"), unsafe_allow_html=True)
-                with c5: st.markdown(_contrib_cell(unin_cv, lambda v: f"{v:.2f}pp"), unsafe_allow_html=True)
-                with c6:
+                with c4: st.markdown(_cell(canc_str, color=canc_col), unsafe_allow_html=True)
+                with c5: st.markdown(_contrib_cell(cac_cv,  lambda v: f"₹{v:.0f}"), unsafe_allow_html=True)
+                with c6: st.markdown(_contrib_cell(unin_cv, lambda v: f"{v:.2f}pp"), unsafe_allow_html=True)
+                with c7:
                     if app in CREATIVE_QUERY_IDS:
                         ca, cb = st.columns(2, gap="small")
                         with ca:
@@ -1623,7 +1639,7 @@ def morning_pulse_view(df: pd.DataFrame, app: str, color: str, mode: str = "unin
             st.markdown("<div style='color:#444;font-size:0.82rem;padding:16px 0'>No creative data.</div>",
                         unsafe_allow_html=True)
         else:
-            _tbl_header(["Creative", "Spend%", "CAC ₹", "Uninst%", "CAC contrib ₹", "Unin contrib pp", ""])
+            _tbl_header(["Creative", "Spend%", "CAC ₹", "Uninst%", "Canc%", "CAC contrib ₹", "Unin contrib pp", ""])
 
             for ri, (_, crow) in enumerate(cr_abs.iterrows()):
                 cr_name = crow["ad_creative"]
@@ -1635,17 +1651,20 @@ def morning_pulse_view(df: pd.DataFrame, app: str, color: str, mode: str = "unin
                     cr_col = "#444"
                 cr_cac       = crow["spend"] / crow["orders"] if crow["orders"] > 0 else None
                 cr_unin_rate = crow["unin"]  / crow["orders"] * 100 if crow["orders"] > 0 else None
+                cr_canc_rate = crow["cancel"] / crow["orders"] * 100 if crow["orders"] > 0 and "cancel" in crow.index else None
                 cac_str  = f"₹{cr_cac:,.0f}"     if cr_cac       is not None else "—"
                 unin_str = f"{cr_unin_rate:.1f}%" if cr_unin_rate is not None else "—"
+                canc_str = f"{cr_canc_rate:.1f}%" if cr_canc_rate is not None else "—"
                 cac_col  = "#E24B4A" if cr_cac       is not None and cr_cac       > 500 else "#4A4540"
                 unin_col = "#E24B4A" if cr_unin_rate is not None and cr_unin_rate > 30  else "#4A4540"
+                canc_col = "#E24B4A" if cr_canc_rate is not None and cr_canc_rate > 30  else "#4A4540"
                 cac_cv   = kit_cr_cac_map.get(cr_name,  {}).get("contribution")
                 unin_cv  = kit_cr_unin_map.get(cr_name, {}).get("contribution")
                 _sp      = f"{crow['spend_pct']:.1f}%"
                 cr_df_t  = cr_raw[cr_raw["ad_creative"] == cr_name] if cr_raw is not None else pd.DataFrame()
                 disp_name = (cr_name[:52] + "…") if len(cr_name) > 53 else cr_name
 
-                c0, c1, c2, c3, c4, c5, c6 = st.columns(_CW)
+                c0, c1, c2, c3, c4, c5, c6, c7 = st.columns(_CW)
                 with c0:
                     st.markdown(
                         f"<div style='padding:10px 4px 10px 10px;border-bottom:1px solid #E5E0D6;"
@@ -1655,9 +1674,10 @@ def morning_pulse_view(df: pd.DataFrame, app: str, color: str, mode: str = "unin
                 with c1: st.markdown(_cell(_sp), unsafe_allow_html=True)
                 with c2: st.markdown(_cell(cac_str, color=cac_col), unsafe_allow_html=True)
                 with c3: st.markdown(_cell(unin_str, color=unin_col), unsafe_allow_html=True)
-                with c4: st.markdown(_contrib_cell(cac_cv,  lambda v: f"₹{v:.0f}"), unsafe_allow_html=True)
-                with c5: st.markdown(_contrib_cell(unin_cv, lambda v: f"{v:.2f}pp"), unsafe_allow_html=True)
-                with c6:
+                with c4: st.markdown(_cell(canc_str, color=canc_col), unsafe_allow_html=True)
+                with c5: st.markdown(_contrib_cell(cac_cv,  lambda v: f"₹{v:.0f}"), unsafe_allow_html=True)
+                with c6: st.markdown(_contrib_cell(unin_cv, lambda v: f"{v:.2f}pp"), unsafe_allow_html=True)
+                with c7:
                     if st.button("trend", key=f"chart_cr_{app}_{mode}_{ri}",
                                  use_container_width=True, help="7-day trend"):
                         show_trend_dialog(cr_name, cr_df_t, end_date=_cr_max_date)

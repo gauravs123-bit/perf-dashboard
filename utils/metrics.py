@@ -118,7 +118,7 @@ def source_split(df: pd.DataFrame, metric_col: str) -> pd.DataFrame:
         np.where(src_lower.str.contains("google|goog", na=False), "Google", "Other")
     )
 
-    grp = day_df.groupby("source_group", as_index=False).agg(
+    agg_spec = dict(
         total_cost=("total_cost", "sum"),
         D0_paid_users=("D0_paid_users", "sum"),
         p0_unin_users=("p0_unin_users", "sum"),
@@ -126,6 +126,9 @@ def source_split(df: pd.DataFrame, metric_col: str) -> pd.DataFrame:
         clicks=("clicks", "sum"),
         impressions=("impressions", "sum"),
     )
+    if "p0_cancel_users" in day_df.columns:
+        agg_spec["p0_cancel_users"] = ("p0_cancel_users", "sum")
+    grp = day_df.groupby("source_group", as_index=False).agg(**agg_spec)
     total_cost_sum = grp["total_cost"].sum() or np.nan
     grp["spend_share"] = grp["total_cost"] / total_cost_sum * 100
 
@@ -133,6 +136,8 @@ def source_split(df: pd.DataFrame, metric_col: str) -> pd.DataFrame:
     d0 = grp["D0_paid_users"].replace(0, np.nan)
     grp["p0_uninstall_rate"] = (grp["p0_unin_users"] / d0 * 100).fillna(0)
     grp["D0_CAC_calc"]       = (grp["total_cost"] / d0).fillna(0)
+    if "p0_cancel_users" in grp.columns:
+        grp["cancel_rate"] = (grp["p0_cancel_users"] / d0 * 100).fillna(0)
     grp["CPI_calc"]          = (grp["total_cost"] / grp["installs"].replace(0, np.nan)).fillna(0)
     grp["conv_rate"]         = (d0 / grp["installs"].replace(0, np.nan) * 100).fillna(0)
     grp["CPC"]               = (grp["total_cost"] / grp["clicks"].replace(0, np.nan)).fillna(0)
@@ -420,19 +425,26 @@ def morning_pulse(df: pd.DataFrame, ref_date=None) -> dict:
     def _camp_agg(d):
         if "campaign" not in d.columns:
             return pd.DataFrame(columns=["campaign","spend","orders","unin","cac","unin_rate"])
-        g = d.groupby("campaign", as_index=False).agg(
+        agg_spec = dict(
             spend=("total_cost", "sum"),
             orders=("D0_paid_users", "sum"),
             unin=("p0_unin_users", "sum"),
         )
+        if "p0_cancel_users" in d.columns:
+            agg_spec["cancel"] = ("p0_cancel_users", "sum")
+        g = d.groupby("campaign", as_index=False).agg(**agg_spec)
         g["cac"]       = np.where(g["orders"] > 0, g["spend"] / g["orders"], np.nan)
         g["unin_rate"] = np.where(g["orders"] > 0, g["unin"]  / g["orders"] * 100, np.nan)
+        if "cancel" in g.columns:
+            g["cancel_rate"] = np.where(g["orders"] > 0, g["cancel"] / g["orders"] * 100, np.nan)
         return g
 
     cy = _camp_agg(yd_df).rename(columns={"spend":"spend_yd","orders":"orders_yd",
-                                            "unin":"unin_yd","cac":"cac_yd","unin_rate":"unin_rate_yd"})
+                                            "unin":"unin_yd","cac":"cac_yd","unin_rate":"unin_rate_yd",
+                                            "cancel":"cancel_yd","cancel_rate":"cancel_rate_yd"})
     cd = _camp_agg(d1_df).rename(columns={"spend":"spend_d1","orders":"orders_d1",
-                                            "unin":"unin_d1","cac":"cac_d1","unin_rate":"unin_rate_d1"})
+                                            "unin":"unin_d1","cac":"cac_d1","unin_rate":"unin_rate_d1",
+                                            "cancel":"cancel_d1","cancel_rate":"cancel_rate_d1"})
     camps = cy.merge(cd[["campaign","spend_d1","orders_d1","cac_d1","unin_rate_d1"]],
                      on="campaign", how="outer").fillna(0)
     camps["cac_delta"]       = camps["cac_yd"]       - camps["cac_d1"]
@@ -512,11 +524,14 @@ def diagnose_contribution(df: pd.DataFrame, level: str,
     if win.empty or level not in win.columns:
         return pd.DataFrame()
 
-    g = win.groupby(level, as_index=False).agg(
+    agg_spec = dict(
         spend=("total_cost", "sum"),
         orders=("D0_paid_users", "sum"),
         unin=("p0_unin_users", "sum"),
     )
+    if "p0_cancel_users" in win.columns:
+        agg_spec["cancel"] = ("p0_cancel_users", "sum")
+    g = win.groupby(level, as_index=False).agg(**agg_spec)
 
     ts = g["spend"].sum()  or np.nan
     to = g["orders"].sum() or np.nan
@@ -526,6 +541,8 @@ def diagnose_contribution(df: pd.DataFrame, level: str,
     g["orders_pct"] = g["orders"] / to * 100
     g["unin_pct"]   = g["unin"]   / tu * 100
     g["unin_delta"] = g["unin_pct"] - g["orders_pct"]
+    if "cancel" in g.columns:
+        g["cancel_rate"] = np.where(g["orders"] > 0, g["cancel"] / g["orders"] * 100, np.nan)
 
     def _signal(row):
         if row["orders_pct"] < row["spend_pct"] and row["unin_pct"] > row["spend_pct"]:
@@ -558,11 +575,14 @@ def creative_yd_contribution(df: pd.DataFrame,
     if win.empty:
         return pd.DataFrame()
 
-    g = win.groupby("ad_creative", as_index=False).agg(
+    agg_spec = dict(
         spend=("total_cost", "sum"),
         orders=("D0_paid_users", "sum"),
         unin=("p0_unin_users", "sum"),
     )
+    if "p0_cancel_users" in win.columns:
+        agg_spec["cancel"] = ("p0_cancel_users", "sum")
+    g = win.groupby("ad_creative", as_index=False).agg(**agg_spec)
 
     total_spend  = g["spend"].sum()  or np.nan
     total_orders = g["orders"].sum() or np.nan
@@ -572,6 +592,8 @@ def creative_yd_contribution(df: pd.DataFrame,
     g["orders_pct"] = g["orders"] / total_orders * 100
     g["unin_pct"]   = g["unin"]   / total_unin   * 100
     g["unin_contribution"] = g["unin_pct"] - g["orders_pct"]   # +ve = punching above weight
+    if "cancel" in g.columns:
+        g["cancel_rate"] = np.where(g["orders"] > 0, g["cancel"] / g["orders"] * 100, np.nan)
 
     # attach campaign/adset
     meta = (df[df["date_tz"] == yd].groupby("ad_creative")[["campaign", "ad_set"]]
