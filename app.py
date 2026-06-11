@@ -3025,7 +3025,7 @@ def overview_view():
 
         ys, yo, yc, yu = _agg(yd)
         ds, do, dc, du = _agg(d1)
-        app_rows.append(dict(app=a, color=APP_COLORS[a],
+        app_rows.append(dict(label=a, app=a, color=APP_COLORS[a],
                              yd_date=str(yd_date), d1_date=str(d1_date),
                              spend=ys, spend_d=ys - ds,
                              orders=yo, orders_d=yo - do,
