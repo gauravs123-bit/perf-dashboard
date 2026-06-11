@@ -1450,10 +1450,12 @@ def morning_pulse_view(df: pd.DataFrame, app: str, color: str, mode: str = "unin
                 ord_ = srow["D0_paid_users"]
                 cac  = srow["D0_CAC_calc"]
                 unin = srow["p0_uninstall_rate"]
+                canc = (srow["p0_cancel_users"] / ord_ * 100) if "p0_cancel_users" in srow and ord_ else 0
                 sp_s   = _fmt_spend(sp) if sp else "—"
                 ord_s  = f"{ord_:,.0f}" if ord_ else "—"
                 cac_s  = f"₹{cac:,.0f}" if cac else "—"
                 unin_s = f"{unin:.1f}%" if unin else "—"
+                canc_s = f"{canc:.1f}%" if canc else "—"
 
                 def _kv(label, val):
                     return (f"<div style='display:flex;flex-direction:column;align-items:flex-end;gap:1px'>"
@@ -1472,6 +1474,7 @@ def morning_pulse_view(df: pd.DataFrame, app: str, color: str, mode: str = "unin
                     + _kv("Orders", ord_s)
                     + _kv("CAC", cac_s)
                     + _kv("Unin%", unin_s)
+                    + _kv("Canc%", canc_s)
                     + f"</div>"
                 )
             cards_html += "</div>"
@@ -3054,19 +3057,21 @@ def overview_view():
         all_d1_dfs.append(d1)
 
         def _agg(d):
-            sp = d["total_cost"].sum()
+            sp  = d["total_cost"].sum()
             or_ = d["D0_paid_users"].sum()
-            un = d["p0_unin_users"].sum()
-            return sp, or_, sp / or_ if or_ else 0, un / or_ * 100 if or_ else 0
+            un  = d["p0_unin_users"].sum()
+            cn  = d["p0_cancel_users"].sum() if "p0_cancel_users" in d.columns else 0
+            return sp, or_, sp/or_ if or_ else 0, un/or_*100 if or_ else 0, cn/or_*100 if or_ else 0
 
-        ys, yo, yc, yu = _agg(yd)
-        ds, do, dc, du = _agg(d1)
+        ys, yo, yc, yu, yk = _agg(yd)
+        ds, do, dc, du, dk = _agg(d1)
         app_rows.append(dict(label=a, app=a, color=APP_COLORS[a],
                              yd_date=str(yd_date), d1_date=str(d1_date),
                              spend=ys, spend_d=ys - ds,
                              orders=yo, orders_d=yo - do,
                              cac=yc, cac_d=yc - dc,
-                             unin=yu, unin_d=yu - du))
+                             unin=yu, unin_d=yu - du,
+                             canc=yk, canc_d=yk - dk))
 
     if not app_rows:
         st.warning("No data available.")
@@ -3101,6 +3106,8 @@ def overview_view():
             "<th style='padding:8px 6px;text-align:right'>Δ</th>"
             "<th style='padding:8px 14px;text-align:right'>Unin%</th>"
             "<th style='padding:8px 6px;text-align:right'>Δ</th>"
+            "<th style='padding:8px 14px;text-align:right'>Canc%</th>"
+            "<th style='padding:8px 6px;text-align:right'>Δ</th>"
             "</tr>"
         )
         body = ""
@@ -3120,6 +3127,8 @@ def overview_view():
                 f"<td style='padding:9px 6px;text-align:right'>{_delta(r['cac_d'], True, lambda v: f'₹{v:.0f}')}</td>"
                 f"<td style='{P};text-align:right;color:#1C1A17'>{r['unin']:.1f}%</td>"
                 f"<td style='padding:9px 6px;text-align:right'>{_delta(r['unin_d'], True, lambda v: f'{v:.1f}pp')}</td>"
+                f"<td style='{P};text-align:right;color:#1C1A17'>{r.get('canc', 0):.1f}%</td>"
+                f"<td style='padding:9px 6px;text-align:right'>{_delta(r.get('canc_d', 0), True, lambda v: f'{v:.1f}pp')}</td>"
                 f"</tr>"
             )
         tr = total_row
@@ -3135,6 +3144,8 @@ def overview_view():
             f"<td style='padding:10px 6px;text-align:right'>{_delta(tr['cac_d'], True, lambda v: f'₹{v:.0f}')}</td>"
             f"<td style='{PT};text-align:right;color:#1C1A17'>{tr['unin']:.1f}%</td>"
             f"<td style='padding:10px 6px;text-align:right'>{_delta(tr['unin_d'], True, lambda v: f'{v:.1f}pp')}</td>"
+            f"<td style='{PT};text-align:right;color:#1C1A17'>{tr.get('canc', 0):.1f}%</td>"
+            f"<td style='padding:10px 6px;text-align:right'>{_delta(tr.get('canc_d', 0), True, lambda v: f'{v:.1f}pp')}</td>"
             f"</tr>"
         )
         st.markdown(
@@ -3152,12 +3163,15 @@ def overview_view():
         od  = sum(r["orders_d"] for r in rows)
         o1  = o - od
         sp1 = sp - spd
-        cac  = sp  / o  if o  else 0
-        cac1 = sp1 / o1 if o1 else 0
-        unin  = sum(r["unin"]  * r["orders"]           for r in rows) / o  if o  else 0
+        cac   = sp  / o  if o  else 0
+        cac1  = sp1 / o1 if o1 else 0
+        unin  = sum(r["unin"]  * r["orders"] for r in rows) / o  if o  else 0
         unin1 = sum((r["unin"] - r["unin_d"]) * (r["orders"] - r["orders_d"]) for r in rows) / o1 if o1 else 0
+        canc  = sum(r.get("canc", 0) * r["orders"] for r in rows) / o  if o  else 0
+        canc1 = sum((r.get("canc", 0) - r.get("canc_d", 0)) * (r["orders"] - r["orders_d"]) for r in rows) / o1 if o1 else 0
         return dict(label=label, spend=sp, spend_d=spd, orders=o, orders_d=od,
-                    cac=cac, cac_d=cac - cac1, unin=unin, unin_d=unin - unin1)
+                    cac=cac, cac_d=cac - cac1, unin=unin, unin_d=unin - unin1,
+                    canc=canc, canc_d=canc - canc1)
 
     # ── date badge ────────────────────────────────────────────────────────────
     st.markdown(
@@ -3189,14 +3203,16 @@ def overview_view():
                 sp = d["total_cost"].sum()
                 o  = d["D0_paid_users"].sum()
                 un = d["p0_unin_users"].sum()
-                return sp, o, sp/o if o else 0, un/o*100 if o else 0
-            ys, yo, yc, yu = _agg_src(yd_s)
-            ds, do, dc, du = _agg_src(d1_s)
+                cn = d["p0_cancel_users"].sum() if "p0_cancel_users" in d.columns else 0
+                return sp, o, sp/o if o else 0, un/o*100 if o else 0, cn/o*100 if o else 0
+            ys, yo, yc, yu, yk = _agg_src(yd_s)
+            ds, do, dc, du, dk = _agg_src(d1_s)
             src_rows.append(dict(label=src_label, color=src_color,
                                  spend=ys, spend_d=ys-ds,
                                  orders=yo, orders_d=yo-do,
                                  cac=yc, cac_d=yc-dc,
-                                 unin=yu, unin_d=yu-du))
+                                 unin=yu, unin_d=yu-du,
+                                 canc=yk, canc_d=yk-dk))
 
         _table("Source", src_rows, _total_row(src_rows, "Combined"))
 
