@@ -1191,7 +1191,7 @@ def morning_pulse_view(df: pd.DataFrame, app: str, color: str, mode: str = "unin
     kit_unin   = kitagawa_uninstall(df_sel, level="campaign")
     kit_cancel = kitagawa_cancel(df_sel,    level="campaign")
 
-    def _kit_card(row, accent, is_cac):
+    def _kit_card(row, accent, is_cac, rate_lbl_override=None):
         contrib  = row["contribution"]
         rate_eff = row["rate_effect"]
         mix_eff  = row["mix_effect"]
@@ -1207,13 +1207,13 @@ def morning_pulse_view(df: pd.DataFrame, app: str, color: str, mode: str = "unin
             contrib_str = f"{c_arrow} ₹{abs(contrib):.0f}"
             re_str      = f"₹{abs(rate_eff):.0f}"
             me_str      = f"₹{abs(mix_eff):.0f}"
-            rate_lbl    = "CAC Today"
+            rate_lbl    = rate_lbl_override or "CAC Today"
         else:
             rate_str    = f"{rate_d0:.1f}%"
             contrib_str = f"{c_arrow} {abs(contrib):.2f}pp"
             re_str      = f"{abs(rate_eff):.2f}pp"
             me_str      = f"{abs(mix_eff):.2f}pp"
-            rate_lbl    = "P0 Rate Today"
+            rate_lbl    = rate_lbl_override or "P0 Rate Today"
         name = row['group']
         short = name[:52] + "…" if len(name) > 52 else name
         return f"""
@@ -1234,7 +1234,7 @@ def morning_pulse_view(df: pd.DataFrame, app: str, color: str, mode: str = "unin
           </div>
         </div>"""
 
-    def _render_kit_col(kit_df, is_cac):
+    def _render_kit_col(kit_df, is_cac, rate_lbl_override=None):
         if kit_df.empty:
             st.markdown("<div style='color:#8A857D;font-size:0.82rem;padding:8px'>No data</div>", unsafe_allow_html=True)
             return
@@ -1244,12 +1244,12 @@ def morning_pulse_view(df: pd.DataFrame, app: str, color: str, mode: str = "unin
         if worsened.empty:
             st.markdown("<div style='color:#C5C0B6;font-size:0.8rem;margin-bottom:8px'>—</div>", unsafe_allow_html=True)
         for _, row in worsened.iterrows():
-            st.markdown(_kit_card(row, "#E24B4A", is_cac), unsafe_allow_html=True)
+            st.markdown(_kit_card(row, "#E24B4A", is_cac, rate_lbl_override), unsafe_allow_html=True)
         st.markdown("<div style='font-size:0.72rem;color:#1D9E75;font-weight:600;margin:10px 0 5px;letter-spacing:.06em;text-transform:uppercase'>↓ Improved</div>", unsafe_allow_html=True)
         if improved.empty:
             st.markdown("<div style='color:#333;font-size:0.8rem'>—</div>", unsafe_allow_html=True)
         for _, row in improved.sort_values("contribution").iterrows():
-            st.markdown(_kit_card(row, "#1D9E75", is_cac), unsafe_allow_html=True)
+            st.markdown(_kit_card(row, "#1D9E75", is_cac, rate_lbl_override), unsafe_allow_html=True)
 
     # date label from whichever is available
     ref_df  = kit_cac if not kit_cac.empty else kit_unin
@@ -1260,13 +1260,16 @@ def morning_pulse_view(df: pd.DataFrame, app: str, color: str, mode: str = "unin
             f"<div class='section-label'>Campaign contributors &nbsp;·&nbsp; {kit_d1} → {kit_d0}</div>",
             unsafe_allow_html=True,
         )
-        col_cac, col_unin = st.columns(2)
+        col_cac, col_unin, col_canc = st.columns(3)
         with col_cac:
             st.markdown("<div style='font-size:0.8rem;color:#aaa;font-weight:600;margin-bottom:8px'>💰 CAC Rise</div>", unsafe_allow_html=True)
             _render_kit_col(kit_cac, is_cac=True)
         with col_unin:
             st.markdown("<div style='font-size:0.8rem;color:#aaa;font-weight:600;margin-bottom:8px'>📉 Uninstall Rise</div>", unsafe_allow_html=True)
             _render_kit_col(kit_unin, is_cac=False)
+        with col_canc:
+            st.markdown("<div style='font-size:0.8rem;color:#aaa;font-weight:600;margin-bottom:8px'>❌ Cancel Rise</div>", unsafe_allow_html=True)
+            _render_kit_col(kit_cancel, is_cac=False, rate_lbl_override="Cancel Rate Today")
     else:
         st.info("Need at least 2 days of data.")
 
