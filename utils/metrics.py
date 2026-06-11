@@ -828,6 +828,46 @@ def kitagawa_uninstall(df: pd.DataFrame, level: str = "campaign") -> pd.DataFram
     return result.sort_values("contribution", ascending=False)
 
 
+def _kit_cancel_pair(df: pd.DataFrame, level: str,
+                     d0_date, d1_date) -> pd.DataFrame:
+    """Single day-transition Kitagawa for cancel rate (p0_cancel_users / D0_paid)."""
+    if "p0_cancel_users" not in df.columns:
+        return pd.DataFrame()
+    group_col = level
+
+    def _agg(day_df):
+        g = day_df.groupby(group_col, as_index=False).agg(
+            D0_paid=("D0_paid_users", "sum"),
+            cancel=("p0_cancel_users", "sum"),
+        )
+        total = g["D0_paid"].sum() or np.nan
+        g["share"] = g["D0_paid"] / total
+        g["rate"]  = np.where(g["D0_paid"] > 0, g["cancel"] / g["D0_paid"] * 100, 0)
+        return g
+
+    d0 = _agg(df[df["date_tz"] == d0_date]).set_index(group_col)
+    d1 = _agg(df[df["date_tz"] == d1_date]).set_index(group_col)
+    c = d0.join(d1, lsuffix="_d0", rsuffix="_d1", how="outer").fillna(0)
+    overall_rate_d1 = (c["rate_d1"] * c["share_d1"]).sum()
+    c["rate_effect"]  = (c["rate_d0"] - c["rate_d1"]) * c["share_d0"]
+    c["mix_effect"]   = (c["share_d0"] - c["share_d1"]) * (c["rate_d1"] - overall_rate_d1)
+    c["contribution"] = c["rate_effect"] + c["mix_effect"]
+    c = c.reset_index().rename(columns={group_col: "group"})
+    c["d0_date"] = d0_date
+    c["d1_date"] = d1_date
+    return c
+
+
+def kitagawa_cancel(df: pd.DataFrame, level: str = "campaign") -> pd.DataFrame:
+    if df.empty or "p0_cancel_users" not in df.columns:
+        return pd.DataFrame()
+    dates = sorted(df["date_tz"].unique())
+    if len(dates) < 2:
+        return pd.DataFrame()
+    result = _kit_cancel_pair(df, level, dates[-1], dates[-2])
+    return result.sort_values("contribution", ascending=False)
+
+
 def kitagawa_cac(df: pd.DataFrame, level: str = "campaign") -> pd.DataFrame:
     if df.empty:
         return pd.DataFrame()

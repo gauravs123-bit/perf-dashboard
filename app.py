@@ -15,7 +15,7 @@ from utils.metrics import (
     add_derived_metrics, latest_summary, build_trend_table,
     source_split, campaign_table, adset_table, creative_table, creative_l3d,
     creative_pivot, creative_yd_contribution, diagnose_contribution, morning_pulse,
-    kitagawa_uninstall, kitagawa_cac,
+    kitagawa_uninstall, kitagawa_cac, kitagawa_cancel,
     kitagawa_rolling_uninstall, kitagawa_rolling_cac,
     spend_cac_quadrants, APP_COLORS,
 )
@@ -1187,8 +1187,9 @@ def morning_pulse_view(df: pd.DataFrame, app: str, color: str, mode: str = "unin
     st.markdown("<div class='section-hdr'><div class='section-hdr-line'></div><div class='section-hdr-text'>Campaign Contributors</div><div class='section-hdr-line'></div></div>", unsafe_allow_html=True)
 
     # ── Top Contributors (Kitagawa) — always show both CAC + Uninstall ──
-    kit_cac   = kitagawa_cac(df_sel,       level="campaign")
-    kit_unin  = kitagawa_uninstall(df_sel, level="campaign")
+    kit_cac    = kitagawa_cac(df_sel,       level="campaign")
+    kit_unin   = kitagawa_uninstall(df_sel, level="campaign")
+    kit_cancel = kitagawa_cancel(df_sel,    level="campaign")
 
     def _kit_card(row, accent, is_cac):
         contrib  = row["contribution"]
@@ -1289,26 +1290,31 @@ def morning_pulse_view(df: pd.DataFrame, app: str, color: str, mode: str = "unin
     sel_adset = st.session_state[adset_key]
 
     # Kitagawa contribution maps — campaign level
-    camp_cac_map  = {r["group"]: r for _, r in kit_cac.iterrows()}  if not kit_cac.empty  else {}
-    camp_unin_map = {r["group"]: r for _, r in kit_unin.iterrows()} if not kit_unin.empty else {}
+    camp_cac_map    = {r["group"]: r for _, r in kit_cac.iterrows()}    if not kit_cac.empty    else {}
+    camp_unin_map   = {r["group"]: r for _, r in kit_unin.iterrows()}   if not kit_unin.empty   else {}
+    camp_canc_map   = {r["group"]: r for _, r in kit_cancel.iterrows()} if not kit_cancel.empty else {}
 
     # Kitagawa contribution maps — ad set level
-    kit_adset_cac  = kitagawa_cac(df_sel,       level="ad_set")
-    kit_adset_unin = kitagawa_uninstall(df_sel, level="ad_set")
-    adset_cac_map  = {r["group"]: r for _, r in kit_adset_cac.iterrows()}  if not kit_adset_cac.empty  else {}
-    adset_unin_map = {r["group"]: r for _, r in kit_adset_unin.iterrows()} if not kit_adset_unin.empty else {}
+    kit_adset_cac    = kitagawa_cac(df_sel,       level="ad_set")
+    kit_adset_unin   = kitagawa_uninstall(df_sel, level="ad_set")
+    kit_adset_cancel = kitagawa_cancel(df_sel,    level="ad_set")
+    adset_cac_map    = {r["group"]: r for _, r in kit_adset_cac.iterrows()}    if not kit_adset_cac.empty    else {}
+    adset_unin_map   = {r["group"]: r for _, r in kit_adset_unin.iterrows()}   if not kit_adset_unin.empty   else {}
+    adset_canc_map   = {r["group"]: r for _, r in kit_adset_cancel.iterrows()} if not kit_adset_cancel.empty else {}
 
     adset_contrib = diagnose_contribution(df_sel, "ad_set", campaign_filter=sel_camp) if sel_camp else None
 
-    cr_raw = None; cr_sel = None; kit_cr_cac_map = {}; kit_cr_unin_map = {}
+    cr_raw = None; cr_sel = None; kit_cr_cac_map = {}; kit_cr_unin_map = {}; kit_cr_canc_map = {}
     if app in CREATIVE_QUERY_IDS:
         try:
             cr_raw = add_derived_metrics(fetch_creative_data(app))
             cr_sel = cr_raw[cr_raw["date_tz"] <= sel_date] if "date_tz" in cr_raw.columns else cr_raw
-            kit_cr_cac  = kitagawa_cac(cr_sel,       level="ad_creative")
-            kit_cr_unin = kitagawa_uninstall(cr_sel, level="ad_creative")
-            kit_cr_cac_map  = {r["group"]: r for _, r in kit_cr_cac.iterrows()}  if not kit_cr_cac.empty  else {}
-            kit_cr_unin_map = {r["group"]: r for _, r in kit_cr_unin.iterrows()} if not kit_cr_unin.empty else {}
+            kit_cr_cac    = kitagawa_cac(cr_sel,       level="ad_creative")
+            kit_cr_unin   = kitagawa_uninstall(cr_sel, level="ad_creative")
+            kit_cr_cancel = kitagawa_cancel(cr_sel,    level="ad_creative")
+            kit_cr_cac_map  = {r["group"]: r for _, r in kit_cr_cac.iterrows()}    if not kit_cr_cac.empty    else {}
+            kit_cr_unin_map = {r["group"]: r for _, r in kit_cr_unin.iterrows()}   if not kit_cr_unin.empty   else {}
+            kit_cr_canc_map = {r["group"]: r for _, r in kit_cr_cancel.iterrows()} if not kit_cr_cancel.empty else {}
         except Exception:
             pass
 
@@ -1386,7 +1392,7 @@ def morning_pulse_view(df: pd.DataFrame, app: str, color: str, mode: str = "unin
                 st.rerun()
 
     # col widths: name | spend | cac | uninst | cac_contrib | unin_contrib | [drill+trend]
-    _CW = [4.2, 1.0, 1.0, 1.0, 1.0, 1.5, 1.5, 1.3]
+    _CW = [4.2, 1.0, 1.0, 1.0, 1.0, 1.5, 1.5, 1.5, 1.3]
 
     def _cell(txt, align="right", color="#2A2520", bold=False):
         fw = "600" if bold else "400"
@@ -1488,7 +1494,7 @@ def morning_pulse_view(df: pd.DataFrame, app: str, color: str, mode: str = "unin
             cards_html += "</div>"
             st.markdown(cards_html, unsafe_allow_html=True)
 
-        _tbl_header(["Campaign", "Spend", "CAC ₹", "Uninst%", "Canc%", "CAC contrib ₹", "Unin contrib pp", ""])
+        _tbl_header(["Campaign", "Spend", "CAC ₹", "Uninst%", "Canc%", "CAC contrib ₹", "Unin contrib pp", "Canc contrib pp", ""])
 
         for ci, camp_name in enumerate(filtered_camps):
             cm        = camps_metrics.get(camp_name)
@@ -1507,10 +1513,11 @@ def morning_pulse_view(df: pd.DataFrame, app: str, color: str, mode: str = "unin
             dot_col, src_label = _src_dot_label(src)
             cac_cv    = camp_cac_map.get(camp_name,  {}).get("contribution")
             unin_cv   = camp_unin_map.get(camp_name, {}).get("contribution")
+            canc_cv   = camp_canc_map.get(camp_name, {}).get("contribution")
             camp_df_s = df[df["campaign"] == camp_name] if "campaign" in df.columns else pd.DataFrame()
             disp_name = (camp_name[:48] + "…") if len(camp_name) > 49 else camp_name
 
-            c0, c1, c2, c3, c4, c5, c6, c7 = st.columns(_CW)
+            c0, c1, c2, c3, c4, c5, c6, c7, c8 = st.columns(_CW)
             with c0:
                 st.markdown(
                     f"<div style='padding:10px 4px;border-bottom:1px solid #E5E0D6;"
@@ -1527,7 +1534,8 @@ def morning_pulse_view(df: pd.DataFrame, app: str, color: str, mode: str = "unin
             with c4: st.markdown(_cell(canc_str, color=canc_col), unsafe_allow_html=True)
             with c5: st.markdown(_contrib_cell(cac_cv,  lambda v: f"₹{v:.0f}"), unsafe_allow_html=True)
             with c6: st.markdown(_contrib_cell(unin_cv, lambda v: f"{v:.2f}pp"), unsafe_allow_html=True)
-            with c7:
+            with c7: st.markdown(_contrib_cell(canc_cv, lambda v: f"{v:.2f}pp"), unsafe_allow_html=True)
+            with c8:
                 ca, cb = st.columns(2, gap="small")
                 with ca:
                     if st.button("▸", key=f"drill_c1_{app}_{mode}_{ci}",
@@ -1562,7 +1570,7 @@ def morning_pulse_view(df: pd.DataFrame, app: str, color: str, mode: str = "unin
             st.markdown("<div style='color:#444;font-size:0.82rem;padding:16px 0'>No ad set data.</div>",
                         unsafe_allow_html=True)
         else:
-            _tbl_header(["Ad Set", "Spend%", "CAC ₹", "Uninst%", "Canc%", "CAC contrib ₹", "Unin contrib pp", ""])
+            _tbl_header(["Ad Set", "Spend%", "CAC ₹", "Uninst%", "Canc%", "CAC contrib ₹", "Unin contrib pp", "Canc contrib pp", ""])
 
             for ai, (_, arow) in enumerate(adset_contrib.iterrows()):
                 aname    = arow["ad_set"]
@@ -1573,6 +1581,7 @@ def morning_pulse_view(df: pd.DataFrame, app: str, color: str, mode: str = "unin
                 canc_abs = arow["cancel"] / arow["orders"] * 100 if arow.get("orders", 0) > 0 and "cancel" in arow.index else None
                 cac_cv   = adset_cac_map.get(aname,  {}).get("contribution")
                 unin_cv  = adset_unin_map.get(aname, {}).get("contribution")
+                canc_cv  = adset_canc_map.get(aname, {}).get("contribution")
                 _sp      = f"{arow['spend_pct']:.1f}%" if pd.notna(arow.get("spend_pct")) else "—"
                 cac_str  = f"₹{cac_abs:,.0f}"   if cac_abs  is not None else "—"
                 unin_str = f"{unin_abs:.1f}%"    if unin_abs is not None else "—"
@@ -1584,7 +1593,7 @@ def morning_pulse_view(df: pd.DataFrame, app: str, color: str, mode: str = "unin
                               if "ad_set" in df.columns else pd.DataFrame())
                 disp_name = (aname[:48] + "…") if len(aname) > 49 else aname
 
-                c0, c1, c2, c3, c4, c5, c6, c7 = st.columns(_CW)
+                c0, c1, c2, c3, c4, c5, c6, c7, c8 = st.columns(_CW)
                 with c0:
                     st.markdown(
                         f"<div style='padding:10px 4px 10px 10px;border-bottom:1px solid #E5E0D6;"
@@ -1600,7 +1609,8 @@ def morning_pulse_view(df: pd.DataFrame, app: str, color: str, mode: str = "unin
                 with c4: st.markdown(_cell(canc_str, color=canc_col), unsafe_allow_html=True)
                 with c5: st.markdown(_contrib_cell(cac_cv,  lambda v: f"₹{v:.0f}"), unsafe_allow_html=True)
                 with c6: st.markdown(_contrib_cell(unin_cv, lambda v: f"{v:.2f}pp"), unsafe_allow_html=True)
-                with c7:
+                with c7: st.markdown(_contrib_cell(canc_cv, lambda v: f"{v:.2f}pp"), unsafe_allow_html=True)
+                with c8:
                     if app in CREATIVE_QUERY_IDS:
                         ca, cb = st.columns(2, gap="small")
                         with ca:
@@ -1660,11 +1670,12 @@ def morning_pulse_view(df: pd.DataFrame, app: str, color: str, mode: str = "unin
                 canc_col = "#E24B4A" if cr_canc_rate is not None and cr_canc_rate > 30  else "#4A4540"
                 cac_cv   = kit_cr_cac_map.get(cr_name,  {}).get("contribution")
                 unin_cv  = kit_cr_unin_map.get(cr_name, {}).get("contribution")
+                canc_cv  = kit_cr_canc_map.get(cr_name, {}).get("contribution")
                 _sp      = f"{crow['spend_pct']:.1f}%"
                 cr_df_t  = cr_raw[cr_raw["ad_creative"] == cr_name] if cr_raw is not None else pd.DataFrame()
                 disp_name = (cr_name[:52] + "…") if len(cr_name) > 53 else cr_name
 
-                c0, c1, c2, c3, c4, c5, c6, c7 = st.columns(_CW)
+                c0, c1, c2, c3, c4, c5, c6, c7, c8 = st.columns(_CW)
                 with c0:
                     st.markdown(
                         f"<div style='padding:10px 4px 10px 10px;border-bottom:1px solid #E5E0D6;"
@@ -1677,7 +1688,8 @@ def morning_pulse_view(df: pd.DataFrame, app: str, color: str, mode: str = "unin
                 with c4: st.markdown(_cell(canc_str, color=canc_col), unsafe_allow_html=True)
                 with c5: st.markdown(_contrib_cell(cac_cv,  lambda v: f"₹{v:.0f}"), unsafe_allow_html=True)
                 with c6: st.markdown(_contrib_cell(unin_cv, lambda v: f"{v:.2f}pp"), unsafe_allow_html=True)
-                with c7:
+                with c7: st.markdown(_contrib_cell(canc_cv, lambda v: f"{v:.2f}pp"), unsafe_allow_html=True)
+                with c8:
                     if st.button("trend", key=f"chart_cr_{app}_{mode}_{ri}",
                                  use_container_width=True, help="7-day trend"):
                         show_trend_dialog(cr_name, cr_df_t, end_date=_cr_max_date)
