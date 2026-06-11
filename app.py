@@ -2999,6 +2999,39 @@ def main():
 def overview_view():
     """Combined yesterday snapshot across all apps — by app and by source."""
 
+    # ── date selector (uses first available app as reference) ─────────────────
+    ref_df = safe_fetch(APPS[0])
+    all_dates = sorted(ref_df["date_tz"].unique()) if not ref_df.empty else []
+    selectable = [d for i, d in enumerate(all_dates) if i > 0][-7:]  # last 7 with a prior day
+
+    if "ov_date" not in st.session_state or st.session_state["ov_date"] not in selectable:
+        st.session_state["ov_date"] = selectable[-1] if selectable else None
+
+    if selectable:
+        btn_cols = st.columns(len(selectable) + 4)
+        for i, d in enumerate(reversed(selectable)):
+            with btn_cols[i]:
+                label = "Today" if d == selectable[-1] else str(d)
+                is_sel = st.session_state["ov_date"] == d
+                if is_sel:
+                    st.markdown(
+                        f"<div style='background:rgba(28,26,23,0.1);border:1px solid #1C1A17;"
+                        f"border-radius:20px;padding:5px 0;text-align:center;"
+                        f"font-size:0.72rem;color:#1C1A17;font-weight:700'>{label}</div>",
+                        unsafe_allow_html=True,
+                    )
+                else:
+                    if st.button(label, key=f"ov_date_btn_{d}", use_container_width=True):
+                        st.session_state["ov_date"] = d
+                        st.rerun()
+
+    sel_date = st.session_state.get("ov_date")
+    if not sel_date:
+        st.warning("No data available.")
+        return
+
+    st.markdown("<div style='height:8px'></div>", unsafe_allow_html=True)
+
     # ── collect per-app data ──────────────────────────────────────────────────
     app_rows = []
     all_yd_dfs, all_d1_dfs = [], []
@@ -3008,10 +3041,13 @@ def overview_view():
         if df_a.empty:
             continue
         dates_a = sorted(df_a["date_tz"].unique())
-        if len(dates_a) < 2:
+        if sel_date not in dates_a:
             continue
-        yd_date = dates_a[-1]
-        d1_date = dates_a[-2]
+        sel_idx = dates_a.index(sel_date)
+        if sel_idx == 0:
+            continue
+        yd_date = sel_date
+        d1_date = dates_a[sel_idx - 1]
         yd = df_a[df_a["date_tz"] == yd_date].copy()
         d1 = df_a[df_a["date_tz"] == d1_date].copy()
         all_yd_dfs.append(yd)
@@ -3036,8 +3072,8 @@ def overview_view():
         st.warning("No data available.")
         return
 
-    yd_date = app_rows[0]["yd_date"]
-    d1_date = app_rows[0]["d1_date"]
+    yd_date = app_rows[0]["yd_date"] if app_rows else str(sel_date)
+    d1_date = app_rows[0]["d1_date"] if app_rows else ""
 
     # ── shared helpers ────────────────────────────────────────────────────────
     def _delta(val, higher_is_bad=True, fmt=None):
