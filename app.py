@@ -3222,7 +3222,23 @@ def overview_view():
     # ── TABLE 1: by App ───────────────────────────────────────────────────────
     _table("App", app_rows, _total_row(app_rows, "All Apps"))
 
-    # ── TABLE 2: by Source ────────────────────────────────────────────────────
+    # ── TABLE 2: by Group (TTMK vs Seekho) ───────────────────────────────────
+    TTMK_APPS = {"Arivu", "Vidhya", "Kali", "Nerchuko"}
+    ttmk_rows  = [r for r in app_rows if r["app"] in TTMK_APPS]
+    seekho_rows = [r for r in app_rows if r["app"] == "Seekho"]
+    group_rows = []
+    if ttmk_rows:
+        t = _total_row(ttmk_rows, "TTMK")
+        t["color"] = "#4A90D9"
+        group_rows.append(t)
+    if seekho_rows:
+        s = _total_row(seekho_rows, "Seekho")
+        s["color"] = APP_COLORS.get("Seekho", "#F5A623")
+        group_rows.append(s)
+    if group_rows:
+        _table("Group", group_rows, _total_row(group_rows, "Combined"))
+
+    # ── TABLE 3: by Source ────────────────────────────────────────────────────
     if all_yd_dfs and "source" in all_yd_dfs[0].columns:
         import pandas as pd
         yd_all = pd.concat(all_yd_dfs, ignore_index=True)
