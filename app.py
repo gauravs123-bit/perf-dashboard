@@ -3108,6 +3108,53 @@ def budget_allocator_view():
     tgt_override["ctf_daily_cap"]       = ctf_cap_in
     tgt_override["experiment_daily_cap"] = exp_cap_in
 
+    # ── DAILY SPEND vs CAC CHART ──────────────────────────────────────────
+    _daily_agg = (df_ttmk.groupby("date_tz", as_index=False)
+                  .agg(spend=("total_cost", "sum"), orders=("D0_paid_users", "sum")))
+    _daily_agg["cac"] = np.where(
+        _daily_agg["orders"] > 0, _daily_agg["spend"] / _daily_agg["orders"], np.nan)
+    _daily_agg = _daily_agg.sort_values("date_tz")
+
+    _fig_ov = go.Figure()
+    _fig_ov.add_trace(go.Bar(
+        x=_daily_agg["date_tz"].astype(str),
+        y=_daily_agg["spend"],
+        name="Daily Spend ₹",
+        marker_color="#378ADD",
+        opacity=0.7,
+        yaxis="y1",
+    ))
+    _fig_ov.add_trace(go.Scatter(
+        x=_daily_agg["date_tz"].astype(str),
+        y=_daily_agg["cac"],
+        name="Daily CAC ₹",
+        mode="lines+markers",
+        line=dict(color="#E8883A", width=2),
+        marker=dict(size=6),
+        yaxis="y2",
+    ))
+    _fig_ov.add_hline(
+        y=cac_tgt_in, yref="y2",
+        line=dict(color="#E24B4A", width=1, dash="dash"),
+        annotation_text=f"Target ₹{cac_tgt_in:,}",
+        annotation_position="bottom right",
+        annotation_font=dict(size=10, color="#E24B4A"),
+    )
+    _fig_ov.update_layout(
+        yaxis=dict(title="Spend ₹", tickformat=",", gridcolor="#F0EBE3",
+                   tickprefix="₹"),
+        yaxis2=dict(title="CAC ₹", overlaying="y", side="right",
+                    tickformat=",", tickprefix="₹", showgrid=False),
+        plot_bgcolor="#FFFFFF", paper_bgcolor="#FFFFFF",
+        font=dict(family="Inter", size=11),
+        height=320,
+        legend=dict(orientation="h", yanchor="bottom", y=1.02,
+                    xanchor="left", x=0, font=dict(size=10)),
+        margin=dict(l=20, r=20, t=40, b=20),
+        bargap=0.3,
+    )
+    st.plotly_chart(_fig_ov, use_container_width=True)
+
     result = allocate(df_ttmk, "TTMK", daily_envelope)
     # re-run with overridden targets baked in (patch allocator targets dict)
     import utils.allocator as _alloc_mod
