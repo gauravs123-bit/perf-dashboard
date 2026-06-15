@@ -34,15 +34,23 @@ FEATURE_LABELS = {
 def build_daily(
     df_camp: pd.DataFrame,
     cr_df: Optional[pd.DataFrame] = None,
+    window_days: int = 14,
 ) -> pd.DataFrame:
     """
     Aggregate campaign-level df to daily rows with model features + target CAC.
 
+    window_days: only use the most recent N days for training (default 14).
     cr_df: creative-level dataframe with columns [date_tz, campaign, ad_creative]
            used to count distinct creatives per campaign per day.
     """
     if df_camp.empty:
         return pd.DataFrame()
+
+    # restrict to L{window_days} window
+    all_dates = sorted(df_camp["date_tz"].unique())
+    if len(all_dates) >= window_days:
+        cutoff = all_dates[-window_days]
+        df_camp = df_camp[df_camp["date_tz"] >= cutoff]
 
     agg_spec: dict = dict(
         spend=("total_cost", "sum"),
@@ -124,6 +132,7 @@ def train_models(
     cr_df: Optional[pd.DataFrame] = None,
     alpha: float = 10.0,
     min_samples: int = 3,
+    window_days: int = 14,
 ) -> Dict[str, Any]:
     """
     Train one Ridge model per campaign.
@@ -147,7 +156,7 @@ def train_models(
       }
     }
     """
-    daily = build_daily(df_camp, cr_df)
+    daily = build_daily(df_camp, cr_df, window_days=window_days)
     if daily.empty:
         return {}
 

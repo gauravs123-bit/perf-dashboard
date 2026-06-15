@@ -3345,7 +3345,7 @@ def budget_allocator_view():
         "<div style='font-size:0.78rem;font-weight:700;color:#1C1A17;"
         "margin:24px 0 4px'>🤖 CAC Predictor</div>"
         "<div style='font-size:0.72rem;color:#8A857D;margin-bottom:10px'>"
-        "Ridge regression trained per campaign on all available daily data · "
+        "Ridge regression trained per campaign on L14D daily data · "
         "features: spend, uninstalls, cancellations, active creatives</div>",
         unsafe_allow_html=True)
 
@@ -3364,7 +3364,8 @@ def budget_allocator_view():
     _cr_all = pd.concat(_cr_frames, ignore_index=True) if _cr_frames else pd.DataFrame()
 
     # train
-    _models = train_models(df_ttmk, cr_df=_cr_all if not _cr_all.empty else None)
+    _models = train_models(df_ttmk, cr_df=_cr_all if not _cr_all.empty else None,
+                           window_days=14)
 
     if not _models:
         st.markdown(
