@@ -3073,11 +3073,13 @@ def overview_view():
     # ── collect per-app data ──────────────────────────────────────────────────
     app_rows = []
     all_yd_dfs, all_d1_dfs = [], []
+    app_full_dfs = {}          # full df per app (for L7D)
 
     for a in APPS:
         df_a = safe_fetch(a)
         if df_a.empty:
             continue
+        app_full_dfs[a] = df_a
         dates_a = sorted(df_a["date_tz"].unique())
         if sel_date not in dates_a:
             continue
@@ -3266,6 +3268,145 @@ def overview_view():
                                  canc=yk, canc_d=yk-dk))
 
         _table("Source", src_rows, _total_row(src_rows, "Combined"))
+
+    # ── L7D SECTION ───────────────────────────────────────────────────────────
+    TTMK_APPS_L7 = ["Arivu", "Vidhya", "Kali", "Nerchuko"]
+    ttmk_l7_dfs  = [app_full_dfs[a] for a in TTMK_APPS_L7 if a in app_full_dfs]
+
+    if ttmk_l7_dfs:
+        st.markdown(
+            "<div style='margin:28px 0 14px'><div style='display:flex;align-items:center;gap:10px'>"
+            "<div style='flex:1;height:1px;background:#E5E0D6'></div>"
+            "<div style='font-size:0.65rem;font-weight:700;color:#8A857D;letter-spacing:.12em;"
+            "text-transform:uppercase;white-space:nowrap'>L7D Trend</div>"
+            "<div style='flex:1;height:1px;background:#E5E0D6'></div></div></div>",
+            unsafe_allow_html=True,
+        )
+
+        ttmk_all_l7 = pd.concat(ttmk_l7_dfs, ignore_index=True)
+        l7_dates = sorted(ttmk_all_l7["date_tz"].unique())[-7:]
+
+        def _agg_day(d):
+            sp = d["total_cost"].sum()
+            o  = d["D0_paid_users"].sum()
+            un = d["p0_unin_users"].sum()
+            cn = d["p0_cancel_users"].sum() if "p0_cancel_users" in d.columns else 0
+            return sp, o, sp/o if o else 0, un/o*100 if o else 0, cn/o*100 if o else 0
+
+        # ── TTMK blended daily table ──────────────────────────────────────────
+        th  = "style='text-align:right;padding:5px 10px;font-size:0.63rem;color:#8A857D;" \
+              "font-weight:600;text-transform:uppercase;letter-spacing:.06em;" \
+              "border-bottom:1px solid #E5E0D6;background:#F5F2ED'"
+        thl = "style='padding:5px 10px;font-size:0.63rem;color:#8A857D;" \
+              "font-weight:600;text-transform:uppercase;letter-spacing:.06em;" \
+              "border-bottom:1px solid #E5E0D6;background:#F5F2ED'"
+        td  = "font-size:0.8rem;color:#2A2520;text-align:right;padding:6px 10px;border-bottom:1px solid #F0EBE3"
+        tdl = "font-size:0.8rem;color:#2A2520;padding:6px 10px;border-bottom:1px solid #F0EBE3"
+
+        rows_html = ""
+        for dt in l7_dates:
+            d_df = ttmk_all_l7[ttmk_all_l7["date_tz"] == dt]
+            sp, o, cac, unin_rt, canc_rt = _agg_day(d_df)
+            is_sel = (str(dt) == str(sel_date))
+            row_bg = "background:#E8E1D6" if is_sel else "background:transparent"
+            rows_html += (
+                f"<tr style='{row_bg}'>"
+                f"<td style='{tdl}'><b style='color:#1C1A17'>{dt}</b></td>"
+                f"<td style='{td}'>₹{sp:,.0f}</td>"
+                f"<td style='{td}'>{o:,.0f}</td>"
+                f"<td style='{td}'>₹{cac:,.0f}</td>"
+                f"<td style='{td}'>{unin_rt:.1f}%</td>"
+                f"<td style='{td}'>{canc_rt:.1f}%</td>"
+                f"</tr>"
+            )
+        # L7D total row
+        l7_df = ttmk_all_l7[ttmk_all_l7["date_tz"].isin(l7_dates)]
+        tsp, to, tcac, tunin, tcanc = _agg_day(l7_df)
+        rows_html += (
+            f"<tr style='background:#EDE8DE;font-weight:700'>"
+            f"<td style='{tdl};font-weight:700'>L7D Total</td>"
+            f"<td style='{td};font-weight:700'>₹{tsp:,.0f}</td>"
+            f"<td style='{td};font-weight:700'>{to:,.0f}</td>"
+            f"<td style='{td};font-weight:700'>₹{tcac:,.0f}</td>"
+            f"<td style='{td};font-weight:700'>{tunin:.1f}%</td>"
+            f"<td style='{td};font-weight:700'>{tcanc:.1f}%</td>"
+            f"</tr>"
+        )
+
+        st.markdown(
+            "<div style='font-size:0.78rem;font-weight:700;color:#4A90D9;"
+            "margin-bottom:6px'>TTMK Blended — Daily</div>",
+            unsafe_allow_html=True,
+        )
+        st.markdown(
+            f"<div style='background:#FFFFFF;border:1px solid #E5E0D6;border-radius:10px;"
+            f"overflow:hidden;margin-bottom:20px'>"
+            f"<table style='width:100%;border-collapse:collapse'>"
+            f"<thead><tr>"
+            f"<th {thl}>Date</th>"
+            f"<th {th}>Spend</th><th {th}>Orders</th>"
+            f"<th {th}>CAC</th><th {th}>Unin%</th><th {th}>Canc%</th>"
+            f"</tr></thead><tbody>{rows_html}</tbody></table></div>",
+            unsafe_allow_html=True,
+        )
+
+        # ── App-wise L7D aggregate table ──────────────────────────────────────
+        st.markdown(
+            "<div style='font-size:0.78rem;font-weight:700;color:#4A90D9;"
+            "margin-bottom:6px'>TTMK Apps — L7D Aggregate</div>",
+            unsafe_allow_html=True,
+        )
+        app_rows_html = ""
+        l7d_app_totals = []
+        for a in TTMK_APPS_L7:
+            if a not in app_full_dfs:
+                continue
+            df_a   = app_full_dfs[a]
+            l7d_df = df_a[df_a["date_tz"].isin(l7_dates)]
+            sp, o, cac, unin_rt, canc_rt = _agg_day(l7d_df)
+            l7d_app_totals.append((a, sp, o, cac, unin_rt, canc_rt))
+            dot = (f"<span style='display:inline-block;width:8px;height:8px;border-radius:50%;"
+                   f"background:{APP_COLORS.get(a, '#999')};margin-right:6px'></span>")
+            app_rows_html += (
+                f"<tr style='border-bottom:1px solid #F0EBE3'>"
+                f"<td style='{tdl};font-weight:600'><div style='display:flex;align-items:center'>{dot}{a}</div></td>"
+                f"<td style='{td}'>₹{sp:,.0f}</td>"
+                f"<td style='{td}'>{o:,.0f}</td>"
+                f"<td style='{td}'>₹{cac:,.0f}</td>"
+                f"<td style='{td}'>{unin_rt:.1f}%</td>"
+                f"<td style='{td}'>{canc_rt:.1f}%</td>"
+                f"</tr>"
+            )
+        # TTMK total row
+        if l7d_app_totals:
+            tot_sp = sum(r[1] for r in l7d_app_totals)
+            tot_o  = sum(r[2] for r in l7d_app_totals)
+            tot_cac   = tot_sp / tot_o if tot_o else 0
+            tot_unin  = sum(r[4] * r[2] for r in l7d_app_totals) / tot_o if tot_o else 0
+            tot_canc  = sum(r[5] * r[2] for r in l7d_app_totals) / tot_o if tot_o else 0
+            app_rows_html += (
+                f"<tr style='background:#EDE8DE;font-weight:700;border-top:2px solid #D5D0C6'>"
+                f"<td style='{tdl};font-weight:700'>"
+                f"<span style='display:inline-block;width:8px;height:8px;border-radius:50%;"
+                f"background:#4A90D9;margin-right:6px'></span>TTMK Total</td>"
+                f"<td style='{td};font-weight:700'>₹{tot_sp:,.0f}</td>"
+                f"<td style='{td};font-weight:700'>{tot_o:,.0f}</td>"
+                f"<td style='{td};font-weight:700'>₹{tot_cac:,.0f}</td>"
+                f"<td style='{td};font-weight:700'>{tot_unin:.1f}%</td>"
+                f"<td style='{td};font-weight:700'>{tot_canc:.1f}%</td>"
+                f"</tr>"
+            )
+        st.markdown(
+            f"<div style='background:#FFFFFF;border:1px solid #E5E0D6;border-radius:10px;"
+            f"overflow:hidden;margin-bottom:20px'>"
+            f"<table style='width:100%;border-collapse:collapse'>"
+            f"<thead><tr>"
+            f"<th {thl}>App</th>"
+            f"<th {th}>Spend</th><th {th}>Orders</th>"
+            f"<th {th}>CAC</th><th {th}>Unin%</th><th {th}>Canc%</th>"
+            f"</tr></thead><tbody>{app_rows_html}</tbody></table></div>",
+            unsafe_allow_html=True,
+        )
 
 
 if __name__ == "__main__":
