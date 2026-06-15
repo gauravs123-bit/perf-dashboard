@@ -1,13 +1,29 @@
 campaign_name,type,owner,app
+top sub campaign - cbo,Scaling,Piyush,Seekho
+uac_ind_retention_highpotential,Scaling,Piyush,Seekho
+top sub aquisition campaign -p1 retention,Scaling,Piyush,Seekho
+uac_ni_retention #2,Scaling,Piyush,Seekho
+uac_gm_retention #2,Scaling,Piyush,Seekho
+bolo sub acquisition campaign,Scaling,Jha,Bolo
+top sub campaign - retargeting,Scaling,Piyush,Seekho
+bau - business,Scaling,Piyush,Seekho
+uac_ni2_retention,Scaling,Piyush,Seekho
 arivu_all-category_2min_retention,Scaling,Gaurav,Arivu
+top sub campaign - cbo 2,Scaling,Piyush,Seekho
 seekhomalayalam_all category_acquisition_campaign_abo,Scaling,Gaurav,Vidhya
 seekhotelugu_all_category_acquisition_campaign_abo,Scaling,Gaurav,Nerchuko
+bolo persona acquisition campaign,Scaling,Jha,Bolo
+seekhojr scaling campaign,Scaling,Dhruv,Jr
 arivu_english_2min_retention,Scaling,Gaurav,Arivu
+top sub campaign - pvs_100min_horizontal,Scaling,Piyush,Seekho
 arivu_astrology_career_sharemarket_2min_retention,Scaling,Gaurav,Arivu
 arivu advantage plus alternate campaign all category,Scaling,Gaurav,Arivu
 arivu_business_ utilize-time-category_2min_retention,Scaling,Gaurav,Arivu
 seekhokannada_all_category_acquisition_campaign_cbo,Scaling,Gaurav,Kali
+uac_si_retention #2,Scaling,Piyush,Seekho
 kali_english_finance_2-min_retention event,Scaling,Gaurav,Kali
+bau- facebook,Scaling,Piyush,Seekho
+new catalogue campaign pvs,Scaling,Abhay,Seekho
 kali_all_category_2-min_retention event,Scaling,Gaurav,Kali
 nerchuko_all-categories_2min_retention,Scaling,Gaurav,Nerchuko
 nerchuko_english_2min_retention,Scaling,Gaurav,Nerchuko
@@ -68,3 +84,535 @@ uac_seekhotelugu_all category_low churn_high cac_5min_viewed_ap_telangana_eng-te
 uac_seekhokannada_all category_5min_view_low_churn_high_cac_karnataka_eng-kan,Scaling,Gaurav,Kali
 uac_seekhomalayalam_all category_2min_viewed_kerala_eng-mal,Scaling,Gaurav,Vidhya
 uac_seekhomalayalam_all category_5min_viewed_kerala_eng-mal-2,Scaling,Gaurav,Vidhya
+uac_guj_retention,Scaling,Piyush,Seekho
+top sub campaign - cbo 3,Scaling,Piyush,Seekho
+uac_guj_retention_new(openbid),Scaling,Piyush,Seekho
+uac_ci_retention_new,Scaling,Piyush,Seekho
+uac_ei_retention_#2,Scaling,Piyush,Seekho
+uac_jb_retention_new #2,Scaling,Piyush,Seekho
+uac_gm_retention #2 - alternate categories,Scaling,Piyush,Seekho
+uac_health_campaign_gtm,Scaling,Rajat,Seekho
+event testing campaign -pvs_100min_horizontal,Scaling,Piyush,Seekho
+top sub campaign - p1 retention2,Scaling,Piyush,Seekho
+uac_jb_retention_new - alternate categories,Scaling,Piyush,Seekho
+top sub acq campaign - forced spends (utilise),Scaling,Piyush,Seekho
+top sub campaign - forced spends (horxother),Scaling,Piyush,Seekho
+top sub campaign - vertical_scaling_stockmarket,Scaling,Piyush,Seekho
+top sub campaign - vertical_scaling_diy,Scaling,Piyush,Seekho
+top sub campaign - vertical_pvs100_scaling_finance,Scaling,Piyush,Seekho
+top sub campaign - vertical_scaling_finance,Scaling,Piyush,Seekho
+top sub campaign - vertical_scaling_english,Scaling,Piyush,Seekho
+bau- buinsess new,Scaling,Piyush,Seekho
+bau instagram,Scaling,Cynthia,Seekho
+bau beauty,Scaling,Cynthia,Seekho
+cbo scaling campaign - cloning,Scaling,Piyush,Seekho
+top sub- diwali campaign,Scaling,Piyush,Seekho
+top sub acq campaign - forced spends (finance)_pvs_100min,Scaling,Piyush,Seekho
+top sub acq campaign - forced spends (utilise)_pvs_100min,Scaling,Piyush,Seekho
+uac_health_gut_track299_gtm,Scaling,GTM,Seekho
+uac_health_weightgain_track299_gtm,Scaling,GTM,Seekho
+uac_health_hair_track309_gtm,Scaling,GTM,Seekho
+uac_ind_retention_health,Scaling,Shashwat,Seekho
+health_newapp_scaling_campaign_gtm_1,Scaling,Shashwat,Seekho
+healthapp_weightloss_gtm_google,Scaling,Shashwat,Seekho
+uac_bolo_izzat_5_min_event,Scaling,Jha,Bolo
+seekhojr_uac_ind_p0_time_limit_crossed_new,Scaling,Dhruv,Jr
+kali_career_acquisition_campaign-cbo,CTF,Shashank,Kali
+seekhomalayalam_sarkarikaam_experiment_campaign_cbo,CTF,Gaurav,Vidhya
+seekhomalayalam_astro_experiment_campaign_cbo,CTF,Gaurav,Vidhya
+seekhomalayalam_business_experiment_campaign_cbo,CTF,Gaurav,Vidhya
+seekhomalayalam_sharemarket_experiment_campaign_cbo,CTF,Gaurav,Vidhya
+seekhomalayalam_english_experiment_campaign_cbo,CTF,Gaurav,Vidhya
+seekhomalayalam_utilise_experiment_campaign_cbo,CTF,Gaurav,Vidhya
+seekhomalayalam_finance_experiment_campaign_cbo,CTF,Gaurav,Vidhya
+nerchuko_utilise time_experiment campaign-cbo-day-1,CTF,Shashank,Nerchuko
+nerchuko_career growth_experiment campaign-cbo-day-2,CTF,Shashank,Nerchuko
+nerchuko_facebook_experiment campaign-cbo-day-1,CTF,Shashank,Nerchuko
+nerchuko_finance_experiment campaign-cbo-day-3,CTF,Shashank,Nerchuko
+nerchuko_instagram_experiment campaign-cbo-day-2,CTF,Shashank,Nerchuko
+nerchuko_devotion_experiment campaign-cbo-day-3,CTF,Shashank,Nerchuko
+nerchuko_business_experiment campaign-cbo-day-1,CTF,Shashank,Nerchuko
+nerchuko_sharemarket_experiment campaign-cbo-day-2,CTF,Shashank,Nerchuko
+nerchuko_praja_experiment campaign-cbo-day-3,CTF,Shashank,Nerchuko
+nerchuko_astrosamadhan_experiment campaign-cbo-day-3,CTF,Shashank,Nerchuko
+nerchuko_english_experiment campaign-cbo-day-2,CTF,Shashank,Nerchuko
+nerchuko_experiment campaign-abo,CTF,Shashank,Nerchuko
+seekhokannada_english_experiment_campaign_cbo,CTF,Gaurav,Kali
+seekhokannada_astrology_experiment_campaign_cbo,CTF,Gaurav,Kali
+seekhokannada_business_experiment_campaign_cbo,CTF,Gaurav,Kali
+seekhokannada_utilise_experiment_campaign_cbo,CTF,Gaurav,Kali
+seekhokannada_sharemarket_experiment_campaign_cbo,CTF,Gaurav,Kali
+seekhotelugu_astrology_experiment campaign-cbo,CTF,Gaurav,Nerchuko
+seekhotelugu_sharemarket_experiment campaign-cbo,CTF,Gaurav,Nerchuko
+seekhotelugu_english_experiment campaign-cbo,CTF,Gaurav,Nerchuko
+seekhotelugu_utilise_experiment campaign-cbo,CTF,Gaurav,Nerchuko
+seekhotelugu_business_experiment campaign-cbo,CTF,Gaurav,Nerchuko
+seekhotelugu_praja_experiment campaign-cbo,CTF,Gaurav,Nerchuko
+seekhotelugu_finance_experiment campaign-cbo,CTF,Gaurav,Nerchuko
+arivu_utilise time_experiment campaign-cbo-day-1,CTF,Jothi,Arivu
+arivu_career-growth_experiment campaign-cbo-day-2,CTF,Jothi,Arivu
+arivu_instagram_experiment campaign-cbo-day-2,CTF,Jothi,Arivu
+arivu_finance_experiment campaign-cbo-day-3,CTF,Jothi,Arivu
+arivu_devotion_experiment campaign-cbo-day-3,CTF,Jothi,Arivu
+arivu_pti_experiment campaign-cbo-day-2,CTF,Jothi,Arivu
+arivu all category experiment campaign abo- day-1,CTF,Jothi,Arivu
+arivu_priority_all category_experiment_campaign-cbo,CTF,Jothi,Arivu
+arivu_facebook_experiment campaign-cbo-day-1,CTF,Jothi,Arivu
+arivu_business_experiment campaign-cbo-day-1,CTF,Jothi,Arivu
+arivu_astrosamadhan_experiment campaign-cbo-day-3,CTF,Jothi,Arivu
+arivu_arasu_experiment campaign-cbo-day-3,CTF,Jothi,Arivu
+arivu_english_experiment campaign-cbo-day-2,CTF,Jothi,Arivu
+arivu_sharemarket_experiment campaign-cbo-day-2,CTF,Jothi,Arivu
+arivu_knowledge_experiment campaign-cbo-day-1,CTF,Shashank,Arivu
+kali_finance_acquisition_campaign-cbo,CTF,Shashank,Kali
+kali_devotion_acquisition_campaign-cbo,CTF,Shashank,Kali
+kali_astrology_acquisition_campaign-cbo,CTF,Shashank,Kali
+kali_english_acquisition_campaign-cbo,CTF,Shashank,Kali
+kali_sarkari_acquisition_campaign-cbo,CTF,Shashank,Kali
+kali_business_acquisition_campaign-cbo,CTF,Shashank,Kali
+kali_utilise-time_acquisition_campaign-cbo,CTF,Shashank,Kali
+kali_sharemarket_acquisition_campaign-cbo,CTF,Shashank,Kali
+kali_instagram_acquisition_campaign-cbo,CTF,Shashank,Kali
+kali_part-time_acquisition_campaign-cbo,CTF,Shashank,Kali
+vidya_english_campaign-cbo,CTF,Jothi,Vidhya
+vidya_finance_acquisition_campaign-cbo,CTF,Jothi,Vidhya
+vidya_astrology_acquisition_campaign-cbo,CTF,Jothi,Vidhya
+vidya_sarkari_acquisition_campaign-cbo,CTF,Jothi,Vidhya
+vidya_instagram_acquisition_campaign-cbo,CTF,Jothi,Vidhya
+vidya_business_acquisition_campaign-cbo,CTF,Jothi,Vidhya
+vidya_utilise-time_acquisition_campaign-cbo,CTF,Jothi,Vidhya
+vidya_sharemarket_acquisition_campaign-cbo,CTF,Jothi,Vidhya
+vidya_part-time income_acquisition_campaign-cbo,CTF,Jothi,Vidhya
+vidya_arasu_acquisition_campaign-cbo,CTF,Gaurav,Vidhya
+seekhotamil_all_category_acquisition_campaign_abo,CTF,Gaurav,Arivu
+seekhotamil_arasu_experiment_campaign_cbo,CTF,Gaurav,Arivu
+seekhotamil_english_experiment_campaign_cbo,CTF,Gaurav,Arivu
+seekhotamil_sharemarket_experiment_campaign_cbo,CTF,Gaurav,Arivu
+seekhotamil_business_experiment_campaign_cbo,CTF,Gaurav,Arivu
+seekhotamil_astrology_experiment_campaign_cbo,CTF,Gaurav,Arivu
+seekhotamil_utilise_experiment_campaign_cbo,CTF,Gaurav,Arivu
+seekhotamil_finance_experiment_campaign_cbo,CTF,Gaurav,Arivu
+seekhotamil_arasu_interest_based_acquisition_campaign,CTF,Gaurav,Arivu
+seekhotamil_business_interest_based_acquisition_campaign,CTF,Gaurav,Arivu
+careergrowthtips acquisition campaign4 cbo,CTF,Aniket,Seekho
+careergrowthtips acquisition campaign2 cbo,CTF,Aniket,Seekho
+careergrowthtips acquisition campaign cbo,CTF,Aniket,Seekho
+careergrowthtips acquisition campaign3 cbo,CTF,Aniket,Seekho
+astrosamadhaan acquisition campaign cbo,CTF,Aniket,Seekho
+astrosamadhaan acquisition campaign2 cbo,CTF,Aniket,Seekho
+astrosamadhaan acquisition campaign3 cbo,CTF,Aniket,Seekho
+astrosamadhaan acquisition campaign4 cbo,CTF,Aniket,Seekho
+utilise acquisition campaign cbo,CTF,Aniket,Seekho
+utilise acquisition campaign2 cbo,CTF,Aniket,Seekho
+utilise acquisition campaign3 cbo,CTF,Aniket,Seekho
+utilise acquisition campaign4 cbo,CTF,Aniket,Seekho
+horxother acquisition campaign cbo,CTF,Aniket,Seekho
+horxother acquisition campaign2 cbo,CTF,Aniket,Seekho
+horxother acquisition campaign3 cbo,CTF,Aniket,Seekho
+horxother acquisition campaign4 cbo,CTF,Aniket,Seekho
+horxother acquisition campaign5 cbo,CTF,Aniket,Seekho
+horxcrisis acquisition campaign cbo,CTF,Aniket,Seekho
+horxcrisis acquisition campaign2 cbo,CTF,Aniket,Seekho
+horxcrisis acquisition campaign3 cbo,CTF,Aniket,Seekho
+horxcrisis acquisition campaign4 cbo,CTF,Aniket,Seekho
+horxcrisis acquisition campaign5 cbo,CTF,Aniket,Seekho
+aniket retesting cbo,CTF,Aniket,Seekho
+aniket ut acquisition campaign cbo,CTF,Aniket,Seekho
+aniket acquisition abo friday,CTF,Aniket,Seekho
+aniket acquisition abo wednesday,CTF,Aniket,Seekho
+aniket acquisition abo saturday,CTF,Aniket,Seekho
+aniket acquisition abo monday,CTF,Aniket,Seekho
+aniket acquisition cbo friday,CTF,Aniket,Seekho
+aniket acquisition cbo wednesday,CTF,Aniket,Seekho
+aniket acquisition cbo saturday,CTF,Aniket,Seekho
+aniket acquisition cbo monday,CTF,Aniket,Seekho
+aniket acquisition astro cbo,CTF,Aniket,Seekho
+aniket acquisition insta cbo,CTF,Aniket,Seekho
+prospecting acquisition campaign aniket cbo,CTF,Aniket,Seekho
+career growth experiment scaling,CTF,Aniket,Seekho
+sharemarket acquisition campaign cbo,CTF,Kartik,Seekho
+sharemarket acquisition campaign2 cbo,CTF,Kartik,Seekho
+sharemarket acquisition campaign3 cbo,CTF,Kartik,Seekho
+sharemarket acquisition campaign4 cbo,CTF,Kartik,Seekho
+business acquisition campaign cbo,CTF,Kartik,Seekho
+business acquisition campaign2 cbo,CTF,Kartik,Seekho
+business acquisition campaign3 cbo,CTF,Kartik,Seekho
+business acquisition campaign4 cbo,CTF,Kartik,Seekho
+business acquisition campaign cbo4,CTF,Kartik,Seekho
+diy acquisition campaign cbo,CTF,Kartik,Seekho
+diy acquisition campaign2 cbo,CTF,Kartik,Seekho
+diy acquisition campaign3 cbo,CTF,Kartik,Seekho
+diy acquisition campaign4 cbo,CTF,Kartik,Seekho
+instagram acquisition campaign cbo,CTF,Kartik,Seekho
+instagram acquisition campaign2 cbo,CTF,Kartik,Seekho
+instagram acquisition campaign3 cbo,CTF,Kartik,Seekho
+instagram acquisition campaign4 cbo,CTF,Kartik,Seekho
+instagram acquisition campaign cbo2,CTF,Kartik,Seekho
+instagram acquisition campaign cbo3,CTF,Kartik,Seekho
+instagram acquisition campaign cbo4,CTF,Kartik,Seekho
+facebook acquisition campaign cbo,CTF,Kartik,Seekho
+facebook acquisition campaign2 cbo,CTF,Kartik,Seekho
+facebook acquisition campaign3 cbo,CTF,Kartik,Seekho
+facebook acquisition campaign4 cbo,CTF,Kartik,Seekho
+facebook acquisition campaign cbo2,CTF,Kartik,Seekho
+facebook acquisition campaign cbo3,CTF,Kartik,Seekho
+facebook acquisition campaign cbo4,CTF,Kartik,Seekho
+finance acquisition campaign cbo,CTF,Kartik,Seekho
+finance acquisition campaign2 cbo,CTF,Kartik,Seekho
+finance acquisition campaign3 cbo,CTF,Kartik,Seekho
+finance acquisition campaign4 cbo,CTF,Kartik,Seekho
+sarkarikaam acquisition campaign cbo,CTF,Kartik,Seekho
+sarkarikaam acquisition campaign2 cbo,CTF,Kartik,Seekho
+sarkarikaam acquisition campaign3 cbo,CTF,Kartik,Seekho
+sarkarikaam acquisition campaign4 cbo,CTF,Kartik,Seekho
+sarkarikaam acquisition campaign5 cbo,CTF,Kartik,Seekho
+sarkariloan acquisition campaign cbo,CTF,Kartik,Seekho
+sarkariloan acquisition campaign2 cbo,CTF,Kartik,Seekho
+sarkariloan acquisition campaign3 cbo,CTF,Kartik,Seekho
+sarkariloan acquisition campaign4 cbo,CTF,Kartik,Seekho
+sarkarischeme acquisition campaign cbo,CTF,Kartik,Seekho
+sarkarischeme acquisition campaign2 cbo,CTF,Kartik,Seekho
+sarkarischeme acquisition campaign3 cbo,CTF,Kartik,Seekho
+sarkariservices acquisition campaign cbo,CTF,Kartik,Seekho
+sarkariservices acquisition campaign2 cbo,CTF,Kartik,Seekho
+sarkariservices acquisition campaign3 cbo,CTF,Kartik,Seekho
+sarkariservices acquisition campaign4 cbo,CTF,Kartik,Seekho
+sarkarischemes acquisition campaign cbo,CTF,Kartik,Seekho
+govtexamsuccess acquisition campaign cbo,CTF,Kartik,Seekho
+govtexamsuccess acquisition campaign2 cbo,CTF,Kartik,Seekho
+govtexamsuccess acquisition campaign3 cbo,CTF,Kartik,Seekho
+govtexamsuccess acquisition campaign cbo4,CTF,Kartik,Seekho
+english acquisition campaign cbo,CTF,Kartik,Seekho
+english acquisition campaign2 cbo,CTF,Kartik,Seekho
+english acquisition campaign3 cbo,CTF,Kartik,Seekho
+english acquisition campaign4 cbo,CTF,Kartik,Seekho
+new category acquisition campaign cbo,CTF,Kartik,Seekho
+new category acquisition campaign2 cbo,CTF,Kartik,Seekho
+new category acquisition campaign3 cbo,CTF,Kartik,Seekho
+aiforall acquisition campaign cbo,CTF,Kartik,Seekho
+agriculture acquisition campaign cbo,CTF,Kartik,Seekho
+agriculture acquisition campaign2 cbo,CTF,Kartik,Seekho
+business acquisition campaign cbo3,CTF,Kartik,Seekho
+uac_ind_retention_newtopic_testing_campaign_newcategory,CTF,Kartik,Seekho
+uac_ind_retention_newtopic_testing_campaign_newcategory #2,CTF,Kartik,Seekho
+uac_ind_retention_newtopic_testing_campaign_buckete #3,CTF,Kartik,Seekho
+uac_ind_retention_newtopic_testing_campaign_newcategory #4,CTF,Kartik,Seekho
+uac_ind_retention_newtopic_testing_campaign_bucketb #2,CTF,Kartik,Seekho
+pti acquisition campaign cbo,CTF,Gourav,Seekho
+pti acquisition campaign2 cbo,CTF,Gourav,Seekho
+pti acquisition campaign3 cbo,CTF,Gourav,Seekho
+pti acquisition campaign4 cbo,CTF,Gourav,Seekho
+gourav testing campaign,CTF,Gourav,Seekho
+gourav testing campaign cbo tuesday,CTF,Gourav,Seekho
+gourav testing campaign cbo wednesday,CTF,Gourav,Seekho
+gourav acquisition campaign cbo friday,CTF,Gourav,Seekho
+gourav acquisition campaign cbo wednesday,CTF,Gourav,Seekho
+gourav acquisition campaign cbo saturday,CTF,Gourav,Seekho
+gourav acquisition campaign cbo tuesday,CTF,Gourav,Seekho
+gourav acquisition campaign cbo sunday,CTF,Gourav,Seekho
+gourav acquisition campaign cbo monday,CTF,Gourav,Seekho
+gourav acquisition campaign cbo thursday,CTF,Gourav,Seekho
+og creative instagram acquisition friday,CTF,Cynthia,Seekho
+og creative instagram acquisition thursday,CTF,Cynthia,Seekho
+og creative instagram acquisition saturday,CTF,Cynthia,Seekho
+og creative instagram acquisition wednesday,CTF,Cynthia,Seekho
+og creative instagram acquisition tuesday,CTF,Cynthia,Seekho
+og creative instagram acquisition sunday,CTF,Cynthia,Seekho
+og creative beauty acquisition friday,CTF,Cynthia,Seekho
+og creative beauty acquisition thursday,CTF,Cynthia,Seekho
+og creative beauty acquisition saturday,CTF,Cynthia,Seekho
+og creative beauty acquisition sunday,CTF,Cynthia,Seekho
+og creative beauty acquisition monday,CTF,Cynthia,Seekho
+og creative beauty acquisition tuesday,CTF,Cynthia,Seekho
+og creative beauty acquisition wednesday,CTF,Cynthia,Seekho
+instagram acquisition campaign cbo gtm_ig,CTF,Cynthia,Seekho
+chaiwala chairman acquisition cbo,CTF,Karan,Seekho
+chaiwala chairman acquisition cbo 2,CTF,Karan,Seekho
+vyom testing campaign cbo,CTF,Karan,Seekho
+vyom testing campaign cbo monday,CTF,Vyom,Seekho
+vyom testing campaign cbo tuesday,CTF,Vyom,Seekho
+vyom testing campaign cbo wednesday,CTF,Vyom,Seekho
+vyom acquisition campaign cbo wednesday,CTF,Vyom,Seekho
+vyom acquisition campaign cbo tuesday,CTF,Vyom,Seekho
+vyom acquisition campaign cbo monday,CTF,Vyom,Seekho
+celeb acquisition campaign abo,CTF,Khan,Seekho
+celebrity acquisition campaign cbo,CTF,Khan,Seekho
+new agency testing acq cbo,CTF,Khan,Seekho
+englishdaily acquisition campaign cbo,CTF,Khan,Seekho
+englishdaily acquisition campaign cbo 2,CTF,Khan,Seekho
+englishdaily acquisition campaign cbo 3,CTF,Khan,Seekho
+cloning acquisition campaign cbo,CTF,Anil,Seekho
+cloning acquisition campaign cbo-2,CTF,Anil,Seekho
+cloning acquisition campaign cbo-3,CTF,Anil,Seekho
+cloning acquisition campaign cbo-4,CTF,Anil,Seekho
+sarkariloan acquisition campaign cbo gtm,CTF,Kartik,Seekho
+copilot expansion thursday cbo,CTF,Ashish,Seekho
+copilot expansion acquisition thursday cbo,CTF,Ashish,Seekho
+copilot expansion acquisition saturday cbo,CTF,Ashish,Seekho
+copilot expansion acquisition friday cbo,CTF,Ashish,Seekho
+seekho health acquisition campaign gtm cbo1,CTF,Shashwat,Seekho
+seekho health acquisition campaign gtm cbo2,CTF,Shashwat,Seekho
+seekho health acquisition campaign gtm cbo3,CTF,Shashwat,Seekho
+seekho health acquisition campaign gtm cbo4,CTF,Shashwat,Seekho
+health acquisition campaign cbo gtm,CTF,Shreya,Seekho
+health acquisition campaign2 cbo gtm,CTF,Shreya,Seekho
+health acquisition campaign3 cbo gtm,CTF,Shreya,Seekho
+health acquisition campaign4 cbo gtm,CTF,Shreya,Seekho
+health acquisition campaign5 cbo gtm,CTF,Shreya,Seekho
+health acquisition campaign6 cbo gtm,CTF,Shreya,Seekho
+bolo_all_category_underspending best ads_acquisition_campaign_abo,CTF,Jha,Bolo
+seekhojr expansion campaign,CTF,Dhruv,Jr
+testing camapign playable ads,CTF,Piyush,Seekho
+sarkariservices acquisition campaign cbo gtm,CTF,Kartik,Seekho
+seekho_website_home,CTF,Piyush,Seekho
+ge_fb_na_apppromo(paymentverifiedsucess)-adv+_india_07april_astrosamadhaan,CTF,Piyush,Seekho
+ge_fb_na_apppromo(paymentverifiedsucess)-adv+_india_10april,CTF,Piyush,Seekho
+top sub acq campaign,CTF,Piyush,Seekho
+top sub acq campaign abo_test2,CTF,Piyush,Seekho
+top sub acq male - abo - p0retention,CTF,Piyush,Seekho
+seekho_fb_bio_description,CTF,Piyush,Seekho
+marriage counselling acquisition campaign,CTF,Piyush,Seekho
+ai_ads_experimental_campaign_cpi,CTF,Piyush,Seekho
+sub acquisition campaign,CTF,Piyush,Seekho
+top sub acq campaign – female,CTF,Cynthia,Seekho
+arivu sub acquisiton campaign,CTF,Gaurav,Arivu
+seekho_tamil_acquisition_campaign,CTF,Gaurav,Arivu
+aniket testing abo wednesday,CTF,Aniket,Seekho
+aniket acquisition abo saturday,CTF,Aniket,Seekho
+arivu_theme_based_scaling_campaign_2april,Experiment,Gaurav,Arivu
+nerchuko_theme_based_scaling_campaign_2april,Experiment,Gaurav,Nerchuko
+nerchuko_all_ category_relaunched_test_ads_campaign,Experiment,Gaurav,Nerchuko
+overlap_experiment_campaign_control,Experiment,Aniket,Seekho
+overlap_experiment_campaign_test,Experiment,Aniket,Seekho
+nerchuko_sharemarket_2min_retention_all-india_telugu_campaign,Experiment,Gaurav,Nerchuko
+arivu_all_ category_relaunched_test_ads_campaign,Experiment,Gaurav,Arivu
+uac_ind_p1retention,Experiment,Abhinav,Seekho
+kali_all_ category_relaunched_test_ads_campaign,Experiment,Gaurav,Kali
+nerchuko_english_2min_retention_relaunched,Experiment,Gaurav,Nerchuko
+vidhya_all_ category_relaunched_test_ads_campaign,Experiment,Gaurav,Vidhya
+nerchuko_adv campaign_2min_2april,Experiment,Gaurav,Nerchuko
+nerchuko_adv campaign_pvs_3april,Experiment,Gaurav,Nerchuko
+experimentation test abo,Experiment,Aniket,Seekho
+experimentation test cbo,Experiment,Aniket,Seekho
+segmented regional targeting,Experiment,Abhinav,Seekho
+broad regional targeting - control,Experiment,Piyush,Seekho
+uac_regiontest_control,Experiment,Piyush,Seekho
+uac_regiontest_highfrequencyclusters,Experiment,Piyush,Seekho
+uac_regiontest_lowfrequencyclusters,Experiment,Piyush,Seekho
+1 day click  experiment campaign,Experiment,Abhinav,Seekho
+arivu_high_exit-rate_categories-cbo,Experiment,Gaurav,Arivu
+arivu_3-themes_combined_scaling_campaign_9april,Experiment,Gaurav,Arivu
+arivu_all-category_2min_retention_top_cities_negated,Experiment,Gaurav,Arivu
+kali_all_category_acquisition_campaign_2min_viewed-cbo,Experiment,Gaurav,Kali
+arivu advantage plus alternate campaign all category_2min,Experiment,Gaurav,Arivu
+arivu advantage plus alternate campaign,Experiment,Gaurav,Arivu
+arivu_scaling_campaign-5_min_viewed-cbo,Experiment,Gaurav,Arivu
+arivu_experiment campaign-abo,Experiment,Shashank,Arivu
+arivu_bau_campaign,Experiment,Gaurav,Arivu
+arivu_sarkaricards_video_only,Experiment,Gaurav,Arivu
+arivu_english_2min_retention_retested,Experiment,Gaurav,Arivu
+arivu_all-category_2min_retention_video_only,Experiment,Gaurav,Arivu
+arivu_low_exit-rate_categories-cbo,Experiment,Gaurav,Arivu
+arivu_youtube_experiment campaign-cbo-day-1,Experiment,Gaurav,Arivu
+arivu_major_categories_2min_retention,Experiment,Gaurav,Arivu
+arivu_major_categories_pvs,Experiment,Gaurav,Arivu
+arivu_all-category_pvs,Experiment,Gaurav,Arivu
+arivu_astrology_interest_based_acquisition_campaign,Experiment,Gaurav,Arivu
+arivu_astrology_open_targetting_acquisition_campaign,Experiment,Gaurav,Arivu
+arivu advantage plus_high_cac_low_churn_cateogries_campaign,Experiment,Gaurav,Arivu
+arivu_abo_high_churn_lowcac_categories_campaign,Experiment,Gaurav,Arivu
+arivu_english_2min_retention_low-churn_high-cac,Experiment,Gaurav,Arivu
+arivu_english_2min_retention_high-churn_low-cac,Experiment,Gaurav,Arivu
+nerchuko_scaling_campaign-pvs_100_min_no_uninstal_4may,Experiment,Gaurav,Nerchuko
+nerchuko_scaling_campaign-pvs_4may,Experiment,Gaurav,Nerchuko
+nerchuko_low_exit-rate_categories-cbo,Experiment,Gaurav,Nerchuko
+nerchuko_all-categories_pvs,Experiment,Gaurav,Nerchuko
+nerchuko_sharemarket_2min_retention_apt_all_language_campaign,Experiment,Gaurav,Nerchuko
+nerchuko decoy campaign,Experiment,Gaurav,Nerchuko
+seekhomalayalam_insta_experiment_campaign_cbo,Experiment,Gaurav,Vidhya
+seekhotamil_insta_experiment_campaign_cbo,Experiment,Gaurav,Arivu
+seekhokannada_pti_experiment_campaign_cbo,Experiment,Gaurav,Kali
+uac_ind_p0_time_limit_crossed,Experiment,Piyush,Seekho
+uac_ind_retention_highpotential_voyantis,Experiment,Abhinav,Seekho
+catalogue campaign,Experiment,Abhay,Seekho
+new catalogue campaign,Experiment,Abhay,Seekho
+event testing campaign,Experiment,Piyush,Seekho
+branding ads experiment,Experiment,Piyush,Seekho
+regional campaign,Experiment,Piyush,Seekho
+uac_ind_retention_devotion,Experiment,Piyush,Seekho
+horizontal ads ctf c&j,Experiment,Piyush,Seekho
+uac_ind_retention_newtopic_testing_campaign_newcategory #6,Experiment,Piyush,Seekho
+bid campaign test - finance,Experiment,Piyush,Seekho
+bid campaign control - finance,Experiment,Piyush,Seekho
+uac_ind_retention_newtopic_testing_campaign_bucketf,Experiment,Piyush,Seekho
+uac_ind_retention_newtopic_testing_campaign_bucketf #2,Experiment,Piyush,Seekho
+uac_ind_retention_expansion_testing_campaign_bucketb #4,Experiment,Piyush,Seekho
+uac_ind_retention_expansion_testing_campaign_bucketb #2,Experiment,Piyush,Seekho
+uac_ind_retention_newtopic_testing_campaign_buckete #2,Experiment,Piyush,Seekho
+campaign structure experiment old,Experiment,Piyush,Seekho
+campaign structure experiment new,Experiment,Piyush,Seekho
+devotion ond temporary campaign,Experiment,Piyush,Seekho
+devotion ond-2 temporary campaign,Experiment,Piyush,Seekho
+top sub acquisition horizontal campaign,Experiment,Piyush,Seekho
+top sub acquisition vertical campaign,Experiment,Piyush,Seekho
+mofu campaign,Experiment,Piyush,Seekho
+retargeting campaign,Experiment,Piyush,Seekho
+tofu campaign,Experiment,Piyush,Seekho
+top acquisition campaign - 18 feb,Experiment,Piyush,Seekho
+top acquisition campaign - 15 feb,Experiment,Piyush,Seekho
+launchpad campaign,Experiment,Piyush,Seekho
+top sub campaign - cbo install,Experiment,Piyush,Seekho
+top_sub_acquisition_experiment_unmerged,Experiment,Piyush,Seekho
+top_sub_acquisition_experiment_merged,Experiment,Piyush,Seekho
+top sub campaign - reel placement,Experiment,Piyush,Seekho
+trial audience negation experiment,Experiment,Piyush,Seekho
+top sub campaign - cbo-1 a/b,Experiment,Piyush,Seekho
+top sub campaign - cbo-2 a/b,Experiment,Abhinav,Seekho
+installer negation experiment,Experiment,Piyush,Seekho
+install_experiment_campaign,Experiment,Piyush,Seekho
+uac_ind_troas_video_only,Experiment,Piyush,Seekho
+ai testing installs campaign,Experiment,Piyush,Seekho
+uac_ind_retention_newtopic_testing_campaign_newcategory #3,Experiment,Piyush,Seekho
+top sub new category campaign,Experiment,Piyush,Seekho
+finance campaign csl test,Experiment,Piyush,Seekho
+astrosamadhan a/b test campaign-1,Experiment,Piyush,Seekho
+astrosamadhan a/b test campaign-2,Experiment,Piyush,Seekho
+sharemarket a/b test campaign-1,Experiment,Piyush,Seekho
+sharemarket a/b test campaign-2,Experiment,Piyush,Seekho
+new sales campaign,Experiment,Abhay,Seekho
+event testing campaign_pvs_100min_vertical,Experiment,Piyush,Seekho
+event testing campaign_p1retention_vertical,Experiment,Piyush,Seekho
+5-day creative testing campaign,Experiment,Aniket,Seekho
+horxcrisis experiment campaign cbo- test,Experiment,Aniket,Seekho
+horxcrisis experiment campaign cbo- control,Experiment,Aniket,Seekho
+business experiment campaign cbo - control,Experiment,Kartik,Seekho
+business experiment campaign abo - test,Experiment,Kartik,Seekho
+probe_validation,Experiment,Aniket,Seekho
+lookalike audience testing experiment campaign_pvs,Experiment,Piyush,Seekho
+lookalike audience testing experiment campaign_pvs_100min_no_uninstall,Experiment,Piyush,Seekho
+lookalike audience testing experiment campaign_p1retention,Experiment,Piyush,Seekho
+new lookalike audience testing experiment campaign_pvs,Experiment,Piyush,Seekho
+new lookalike audience testing experiment campaign_pvs_100min_no_uninstall,Experiment,Piyush,Seekho
+new lookalike audience testing experiment campaign_p1retention,Experiment,Piyush,Seekho
+creative testing campaign- flexible media,Experiment,Piyush,Seekho
+creative testing campaign- bau,Experiment,Piyush,Seekho
+creative testing campaign- bau_p1_retention,Experiment,Piyush,Seekho
+creative testing campaign- flexible media_p1_retention,Experiment,Piyush,Seekho
+bau_mpawma2_creative_experiment_campaign_new,Experiment,Piyush,Seekho
+test_mpawma2_creative_experiment_campaign_new,Experiment,Piyush,Seekho
+event_testing_pvsd0_control,Experiment,Abhay,Seekho
+event_testing_pvsd0_test,Experiment,Abhay,Seekho
+event testing campaign -pvs_100min,Experiment,Piyush,Seekho
+event testing campaign - p1rtn,Experiment,Piyush,Seekho
+experiment campaign - budget scheduling(control),Experiment,Piyush,Seekho
+experiment campaign - budget scheduling(test),Experiment,Piyush,Seekho
+top sub acq campaign cbo_test2,Experiment,Piyush,Seekho
+new category install campaign cbo,Experiment,Piyush,Seekho
+top retention campaign,Experiment,Piyush,Seekho
+account-level a/b test - seekho,Experiment,Piyush,Seekho
+top sub acquisition campaign -  adv+ placement,Experiment,Piyush,Seekho
+retention creative testing campaign,Experiment,Piyush,Seekho
+bolo_all_category_installers_retargeting_16mar,Experiment,Jha,Bolo
+bolo_all-category_registration_retargeting_campaign,Experiment,Jha,Bolo
+bolo experiment campaign,Experiment,Jha,Bolo
+testing camapign playable ads - seekho home,Experiment,Ashish,Seekho
+uac_ind_retention_highpotential_voyantis,Experiment,Abhinav,Seekho
+uac_bolo_5_min_event,Other,Jha,Bolo
+seekhojr_uac_ind_p0_time_limit_crossed,Other,Dhruv,Jr
+uac_bolo_ni_top_10 #2,Other,Jha,Bolo
+uac_bolo_pvs campaign,Other,Jha,Bolo
+uac_bolo_ei_top_10,Other,Jha,Bolo
+uac_bolo_si_top_10,Other,Jha,Bolo
+uac_bolo_wi_top_10_5min_event,Other,Jha,Bolo
+uac_bolo_rest50cities campaign,Other,Jha,Bolo
+health acquisition campaign4 cbo gtm,Other,Rajat,Seekho
+bolo gujarati experiment campaign,Other,Jha,Bolo
+uac_bolo_bangla_campaign,Other,Jha,Bolo
+uac_bolo_bolo-seekho_scaling_campaign_all_india_video_only,Other,Jha,Bolo
+branding static creative campaign,Other,Cynthia,Seekho
+vidhya experiment campaign abo- vidhya,Other,Sushmita,Vidhya
+vidhya experiment campaign abo- seekho,Other,Sushmita,Seekho
+bolo bangla experiment campaign,Other,Jha,Bolo
+uac_bolo_ni_top_10_5min_event,Other,Jha,Bolo
+uac_bolo_wi_top_10,Other,Jha,Bolo
+bolo_acquisition_rest5states campaign,Other,Jha,Bolo
+uac_bolo,Other,Jha,Bolo
+uac_bolo-seekho_scaling_campaign_all_india,Other,Jha,Bolo
+bolo_launchpad_campaign,Other,Jha,Bolo
+influencer ad campaign without collab,Other,Jha,Bolo
+influencer ad campaign with collab,Other,Jha,Bolo
+kidstg scaling campaign,Other,Dhruv,Jr
+instagram acquisition campaign3 cbo gtm,Other,Rajat,Seekho
+seekho junior kids tg expansion campaign,Other,Dhruv,Jr
+health scaling abo campaign,Other,Rajat,Seekho
+health acquisition campaign4 cbo gtm,Other,Rajat,Seekho
+health scaling campaign cbo,Other,Rajat,Seekho
+health campaign a/b test,Other,Rajat,Seekho
+bolo marathi experiment campaign,Other,Jha,Bolo
+bolo malayalam testing campaign,Other,Jha,Bolo
+bolo telugu testing campaign,Other,Jha,Bolo
+bolo kannada testing campaign,Other,Jha,Bolo
+bolo tamil testing campaign,Other,Jha,Bolo
+bolo telugu experiment campaign,Other,Jha,Bolo
+bolo malayalam experiment campaign,Other,Jha,Bolo
+account-level a/b test - bolo,Other,Jha,Bolo
+bolo kannada experiment campaign,Other,Jha,Bolo
+bolo tamil experiment campaign,Other,Jha,Bolo
+bolo_all-category_p1-retention_event_campaign,Other,Jha,Bolo
+bolo_all-category_registration_event_campaign,Other,Jha,Bolo
+bolo decoy campaign,Other,Jha,Bolo
+arivu decoy campaign,Other,Gaurav,Arivu
+decoy acquisition campaign,Other,Piyush,Seekho
+decoy_campaign,Other,Piyush,Seekho
+uac_bolo_gujarati_campaign,Other,Jha,Bolo
+uac_bolo_marathi_campaign,Other,Jha,Bolo
+uac_bolo_p1_retention_event,Other,Jha,Bolo
+uac_bolo_kannada_campaign,Other,Jha,Bolo
+uac_bolo_malayalam_campaign,Other,Jha,Bolo
+landing screen testing campaign,Other,Jha,Bolo
+ams testing campaign,Other,Piyush,Seekho
+dummy deep link testing,Other,Piyush,Seekho
+seekhomalayalam test campaign abo,Other,Sushmita,Vidhya
+seekhomalayalam test campaign abo- new,Other,Sushmita,Vidhya
+weightloss a/b test1 campaign,Other,Rajat,Seekho
+weightloss a/b test2 campaign,Other,Rajat,Seekho
+weightloss a/b test3 campaign,Other,Rajat,Seekho
+top sub acq reengagement campaign custom historicalwinners,Other,Rajat,Seekho
+top sub acq reengagement campaign_cbo,Other,Rajat,Seekho
+top sub acq reengagement campaign,Other,Rajat,Seekho
+sarkariloan acquisition campaign3 cbo gtm,Other,Rajat,Seekho
+sarkarischeme acquisition campaign2 cbo gtm,Other,Rajat,Seekho
+sarkariloan acquisition campaign cbo gtm,Other,Rajat,Seekho
+pti acquisition campaign cbo gtm,Other,Rajat,Seekho
+sarkarikaam acquisition campaign cbo gtm,Other,Rajat,Seekho
+sharemarket acquisition campaign2 cbo gtm,Other,Rajat,Seekho
+sharemarket acquisition campaign4 cbo gtm,Other,Rajat,Seekho
+sarkarischeme acquisition campaign cbo gtm,Other,Rajat,Seekho
+sarkariloan acquisition campaign2 cbo gtm,Other,Rajat,Seekho
+utilise acquisition campaign2 cbo gtm,Other,Rajat,Seekho
+aiforall acquisition campaign 2 cbo gtm,Other,Rajat,Seekho
+sarkariservices acquisition campaign cbo gtm,Other,Rajat,Seekho
+instagram acquisition campaign2 cbo gtm,Other,Rajat,Seekho
+instagram acquisition campaign cbo gtm,Other,Rajat,Seekho
+aiforall acquisition campaign cbo gtm,Other,Rajat,Seekho
+sharemarket acquisition campaign cbo gtm,Other,Rajat,Seekho
+facebook acquisition campaign cbo gtm,Other,Rajat,Seekho
+sarkariloan acquisition campaign2 cbo gtm,Other,Rajat,Seekho
+instagram acquisition campaign3 cbo gtm,Other,Rajat,Seekho
+utilise acquisition campaign cbo gtm,Other,Rajat,Seekho
+sarkarischeme acquisition campaign2 cbo gtm,Other,Rajat,Seekho
+jobprep acquisition campaign cbo gtm,Other,Shreya,Seekho
+jobprep acquisition campaign2 cbo gtm,Other,Shreya,Seekho
+jobprep acquisition campaign3 cbo gtm,Other,Shreya,Seekho
+jobprep acquisition campaign4 cbo gtm,Other,Shreya,Seekho
+videoediting acquisition campaign cbo gtm,Other,Shreya,Seekho
+videoediting acquisition campaign2 cbo gtm,Other,Shreya,Seekho
+videoediting acquisition campaign3 cbo gtm,Other,Shreya,Seekho
+videoediting acquisition campaign4 cbo gtm,Other,Shreya,Seekho
+womenbeauty acquisition campaign cbo gtm,Other,Shreya,Seekho
+womenbeauty acquisition campaign2 cbo gtm,Other,Shreya,Seekho
+womenbeauty acquisition campaign3 cbo gtm,Other,Shreya,Seekho
+womenbeauty acquisition campaign4 cbo gtm,Other,Shreya,Seekho
+womenbeauty_abo_scaling_campaign_gtm,Other,Rajat,Seekho
+health_newapp_campaign_gtm_1,Other,Rajat,Seekho
+health acquisition campaign cbo gtm,Other,Rajat,Seekho
