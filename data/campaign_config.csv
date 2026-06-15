@@ -1,0 +1,15 @@
+campaign_name,type,owner,app
+# Instructions:
+# type = Scaling | CTF | Experiment | Other
+# owner = person responsible
+# app = Arivu | Vidhya | Kali | Nerchuko | Seekho
+# Add one row per campaign exactly as the name appears in the dashboard
+# Lines starting with # are ignored
+#
+# Examples (replace with real campaign names from your Meta account):
+arivu_astrology_career_sharemarket_2min_retention,Scaling,Team,Arivu
+seekhotamil_all_category_acquisition_campaign_abo,Scaling,Team,Kali
+seekhotamil_astrology_experiment_campaign_cbo,Experiment,Team,Kali
+seekhotamil_finance_experiment_campaign_cbo,Experiment,Team,Kali
+seekhotamil_utilise_experiment_campaign_cbo,CTF,Team,Kali
+seekhotamil_insta_experiment_campaign_cbo,CTF,Team,Kali

@@ -11,6 +11,7 @@ import numpy as np
 import plotly.graph_objects as go
 
 from utils.fetcher import fetch_app_data, refresh_app_data, APP_QUERY_IDS, fetch_creative_data, CREATIVE_QUERY_IDS
+from utils.allocator import allocate, load_campaign_config, load_targets, CAMPAIGN_CONFIG_PATH, TARGETS_PATH
 from utils.metrics import (
     add_derived_metrics, latest_summary, build_trend_table,
     source_split, campaign_table, adset_table, creative_table, creative_l3d,
@@ -2929,7 +2930,7 @@ def main():
     color   = APP_COLORS[app]
     hex_col = color.lstrip("#")
     r, g, b = int(hex_col[0:2], 16), int(hex_col[2:4], 16), int(hex_col[4:6], 16)
-    section_options = ["Morning Pulse", "Overview", "Category Mix", "Ad Set Analysis", "Adviser"]
+    section_options = ["Morning Pulse", "Overview", "Category Mix", "Ad Set Analysis", "Adviser", "Budget"]
     if st.session_state.get("sb_section") not in section_options:
         st.session_state["sb_section"] = section_options[0]
     section = st.session_state["sb_section"]
@@ -3024,6 +3025,10 @@ def main():
         adviser_view(df, cr_raw, app=app, color=color)
         return
 
+    if section == "Budget":
+        budget_allocator_view()
+        return
+
     # Debug: show what app_name values are in the fetched data
     if "app_name" in df.columns:
         apps_in_data = df["app_name"].unique().tolist()
@@ -3032,6 +3037,278 @@ def main():
                        f"Check Redash query {__import__('utils.fetcher', fromlist=['APP_QUERY_IDS']).APP_QUERY_IDS.get(app)}.")
 
     morning_pulse_view(df, app=app, color=color, mode="uninstall")
+
+
+def budget_allocator_view():
+    """TTMK Budget Allocator — campaign type-aware daily budget split."""
+
+    TTMK_APPS_SET = {"Arivu", "Vidhya", "Kali", "Nerchuko"}
+
+    # ── header ────────────────────────────────────────────────────────────────
+    st.markdown(
+        "<div style='font-size:0.6rem;text-transform:uppercase;letter-spacing:.12em;"
+        "color:#333;margin-bottom:2px'>BUDGET ALLOCATOR</div>"
+        "<div style='font-size:1.1rem;font-weight:700;color:#1C1A17;margin-bottom:2px'>"
+        "Daily Budget Split</div>"
+        "<div style='font-size:0.72rem;color:#555;margin-bottom:16px'>"
+        "Allocates envelope across Scaling campaigns · flags Experiments · "
+        "based on L3D CAC + Unin vs monthly target</div>",
+        unsafe_allow_html=True)
+
+    # ── targets (editable inline) ──────────────────────────────────────────
+    tgts = load_targets()
+    tgt  = tgts.get("TTMK", {"cac_target": 500, "unin_target": 15.0,
+                               "ctf_daily_cap": 5000, "experiment_daily_cap": 3000})
+
+    t1, t2, t3, t4, t5 = st.columns([2, 1.2, 1.2, 1.4, 1.4])
+    with t1:
+        daily_envelope = st.number_input(
+            "Daily ₹ Envelope (Scaling only)",
+            min_value=0, max_value=50_00_000,
+            value=int(st.session_state.get("ba_envelope", 2_00_000)),
+            step=10_000, key="ba_envelope")
+    with t2:
+        cac_tgt_in = st.number_input("CAC Target ₹", min_value=0, max_value=5000,
+                                      value=int(tgt["cac_target"]), step=50, key="ba_cac")
+    with t3:
+        unin_tgt_in = st.number_input("Unin Target %", min_value=0.0, max_value=100.0,
+                                       value=float(tgt["unin_target"]), step=0.5, key="ba_unin")
+    with t4:
+        ctf_cap_in  = st.number_input("CTF Cap ₹/day", min_value=0, max_value=1_00_000,
+                                       value=int(tgt.get("ctf_daily_cap", 5000)),
+                                       step=1000, key="ba_ctf")
+    with t5:
+        exp_cap_in  = st.number_input("Experiment Cap ₹/day", min_value=0, max_value=1_00_000,
+                                       value=int(tgt.get("experiment_daily_cap", 3000)),
+                                       step=1000, key="ba_exp")
+
+    # ── load & concat TTMK data ───────────────────────────────────────────
+    ttmk_dfs = []
+    for a in APPS:
+        if a not in TTMK_APPS_SET:
+            continue
+        df_a = safe_fetch(a)
+        if not df_a.empty:
+            df_a = df_a.copy()
+            df_a["_app"] = a
+            ttmk_dfs.append(df_a)
+
+    if not ttmk_dfs:
+        st.warning("No TTMK data loaded. Refresh from the nav bar.")
+        return
+
+    df_ttmk = pd.concat(ttmk_dfs, ignore_index=True)
+
+    # override targets with inline inputs
+    import copy
+    tgt_override = copy.copy(tgt)
+    tgt_override["cac_target"]          = cac_tgt_in
+    tgt_override["unin_target"]         = unin_tgt_in
+    tgt_override["ctf_daily_cap"]       = ctf_cap_in
+    tgt_override["experiment_daily_cap"] = exp_cap_in
+
+    result = allocate(df_ttmk, "TTMK", daily_envelope)
+    # re-run with overridden targets baked in (patch allocator targets dict)
+    import utils.allocator as _alloc_mod
+    _orig_targets = _alloc_mod.load_targets
+    _alloc_mod.load_targets = lambda: {"TTMK": tgt_override}
+    result = allocate(df_ttmk, "TTMK", daily_envelope)
+    _alloc_mod.load_targets = _orig_targets
+
+    scaling    = result["scaling"]
+    experiment = result["experiment"]
+    ctf        = result["ctf"]
+    untagged   = result["untagged"]
+
+    STATUS_COLORS = {
+        "SCALE_UP":          "#1D9E75",
+        "MAINTAIN":          "#378ADD",
+        "DEMOTE":            "#E24B4A",
+        "INSUFFICIENT_DATA": "#8A857D",
+    }
+    VERDICT_COLORS = {
+        "GRADUATE → Scaling": "#1D9E75",
+        "KILL":               "#E24B4A",
+        "CONTINUE":           "#E8883A",
+    }
+
+    # ── SCALING TABLE ──────────────────────────────────────────────────────
+    st.markdown(
+        "<div style='font-size:0.78rem;font-weight:700;color:#1C1A17;"
+        "margin:16px 0 8px'>💰 Scaling Campaigns</div>",
+        unsafe_allow_html=True)
+
+    if scaling.empty:
+        st.markdown(
+            "<div style='color:#8A857D;font-size:0.82rem;padding:8px 0'>"
+            "No Scaling campaigns in config. Add them to campaign_config.csv.</div>",
+            unsafe_allow_html=True)
+    else:
+        th  = ("style='text-align:right;padding:6px 10px;font-size:0.62rem;color:#8A857D;"
+               "font-weight:600;text-transform:uppercase;letter-spacing:.06em;"
+               "border-bottom:2px solid #E5E0D6;background:#F5F2ED'")
+        thl = ("style='padding:6px 10px;font-size:0.62rem;color:#8A857D;"
+               "font-weight:600;text-transform:uppercase;letter-spacing:.06em;"
+               "border-bottom:2px solid #E5E0D6;background:#F5F2ED'")
+        rows_html = ""
+        for _, r in scaling.iterrows():
+            sc   = STATUS_COLORS.get(r.get("status", ""), "#555")
+            cac_s  = f"₹{r['cac']:,.0f}" if pd.notna(r.get("cac")) else "—"
+            unin_s = f"{r['unin_rate']:.1f}%" if pd.notna(r.get("unin_rate")) else "—"
+            bgt_s  = f"₹{r['suggested_budget']:,.0f}" if r.get("suggested_budget", 0) > 0 else "₹0"
+            status = r.get("status", "—")
+            owner  = load_campaign_config().set_index("campaign_name")["owner"].to_dict().get(r["campaign"], "—")
+            rows_html += (
+                f"<tr style='border-bottom:1px solid #F0EBE3'>"
+                f"<td style='padding:7px 10px;font-size:0.8rem;color:#1C1A17;font-weight:500'>"
+                f"{r['campaign']}</td>"
+                f"<td style='padding:7px 10px;text-align:center;font-size:0.7rem'>"
+                f"<span style='background:{sc}22;color:{sc};padding:2px 8px;"
+                f"border-radius:4px;font-weight:700'>{status}</span></td>"
+                f"<td style='padding:7px 10px;text-align:right;font-size:0.8rem;color:#2A2520'>{cac_s}</td>"
+                f"<td style='padding:7px 10px;text-align:right;font-size:0.8rem;color:#2A2520'>{unin_s}</td>"
+                f"<td style='padding:7px 10px;text-align:right;font-size:0.8rem;color:#1C1A17;font-weight:700'>{bgt_s}</td>"
+                f"<td style='padding:7px 10px;text-align:left;font-size:0.7rem;color:#8A857D'>{owner}</td>"
+                f"</tr>"
+            )
+        # total row
+        total_alloc = scaling["suggested_budget"].sum()
+        rows_html += (
+            f"<tr style='background:#EDE8DE;font-weight:700;border-top:2px solid #D5D0C6'>"
+            f"<td style='padding:7px 10px;font-size:0.8rem'>Total Allocated</td>"
+            f"<td></td><td></td><td></td>"
+            f"<td style='padding:7px 10px;text-align:right;font-size:0.8rem'>₹{total_alloc:,.0f}</td>"
+            f"<td style='padding:7px 10px;font-size:0.7rem;color:#8A857D'>"
+            f"of ₹{daily_envelope:,.0f} envelope</td>"
+            f"</tr>"
+        )
+        st.markdown(
+            f"<div style='background:#FFFFFF;border:1px solid #E5E0D6;border-radius:10px;"
+            f"overflow:hidden;margin-bottom:20px'>"
+            f"<table style='width:100%;border-collapse:collapse'>"
+            f"<thead><tr>"
+            f"<th {thl}>Campaign</th>"
+            f"<th {th}>Status</th>"
+            f"<th {th}>L3D CAC</th>"
+            f"<th {th}>L3D Unin%</th>"
+            f"<th {th}>Suggested Budget</th>"
+            f"<th {thl}>Owner</th>"
+            f"</tr></thead><tbody>{rows_html}</tbody></table></div>",
+            unsafe_allow_html=True)
+
+    # ── EXPERIMENT TABLE ───────────────────────────────────────────────────
+    st.markdown(
+        "<div style='font-size:0.78rem;font-weight:700;color:#1C1A17;"
+        "margin:8px 0 8px'>🧪 Experiment Campaigns</div>",
+        unsafe_allow_html=True)
+
+    if experiment.empty:
+        st.markdown(
+            "<div style='color:#8A857D;font-size:0.82rem;padding:8px 0'>"
+            "No Experiment campaigns in config.</div>",
+            unsafe_allow_html=True)
+    else:
+        rows_html = ""
+        for _, r in experiment.iterrows():
+            vc   = VERDICT_COLORS.get(r.get("verdict", ""), "#E8883A")
+            cac_s  = f"₹{r['cac']:,.0f}" if pd.notna(r.get("cac")) else "—"
+            unin_s = f"{r['unin_rate']:.1f}%" if pd.notna(r.get("unin_rate")) else "—"
+            sp_s   = f"₹{r['spend']:,.0f}"
+            verdict = r.get("verdict", "—")
+            days   = int(r.get("total_days", r.get("days_in_window", 0)))
+            owner  = load_campaign_config().set_index("campaign_name")["owner"].to_dict().get(r["campaign"], "—")
+            rows_html += (
+                f"<tr style='border-bottom:1px solid #F0EBE3'>"
+                f"<td style='padding:7px 10px;font-size:0.8rem;color:#1C1A17;font-weight:500'>"
+                f"{r['campaign']}</td>"
+                f"<td style='padding:7px 10px;text-align:center;font-size:0.7rem'>"
+                f"<span style='background:{vc}22;color:{vc};padding:2px 8px;"
+                f"border-radius:4px;font-weight:700'>{verdict}</span></td>"
+                f"<td style='padding:7px 10px;text-align:right;font-size:0.8rem;color:#2A2520'>{cac_s}</td>"
+                f"<td style='padding:7px 10px;text-align:right;font-size:0.8rem;color:#2A2520'>{unin_s}</td>"
+                f"<td style='padding:7px 10px;text-align:right;font-size:0.8rem;color:#2A2520'>{sp_s}</td>"
+                f"<td style='padding:7px 10px;text-align:right;font-size:0.8rem;color:#2A2520'>{days}d</td>"
+                f"<td style='padding:7px 10px;font-size:0.8rem;color:#378ADD;font-weight:700'>"
+                f"₹{exp_cap_in:,.0f}/day</td>"
+                f"<td style='padding:7px 10px;text-align:left;font-size:0.7rem;color:#8A857D'>{owner}</td>"
+                f"</tr>"
+            )
+        st.markdown(
+            f"<div style='background:#FFFFFF;border:1px solid #E5E0D6;border-radius:10px;"
+            f"overflow:hidden;margin-bottom:20px'>"
+            f"<table style='width:100%;border-collapse:collapse'>"
+            f"<thead><tr>"
+            f"<th {thl}>Campaign</th>"
+            f"<th {th}>Verdict</th>"
+            f"<th {th}>L3D CAC</th>"
+            f"<th {th}>L3D Unin%</th>"
+            f"<th {th}>L3D Spend</th>"
+            f"<th {th}>Days Running</th>"
+            f"<th {th}>Daily Cap</th>"
+            f"<th {thl}>Owner</th>"
+            f"</tr></thead><tbody>{rows_html}</tbody></table></div>",
+            unsafe_allow_html=True)
+
+    # ── CTF TABLE ─────────────────────────────────────────────────────────
+    if not ctf.empty:
+        st.markdown(
+            "<div style='font-size:0.78rem;font-weight:700;color:#1C1A17;"
+            "margin:8px 0 8px'>🎨 CTF Campaigns</div>",
+            unsafe_allow_html=True)
+        rows_html = ""
+        for _, r in ctf.iterrows():
+            sp_s  = f"₹{r['spend']:,.0f}"
+            cac_s = f"₹{r['cac']:,.0f}" if pd.notna(r.get("cac")) else "—"
+            rows_html += (
+                f"<tr style='border-bottom:1px solid #F0EBE3'>"
+                f"<td style='padding:7px 10px;font-size:0.8rem;color:#1C1A17'>{r['campaign']}</td>"
+                f"<td style='padding:7px 10px;text-align:right;font-size:0.8rem;color:#2A2520'>{sp_s}</td>"
+                f"<td style='padding:7px 10px;text-align:right;font-size:0.8rem;color:#2A2520'>{cac_s}</td>"
+                f"<td style='padding:7px 10px;font-size:0.78rem;color:#378ADD;font-weight:700'>"
+                f"₹{ctf_cap_in:,.0f}/day</td>"
+                f"</tr>"
+            )
+        st.markdown(
+            f"<div style='background:#FFFFFF;border:1px solid #E5E0D6;border-radius:10px;"
+            f"overflow:hidden;margin-bottom:20px'>"
+            f"<table style='width:100%;border-collapse:collapse'>"
+            f"<thead><tr>"
+            f"<th {thl}>Campaign</th>"
+            f"<th {th}>L3D Spend</th>"
+            f"<th {th}>L3D CAC</th>"
+            f"<th {thl}>Daily Cap</th>"
+            f"</tr></thead><tbody>{rows_html}</tbody></table></div>",
+            unsafe_allow_html=True)
+
+    # ── UNTAGGED WARNING ───────────────────────────────────────────────────
+    if untagged:
+        st.markdown(
+            "<div style='font-size:0.78rem;font-weight:700;color:#E8883A;"
+            "margin:8px 0 6px'>⚠️ Untagged Campaigns (need categorization)</div>",
+            unsafe_allow_html=True)
+        pills = "".join(
+            f"<span style='background:#E8883A22;color:#E8883A;font-size:0.72rem;"
+            f"padding:3px 10px;border-radius:12px;margin:3px 3px 3px 0;display:inline-block'>"
+            f"{c}</span>" for c in sorted(untagged))
+        st.markdown(
+            f"<div style='margin-bottom:8px'>{pills}</div>"
+            f"<div style='font-size:0.7rem;color:#8A857D;margin-bottom:20px'>"
+            f"Add these to <code>data/campaign_config.csv</code> with a type "
+            f"(Scaling / CTF / Experiment / Other)</div>",
+            unsafe_allow_html=True)
+
+    # ── CONFIG EDITOR HINT ─────────────────────────────────────────────────
+    with st.expander("📋 Campaign Config", expanded=False):
+        cfg = load_campaign_config()
+        if cfg.empty:
+            st.info("No campaign config loaded. Create data/campaign_config.csv")
+        else:
+            st.dataframe(cfg, use_container_width=True, hide_index=True)
+        st.markdown(
+            f"<div style='font-size:0.7rem;color:#8A857D;margin-top:6px'>"
+            f"Edit <code>{CAMPAIGN_CONFIG_PATH}</code> to add/update campaigns. "
+            f"Changes take effect on next page load.</div>",
+            unsafe_allow_html=True)
 
 
 def overview_view():
