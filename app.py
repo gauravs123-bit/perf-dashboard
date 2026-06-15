@@ -12,6 +12,7 @@ import plotly.graph_objects as go
 
 from utils.fetcher import fetch_app_data, refresh_app_data, APP_QUERY_IDS, fetch_creative_data, CREATIVE_QUERY_IDS
 from utils.allocator import allocate, load_campaign_config, load_targets, CAMPAIGN_CONFIG_PATH, TARGETS_PATH
+from utils.predictor import train_models, predict_cac as predict_cac_model, FEATURE_LABELS
 from utils.metrics import (
     add_derived_metrics, latest_summary, build_trend_table,
     source_split, campaign_table, adset_table, creative_table, creative_l3d,
@@ -3195,6 +3196,304 @@ def budget_allocator_view():
             f"<th {thl}>Owner</th>"
             f"</tr></thead><tbody>{rows_html}</tbody></table></div>",
             unsafe_allow_html=True)
+
+    # ── SPEND → CAC CURVES ────────────────────────────────────────────────
+    st.markdown(
+        "<div style='font-size:0.78rem;font-weight:700;color:#1C1A17;"
+        "margin:20px 0 8px'>📈 Spend → CAC Curves (L7D daily)</div>"
+        "<div style='font-size:0.72rem;color:#8A857D;margin-bottom:10px'>"
+        "Each dot is one day. Fitted line shows the spend–efficiency relationship.</div>",
+        unsafe_allow_html=True)
+
+    # L7D daily per-campaign aggregation
+    _dates_all = sorted(df_ttmk["date_tz"].unique())
+    _cutoff_l7 = _dates_all[-7] if len(_dates_all) >= 7 else _dates_all[0]
+    _df_l7 = df_ttmk[df_ttmk["date_tz"] >= _cutoff_l7]
+    _daily = (_df_l7.groupby(["campaign", "date_tz"], as_index=False)
+               .agg(spend=("total_cost", "sum"), orders=("D0_paid_users", "sum")))
+    _daily["daily_cac"] = np.where(_daily["orders"] > 0,
+                                    _daily["spend"] / _daily["orders"], np.nan)
+    _daily = _daily.dropna(subset=["daily_cac"])
+
+    # campaigns with >= 3 data points in the Scaling table
+    _cfg_cur = load_campaign_config()
+    _cfg_map_cur = (_cfg_cur.set_index("campaign_name")["type"].to_dict()
+                    if not _cfg_cur.empty else {})
+    _scaling_names = {c for c, t in _cfg_map_cur.items() if t == "Scaling"}
+    _curve_camps = sorted([
+        c for c in _scaling_names
+        if c in _daily["campaign"].values
+        and _daily[_daily["campaign"] == c].shape[0] >= 3
+    ])
+
+    if not _curve_camps:
+        st.markdown(
+            "<div style='color:#8A857D;font-size:0.82rem;padding:4px 0'>"
+            "Need ≥ 3 days of data per Scaling campaign to plot curves.</div>",
+            unsafe_allow_html=True)
+    else:
+        # default: top-5 by L3D spend from scaling result
+        _default_camps = []
+        if not scaling.empty:
+            _default_camps = [c for c in scaling["campaign"].tolist() if c in _curve_camps][:5]
+        if not _default_camps:
+            _default_camps = _curve_camps[:5]
+
+        _sel = st.multiselect(
+            "Campaigns", options=_curve_camps, default=_default_camps,
+            key="ba_curve_sel")
+
+        if _sel:
+            _COLORS = ["#378ADD", "#1D9E75", "#E8883A", "#9B59B6",
+                       "#E24B4A", "#16A085", "#F39C12", "#C0392B"]
+            _fig = go.Figure()
+            _fit_store = {}   # camp -> np coefficients array
+
+            for _i, _camp in enumerate(_sel):
+                _sub = (_daily[_daily["campaign"] == _camp]
+                        .sort_values("spend").reset_index(drop=True))
+                _col = _COLORS[_i % len(_COLORS)]
+
+                # scatter
+                _fig.add_trace(go.Scatter(
+                    x=_sub["spend"], y=_sub["daily_cac"],
+                    mode="markers+text",
+                    name=_camp,
+                    text=_sub["date_tz"].astype(str).str[-5:],
+                    textposition="top center",
+                    textfont=dict(size=8),
+                    marker=dict(color=_col, size=9, line=dict(color="#fff", width=1)),
+                ))
+
+                # fit: degree=2 if ≥ 5 points else degree=1
+                _deg = 2 if len(_sub) >= 5 else 1
+                _coeffs = np.polyfit(_sub["spend"], _sub["daily_cac"], _deg)
+                _fit_store[_camp] = _coeffs
+                _x_min = _sub["spend"].min() * 0.8
+                _x_max = _sub["spend"].max() * 1.4
+                _xs = np.linspace(_x_min, _x_max, 120)
+                _ys = np.polyval(_coeffs, _xs)
+                _fig.add_trace(go.Scatter(
+                    x=_xs, y=_ys,
+                    mode="lines",
+                    line=dict(color=_col, width=1.5, dash="dot"),
+                    showlegend=False,
+                    hoverinfo="skip",
+                ))
+
+            # target line
+            _fig.add_hline(
+                y=cac_tgt_in,
+                line=dict(color="#E24B4A", width=1, dash="dash"),
+                annotation_text=f"Target ₹{cac_tgt_in:,}",
+                annotation_position="bottom right",
+                annotation_font=dict(size=10, color="#E24B4A"),
+            )
+
+            _fig.update_layout(
+                xaxis_title="Daily Spend ₹",
+                yaxis_title="Daily CAC ₹",
+                plot_bgcolor="#FFFFFF",
+                paper_bgcolor="#FFFFFF",
+                font=dict(family="Inter", size=11),
+                height=400,
+                legend=dict(orientation="h", yanchor="bottom", y=1.02,
+                            xanchor="left", x=0, font=dict(size=10)),
+                margin=dict(l=20, r=20, t=50, b=20),
+                xaxis=dict(tickformat=",", gridcolor="#F0EBE3", tickprefix="₹"),
+                yaxis=dict(tickformat=",", gridcolor="#F0EBE3", tickprefix="₹"),
+            )
+            st.plotly_chart(_fig, use_container_width=True)
+
+            # ── Simulator ──────────────────────────────────────────────────
+            st.markdown(
+                "<div style='font-size:0.75rem;font-weight:600;color:#555;"
+                "margin:-4px 0 8px'>Simulate: at ₹X spend → expected CAC</div>",
+                unsafe_allow_html=True)
+            _s1, _s2, _s3 = st.columns([2, 1.5, 2.5])
+            with _s1:
+                _sim_camp = st.selectbox(
+                    "Campaign", options=[c for c in _sel if c in _fit_store],
+                    key="ba_sim_camp")
+            with _s2:
+                _avg_spend = int(_daily[_daily["campaign"] == _sim_camp]["spend"].mean()) \
+                             if _sim_camp else 50_000
+                _sim_spend = st.number_input(
+                    "Daily Spend ₹", min_value=0, max_value=50_00_000,
+                    value=_avg_spend, step=5_000, key="ba_sim_spend")
+            with _s3:
+                if _sim_camp and _sim_camp in _fit_store:
+                    _pred = float(np.polyval(_fit_store[_sim_camp], _sim_spend))
+                    _pred = max(_pred, 0)
+                    _vs   = (_pred - cac_tgt_in) / cac_tgt_in * 100
+                    _cc   = "#1D9E75" if _pred <= cac_tgt_in else "#E24B4A"
+                    _vs_s = (f"+{_vs:.1f}% above target"
+                             if _vs > 0 else f"{abs(_vs):.1f}% below target")
+                    st.markdown(
+                        f"<div style='margin-top:24px;padding:10px 14px;"
+                        f"background:#FFFFFF;border:1px solid #E5E0D6;border-radius:8px;"
+                        f"display:inline-block'>"
+                        f"<span style='font-size:1.25rem;font-weight:700;color:{_cc}'>"
+                        f"₹{_pred:,.0f}</span>"
+                        f"<span style='font-size:0.72rem;color:#8A857D;margin-left:8px'>"
+                        f"est. CAC · {_vs_s}</span>"
+                        f"</div>",
+                        unsafe_allow_html=True)
+
+    # ── CAC PREDICTOR (ML) ────────────────────────────────────────────────
+    st.markdown(
+        "<div style='font-size:0.78rem;font-weight:700;color:#1C1A17;"
+        "margin:24px 0 4px'>🤖 CAC Predictor</div>"
+        "<div style='font-size:0.72rem;color:#8A857D;margin-bottom:10px'>"
+        "Ridge regression trained per campaign on all available daily data · "
+        "features: spend, uninstalls, cancellations, active creatives</div>",
+        unsafe_allow_html=True)
+
+    # fetch creative data for creative-count feature (best-effort)
+    _cr_frames = []
+    for _a in APPS:
+        if _a not in TTMK_APPS_SET:
+            continue
+        try:
+            _crf = fetch_creative_data(_a)
+            if not _crf.empty:
+                _crf["_app"] = _a
+                _cr_frames.append(_crf)
+        except Exception:
+            pass
+    _cr_all = pd.concat(_cr_frames, ignore_index=True) if _cr_frames else pd.DataFrame()
+
+    # train
+    _models = train_models(df_ttmk, cr_df=_cr_all if not _cr_all.empty else None)
+
+    if not _models:
+        st.markdown(
+            "<div style='color:#8A857D;font-size:0.82rem;padding:4px 0'>"
+            "Not enough data to train models (need ≥ 3 days per campaign).</div>",
+            unsafe_allow_html=True)
+    else:
+        # ── model quality table ─────────────────────────────────────────
+        with st.expander("Model quality per campaign", expanded=False):
+            _q_rows = []
+            for _cn, _m in sorted(_models.items()):
+                _q_rows.append({
+                    "Campaign":    _cn,
+                    "R²":          round(_m["r2"], 3),
+                    "RMSE ₹":      round(_m["rmse"], 0),
+                    "Training pts": _m["n_samples"],
+                    "Spend coef":  round(_m["coef_display"]["spend"] * 10_000, 1),
+                    "Unin coef":   round(_m["coef_display"]["uninstalls"], 1),
+                })
+            _q_df = pd.DataFrame(_q_rows)
+            st.dataframe(_q_df, use_container_width=True, hide_index=True)
+            st.caption(
+                "Spend coef = ₹ change in CAC per ₹10,000 extra spend · "
+                "Unin coef = ₹ change in CAC per +1 daily uninstall")
+
+        # ── simulator ──────────────────────────────────────────────────
+        st.markdown(
+            "<div style='font-size:0.75rem;font-weight:600;color:#555;"
+            "margin:10px 0 8px'>Simulate — set inputs, get predicted CAC</div>",
+            unsafe_allow_html=True)
+
+        _ml_camp_opts = sorted(_models.keys())
+        _ml_c1, _ml_c2 = st.columns([2, 3])
+        with _ml_c1:
+            _ml_camp = st.selectbox("Campaign", options=_ml_camp_opts, key="ml_camp")
+
+        if _ml_camp and _ml_camp in _models:
+            _mod     = _models[_ml_camp]
+            _f_means = _mod["feature_means"]
+            _f_mins  = _mod["feature_mins"]
+            _f_maxs  = _mod["feature_maxs"]
+
+            # sliders — range = [0.5× min, 2× max], default = mean
+            _ml_s1, _ml_s2, _ml_s3, _ml_s4 = st.columns(4)
+
+            def _slider_range(key, scale_lo=0.5, scale_hi=2.0):
+                lo  = max(0.0, _f_mins[key] * scale_lo)
+                hi  = max(lo + 1, _f_maxs[key] * scale_hi)
+                avg = float(_f_means[key])
+                return lo, hi, avg
+
+            with _ml_s1:
+                _sp_lo, _sp_hi, _sp_avg = _slider_range("spend", 0.3, 2.0)
+                _ml_spend = st.slider(
+                    "Daily Spend ₹",
+                    min_value=int(_sp_lo), max_value=int(_sp_hi),
+                    value=int(_sp_avg), step=max(1000, int((_sp_hi - _sp_lo) / 50)),
+                    key="ml_spend")
+
+            with _ml_s2:
+                _un_lo, _un_hi, _un_avg = _slider_range("uninstalls", 0.3, 2.0)
+                _ml_unin = st.slider(
+                    "Daily Uninstalls",
+                    min_value=int(_un_lo), max_value=max(1, int(_un_hi)),
+                    value=int(_un_avg), step=max(1, int((_un_hi - _un_lo) / 50)),
+                    key="ml_unin")
+
+            with _ml_s3:
+                _ca_lo, _ca_hi, _ca_avg = _slider_range("cancellations", 0.3, 2.0)
+                _ml_canc = st.slider(
+                    "Daily Cancellations",
+                    min_value=int(_ca_lo), max_value=max(1, int(_ca_hi)),
+                    value=int(_ca_avg), step=max(1, int((_ca_hi - _ca_lo) / 50)),
+                    key="ml_canc")
+
+            with _ml_s4:
+                _cr_lo, _cr_hi, _cr_avg = _slider_range("num_creatives", 0.5, 2.0)
+                _ml_creat = st.slider(
+                    "Active Creatives",
+                    min_value=max(1, int(_cr_lo)), max_value=max(2, int(_cr_hi)),
+                    value=max(1, int(_cr_avg)), step=1,
+                    key="ml_creat")
+
+            # prediction
+            _ml_pred = predict_cac_model(
+                _mod,
+                spend=float(_ml_spend),
+                uninstalls=float(_ml_unin),
+                cancellations=float(_ml_canc),
+                num_creatives=float(_ml_creat),
+            )
+            _ml_vs   = (_ml_pred - cac_tgt_in) / cac_tgt_in * 100
+            _ml_cc   = "#1D9E75" if _ml_pred <= cac_tgt_in else "#E24B4A"
+            _ml_vs_s = (f"+{_ml_vs:.1f}% above target"
+                        if _ml_vs > 0 else f"{abs(_ml_vs):.1f}% below target")
+
+            # feature contributions relative to mean-feature baseline
+            _baseline = predict_cac_model(_mod,
+                spend=_f_means["spend"], uninstalls=_f_means["uninstalls"],
+                cancellations=_f_means["cancellations"],
+                num_creatives=_f_means["num_creatives"])
+            _delta = _ml_pred - _baseline
+
+            st.markdown(
+                f"<div style='margin-top:14px;padding:14px 18px;"
+                f"background:#FFFFFF;border:1px solid #E5E0D6;border-radius:10px;"
+                f"display:flex;align-items:center;gap:24px'>"
+                f"<div>"
+                f"<div style='font-size:0.62rem;text-transform:uppercase;letter-spacing:.08em;"
+                f"color:#8A857D;margin-bottom:2px'>Predicted CAC</div>"
+                f"<span style='font-size:1.6rem;font-weight:700;color:{_ml_cc}'>"
+                f"₹{_ml_pred:,.0f}</span>"
+                f"<span style='font-size:0.72rem;color:#8A857D;margin-left:10px'>"
+                f"{_ml_vs_s}</span>"
+                f"</div>"
+                f"<div style='border-left:1px solid #E5E0D6;padding-left:24px'>"
+                f"<div style='font-size:0.62rem;text-transform:uppercase;letter-spacing:.08em;"
+                f"color:#8A857D;margin-bottom:4px'>vs avg inputs baseline ₹{_baseline:,.0f}</div>"
+                f"<span style='font-size:0.85rem;font-weight:600;"
+                f"color:{'#E24B4A' if _delta > 0 else '#1D9E75'}'>"
+                f"{'↑' if _delta > 0 else '↓'} ₹{abs(_delta):,.0f}</span>"
+                f"</div>"
+                f"<div style='border-left:1px solid #E5E0D6;padding-left:24px;"
+                f"font-size:0.72rem;color:#8A857D'>"
+                f"Model R² {_mod['r2']:.2f} · RMSE ₹{_mod['rmse']:,.0f} · "
+                f"{_mod['n_samples']} training days"
+                f"</div>"
+                f"</div>",
+                unsafe_allow_html=True)
 
     # ── EXPERIMENT TABLE ───────────────────────────────────────────────────
     st.markdown(
