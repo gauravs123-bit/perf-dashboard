@@ -1,15 +1,70 @@
 campaign_name,type,owner,app
-# Instructions:
-# type = Scaling | CTF | Experiment | Other
-# owner = person responsible
-# app = Arivu | Vidhya | Kali | Nerchuko | Seekho
-# Add one row per campaign exactly as the name appears in the dashboard
-# Lines starting with # are ignored
-#
-# Examples (replace with real campaign names from your Meta account):
-arivu_astrology_career_sharemarket_2min_retention,Scaling,Team,Arivu
-seekhotamil_all_category_acquisition_campaign_abo,Scaling,Team,Kali
-seekhotamil_astrology_experiment_campaign_cbo,Experiment,Team,Kali
-seekhotamil_finance_experiment_campaign_cbo,Experiment,Team,Kali
-seekhotamil_utilise_experiment_campaign_cbo,CTF,Team,Kali
-seekhotamil_insta_experiment_campaign_cbo,CTF,Team,Kali
+arivu_all-category_2min_retention,Scaling,Gaurav,Arivu
+seekhomalayalam_all category_acquisition_campaign_abo,Scaling,Gaurav,Vidhya
+seekhotelugu_all_category_acquisition_campaign_abo,Scaling,Gaurav,Nerchuko
+arivu_english_2min_retention,Scaling,Gaurav,Arivu
+arivu_astrology_career_sharemarket_2min_retention,Scaling,Gaurav,Arivu
+arivu advantage plus alternate campaign all category,Scaling,Gaurav,Arivu
+arivu_business_ utilize-time-category_2min_retention,Scaling,Gaurav,Arivu
+seekhokannada_all_category_acquisition_campaign_cbo,Scaling,Gaurav,Kali
+kali_english_finance_2-min_retention event,Scaling,Gaurav,Kali
+kali_all_category_2-min_retention event,Scaling,Gaurav,Kali
+nerchuko_all-categories_2min_retention,Scaling,Gaurav,Nerchuko
+nerchuko_english_2min_retention,Scaling,Gaurav,Nerchuko
+nerchuko experiment campaign,Scaling,Gaurav,Nerchuko
+nerchuko_praja_2min_retention,Scaling,Gaurav,Nerchuko
+arivu experiment campaign,Scaling,Gaurav,Arivu
+kali_all category_acquisition_campaign-cbo,Scaling,Gaurav,Kali
+nerchuko_finance_2min_retention_campaign,Scaling,Gaurav,Nerchuko
+vidhya_all-category_acquisition_campaign,Scaling,Gaurav,Vidhya
+arivu_all_category_installers_retargeting_13mar,Scaling,Gaurav,Arivu
+vidhya_astrology_english_2-min_retention_campaign,Scaling,Gaurav,Vidhya
+vidhya_all-category_2-min_retention_campaign,Scaling,Gaurav,Vidhya
+nerchuko_all-categories_2min_retention_top_cities_negated,Scaling,Gaurav,Nerchuko
+nerchuko scaling campaign,Scaling,Gaurav,Nerchuko
+arivu promotion_kakl,Scaling,Gaurav,Arivu
+arivu scaling campaign - cbo,Scaling,Gaurav,Arivu
+arivu_sarkaricards_business_kakl,Scaling,Gaurav,Arivu
+arivu scaling campaign,Scaling,Gaurav,Arivu
+kali_all-category_acquisition_campaign-abo,Scaling,Gaurav,Kali
+nerchuko_sharemarket_video_only,Scaling,Gaurav,Nerchuko
+nerchuko_high_exit-rate_categories-cbo,Scaling,Gaurav,Nerchuko
+nerchuko_3-themes_combined_scaling_campaign_9april,Scaling,Gaurav,Nerchuko
+arivu_3-themes_combined_scaling_campaign_10april,Scaling,Gaurav,Arivu
+nerchuko_3-themes_combined_scaling_campaign_10april,Scaling,Gaurav,Nerchuko
+nerchuko_all-categories_5min_retention,Scaling,Gaurav,Nerchuko
+vidhya_utilise time_sharemarket_finance_2-min_retention_campaign,Scaling,Gaurav,Vidhya
+arivu_all-category_5min_retention,Scaling,Gaurav,Arivu
+vidhya_all-category_2-min_retention_campaign_relaunched,Scaling,Gaurav,Vidhya
+arivu_p1_retention_campaign-abo_8may,Scaling,Gaurav,Arivu
+kali_all_category_5-min_retention event,Scaling,Gaurav,Kali
+nerchuko_business_utilise-time_5min_retention,Scaling,Gaurav,Nerchuko
+uac_seekhomalayalam_all category_pvs_kerala_eng-mal,Scaling,Gaurav,Vidhya
+uac_seekhokannada_all category_pvs_karnataka_eng-kan,Scaling,Gaurav,Kali
+uac_seekhomalayalam_business_utilise time_pvs_kerala_eng-mal,Scaling,Gaurav,Vidhya
+uac_seekhotamil_all category_pvs_tamilnadu_pudhucherry_eng-tam,Scaling,Gaurav,Arivu
+uac_seekhomalayalam_business_english_pvs_kerala_eng-mal,Scaling,Gaurav,Vidhya
+uac_seekhomalayalam_all category_pvs_kerala_eng-mal_2,Scaling,Gaurav,Vidhya
+arivu_business_2min_retention_low-churn_high-cac,Scaling,Gaurav,Arivu
+arivu_utilise time_2min_retention_low-churn_high-cac,Scaling,Gaurav,Arivu
+uac_seekhotamil_all category_pvs_tamilnadu_puducherry_eng-tam,Scaling,Gaurav,Arivu
+arivu_utilise time_2min_retention_high-churn_low-cac,Scaling,Gaurav,Arivu
+arivu_business_2min_retention_high-churn_low-cac,Scaling,Gaurav,Arivu
+seekhotelugu_instagram_experiment campaign-cbo,Scaling,Gaurav,Nerchuko
+seekhokannada_finance_experiment_campaign_cbo,Scaling,Gaurav,Kali
+seekhokannada_sarkari_experiment_campaign_cbo,Scaling,Gaurav,Kali
+seekhokannada_instagram_experiment_campaign_cbo,Scaling,Gaurav,Kali
+uac_seekhotamil_all category_10 min_view_tamilnadu_puducherry_eng-tam,Scaling,Gaurav,Arivu
+seekhomalayalam_praja_experiment_campaign_cbo,Scaling,Gaurav,Vidhya
+kali_all_category_5-min_retention event-2,Scaling,Gaurav,Kali
+seekhomalayalam_finance_p1-retention_event_campaign_abo,Scaling,Gaurav,Vidhya
+uac_seekhotelugu_all category_5min_view_ap_telangana_eng-telugu,Scaling,Gaurav,Nerchuko
+uac_seekhomalayalam_all category_5min_viewed_kerala_eng-mal,Scaling,Gaurav,Vidhya
+uac_seekhokannada_all category_5min_view_karnataka_eng-kan,Scaling,Gaurav,Kali
+uac_seekhotamil_all category_5 min_view_low churn_high cac_tamilnadu_puducherry_eng-tam,Scaling,Gaurav,Arivu
+uac_ei_retention_new,Scaling,Gaurav,Seekho
+uac_seekhotamil_all category_5 min_view_tamilnadu_puducherry_eng-tam,Scaling,Gaurav,Arivu
+uac_seekhotelugu_all category_low churn_high cac_5min_viewed_ap_telangana_eng-telugu,Scaling,Gaurav,Nerchuko
+uac_seekhokannada_all category_5min_view_low_churn_high_cac_karnataka_eng-kan,Scaling,Gaurav,Kali
+uac_seekhomalayalam_all category_2min_viewed_kerala_eng-mal,Scaling,Gaurav,Vidhya
+uac_seekhomalayalam_all category_5min_viewed_kerala_eng-mal-2,Scaling,Gaurav,Vidhya
