@@ -3155,6 +3155,144 @@ def budget_allocator_view():
     )
     st.plotly_chart(_fig_ov, use_container_width=True)
 
+    # ── CREATIVE DEPTH: top Meta campaign → adsets with YD spend ─────────────
+    st.markdown(
+        "<div style='font-size:0.78rem;font-weight:700;color:#1C1A17;"
+        "margin:20px 0 4px'>🎨 Creative Depth — Top Meta Campaign</div>"
+        "<div style='font-size:0.72rem;color:#8A857D;margin-bottom:10px'>"
+        "Ad sets with spend yesterday · Meta only · creatives active YD vs total in L7D</div>",
+        unsafe_allow_html=True)
+
+    # load creative dfs for all TTMK apps
+    _cr_yd_frames = []
+    for _a in TTMK_APPS_SET:
+        try:
+            _crf = fetch_creative_data(_a)
+            if not _crf.empty:
+                _cr_yd_frames.append(_crf)
+        except Exception:
+            pass
+
+    if not _cr_yd_frames:
+        st.markdown("<div style='color:#8A857D;font-size:0.82rem'>No Meta creative data available.</div>",
+                    unsafe_allow_html=True)
+    else:
+        _cr_all_yd = pd.concat(_cr_yd_frames, ignore_index=True)
+        _yd_date   = sorted(_cr_all_yd["date_tz"].unique())[-1]
+        _l7_dates  = sorted(_cr_all_yd["date_tz"].unique())[-7:]
+
+        # top campaign by YD spend in creative data
+        _camp_yd = (_cr_all_yd[_cr_all_yd["date_tz"] == _yd_date]
+                    .groupby("campaign")["total_cost"].sum()
+                    .sort_values(ascending=False))
+        if _camp_yd.empty:
+            st.markdown("<div style='color:#8A857D;font-size:0.82rem'>No spend data for yesterday.</div>",
+                        unsafe_allow_html=True)
+        else:
+            # let user pick campaign (default = top spender)
+            _top_camp = _camp_yd.index[0]
+            _camp_opts = _camp_yd.index.tolist()
+            _sel_camp  = st.selectbox(
+                "Campaign (ranked by YD Meta spend)",
+                options=_camp_opts,
+                index=0,
+                format_func=lambda c: f"{c}  —  ₹{_camp_yd.get(c, 0):,.0f} YD",
+                key="cd_camp_sel")
+
+            # ad sets with YD spend for selected campaign
+            _yd_cr = _cr_all_yd[
+                (_cr_all_yd["date_tz"] == _yd_date) &
+                (_cr_all_yd["campaign"] == _sel_camp) &
+                (_cr_all_yd["total_cost"] > 0)
+            ]
+            _l7_cr = _cr_all_yd[
+                (_cr_all_yd["date_tz"].isin(_l7_dates)) &
+                (_cr_all_yd["campaign"] == _sel_camp)
+            ]
+
+            _adset_rows = []
+            for _adset, _grp_yd in _yd_cr.groupby("ad_set"):
+                _grp_l7   = _l7_cr[_l7_cr["ad_set"] == _adset]
+                _n_yd     = _grp_yd["ad_creative"].nunique()
+                _n_l7     = _grp_l7["ad_creative"].nunique()
+                _spend_yd = _grp_yd["total_cost"].sum()
+                _orders   = _grp_yd["D0_paid_users"].sum()
+                _cac      = (_spend_yd / _orders) if _orders > 0 else None
+                _adset_rows.append({
+                    "ad_set":       _adset,
+                    "spend_yd":     _spend_yd,
+                    "orders_yd":    int(_orders),
+                    "cac_yd":       _cac,
+                    "creatives_yd": _n_yd,
+                    "creatives_l7": _n_l7,
+                })
+
+            if not _adset_rows:
+                st.markdown("<div style='color:#8A857D;font-size:0.82rem'>No ad sets with spend yesterday.</div>",
+                            unsafe_allow_html=True)
+            else:
+                _adset_df = (pd.DataFrame(_adset_rows)
+                             .sort_values("spend_yd", ascending=False)
+                             .reset_index(drop=True))
+
+                th  = ("style='text-align:right;padding:6px 10px;font-size:0.62rem;color:#8A857D;"
+                       "font-weight:600;text-transform:uppercase;letter-spacing:.06em;"
+                       "border-bottom:2px solid #E5E0D6;background:#F5F2ED'")
+                thl = ("style='padding:6px 10px;font-size:0.62rem;color:#8A857D;"
+                       "font-weight:600;text-transform:uppercase;letter-spacing:.06em;"
+                       "border-bottom:2px solid #E5E0D6;background:#F5F2ED'")
+
+                _rows_html = ""
+                for _, _r in _adset_df.iterrows():
+                    _cac_s = f"₹{_r['cac_yd']:,.0f}" if _r["cac_yd"] else "—"
+                    # colour creative count: more creatives = greener
+                    _cr_ratio = _r["creatives_yd"] / max(_r["creatives_l7"], 1)
+                    _cr_col   = "#1D9E75" if _cr_ratio >= 0.5 else "#E8883A"
+                    _rows_html += (
+                        f"<tr style='border-bottom:1px solid #F0EBE3'>"
+                        f"<td style='padding:7px 10px;font-size:0.8rem;color:#1C1A17;font-weight:500'>"
+                        f"{_r['ad_set']}</td>"
+                        f"<td style='padding:7px 10px;text-align:right;font-size:0.8rem'>₹{_r['spend_yd']:,.0f}</td>"
+                        f"<td style='padding:7px 10px;text-align:right;font-size:0.8rem'>{_r['orders_yd']}</td>"
+                        f"<td style='padding:7px 10px;text-align:right;font-size:0.8rem'>{_cac_s}</td>"
+                        f"<td style='padding:7px 10px;text-align:right;font-size:0.8rem;"
+                        f"color:{_cr_col};font-weight:700'>{int(_r['creatives_yd'])}</td>"
+                        f"<td style='padding:7px 10px;text-align:right;font-size:0.8rem;color:#8A857D'>"
+                        f"{int(_r['creatives_l7'])}</td>"
+                        f"</tr>"
+                    )
+                st.markdown(
+                    f"<div style='background:#FFFFFF;border:1px solid #E5E0D6;border-radius:10px;"
+                    f"overflow:hidden;margin-bottom:20px'>"
+                    f"<table style='width:100%;border-collapse:collapse'>"
+                    f"<thead><tr>"
+                    f"<th {thl}>Ad Set</th>"
+                    f"<th {th}>YD Spend</th>"
+                    f"<th {th}>YD Orders</th>"
+                    f"<th {th}>YD CAC</th>"
+                    f"<th {th}>Creatives YD</th>"
+                    f"<th {th}>Creatives L7D</th>"
+                    f"</tr></thead><tbody>{_rows_html}</tbody></table></div>",
+                    unsafe_allow_html=True)
+
+                # bar chart — creatives per adset
+                _fig_cr = go.Figure(go.Bar(
+                    x=_adset_df["ad_set"],
+                    y=_adset_df["creatives_yd"],
+                    marker_color="#378ADD",
+                    text=_adset_df["creatives_yd"].astype(int),
+                    textposition="outside",
+                ))
+                _fig_cr.update_layout(
+                    xaxis=dict(tickangle=-30, tickfont=dict(size=10)),
+                    yaxis=dict(title="# Creatives active YD", gridcolor="#F0EBE3"),
+                    plot_bgcolor="#FFFFFF", paper_bgcolor="#FFFFFF",
+                    font=dict(family="Inter", size=11),
+                    height=280,
+                    margin=dict(l=20, r=20, t=20, b=80),
+                )
+                st.plotly_chart(_fig_cr, use_container_width=True)
+
     result = allocate(df_ttmk, "TTMK", daily_envelope)
     # re-run with overridden targets baked in (patch allocator targets dict)
     import utils.allocator as _alloc_mod
