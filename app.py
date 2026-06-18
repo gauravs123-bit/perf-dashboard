@@ -3803,32 +3803,39 @@ def recommendations_view():
         "<div style='font-size:1.1rem;font-weight:700;color:#1C1A17;margin-bottom:2px'>"
         "Daily Budget Recommendations</div>"
         "<div style='font-size:0.72rem;color:#555;margin-bottom:16px'>"
-        "Recommend-only · L3D · holds spend flat, cuts inefficiency, protects uninstalls · "
-        "CTF (experiment) campaigns excluded</div>",
+        "Recommend-only · L3D · per app or TTMK combined · reasons with your decision "
+        "playbook · CTF (experiment) campaigns excluded</div>",
         unsafe_allow_html=True)
 
     # ── controls ──────────────────────────────────────────────────────────────
-    c1, c2, c3, c4 = st.columns([1.4, 1.8, 1.1, 1.1])
+    # group options: per-app + the TTMK aggregate + Seekho
+    GROUP_APPS = {
+        "TTMK": sorted(TTMK_SET),
+        "Arivu": ["Arivu"], "Vidhya": ["Vidhya"], "Kali": ["Kali"],
+        "Nerchuko": ["Nerchuko"], "Seekho": ["Seekho"],
+    }
+    group_opts = ["TTMK", "Arivu", "Vidhya", "Kali", "Nerchuko", "Seekho"]
+
+    c1, c2, c3 = st.columns([3.2, 1.0, 1.0])
     with c1:
-        group = st.pills("Group", ["TTMK", "Seekho"], default="TTMK",
+        group = st.pills("Group", group_opts, default="TTMK",
                          key="rec_group", label_visibility="collapsed")
     with c2:
-        level_label = st.pills("Level", ["Campaign", "Ad Set", "Creative (Meta)"],
-                               default="Ad Set", key="rec_level",
-                               label_visibility="collapsed")
-    with c3:
         cac_tgt = st.number_input("CAC ₹", min_value=0, max_value=5000, value=500,
                                   step=50, key="rec_cac")
-    with c4:
+    with c3:
         unin_tgt = st.number_input("Unin %", min_value=0.0, max_value=100.0, value=16.0,
                                    step=0.5, key="rec_unin")
+    level_label = st.pills("Level", ["Campaign", "Ad Set", "Creative (Meta)"],
+                           default="Ad Set", key="rec_level",
+                           label_visibility="collapsed")
 
     group = group or "TTMK"
     level_label = level_label or "Ad Set"
     level = {"Campaign": "campaign", "Ad Set": "ad_set",
              "Creative (Meta)": "ad_creative"}[level_label]
 
-    apps = sorted(TTMK_SET) if group == "TTMK" else ["Seekho"]
+    apps = GROUP_APPS.get(group, [group])
 
     # ── load data ───────────────────────────────────────────────────────────────
     frames = []
