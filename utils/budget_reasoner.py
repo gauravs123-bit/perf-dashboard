@@ -24,15 +24,29 @@ class NoAPIKey(Exception):
 
 
 def _api_key() -> str:
-    # Streamlit secrets first, then env (mirrors utils/fetcher._secret)
+    # Streamlit secrets first, then env, then .env file directly.
     try:
         import streamlit as st
-        k = st.secrets.get("ANTHROPIC_API_KEY", "")
+        k = (st.secrets.get("ANTHROPIC_API_KEY", "") or "").strip()
         if k:
             return k
     except Exception:
         pass
-    return os.getenv("ANTHROPIC_API_KEY", "")
+    k = (os.getenv("ANTHROPIC_API_KEY", "") or "").strip()
+    if k:
+        return k
+    # Fallback: read .env directly. A pre-existing empty env var blocks
+    # load_dotenv()'s default (override=False), so parse the file ourselves.
+    try:
+        from dotenv import dotenv_values
+        for path in (os.path.join(os.path.dirname(__file__), "..", ".env"), ".env"):
+            vals = dotenv_values(path)
+            k = (vals.get("ANTHROPIC_API_KEY", "") or "").strip()
+            if k:
+                return k
+    except Exception:
+        pass
+    return ""
 
 
 SYSTEM = """You are a senior performance-marketing strategist reviewing daily budget \
@@ -126,14 +140,18 @@ def reason(group: str, level: str, targets: dict,
     client = anthropic.Anthropic(api_key=key)
 
     prompt = _build_prompt(group, level, targets, summary, records)
-    resp = client.messages.create(
+    # Stream with a generous cap: schema-constrained JSON over ~40 units plus
+    # adaptive thinking can exceed 8K and silently truncate (→ invalid JSON).
+    with client.messages.stream(
         model=MODEL,
-        max_tokens=8000,
+        max_tokens=32000,
         thinking={"type": "adaptive"},
         system=SYSTEM,
         messages=[{"role": "user", "content": prompt}],
         output_config={"format": {"type": "json_schema", "schema": _SCHEMA}},
-    )
+    ) as stream:
+        resp = stream.get_final_message()
+
     text = next((b.text for b in resp.content if b.type == "text"), "{}")
     try:
         return json.loads(text)
