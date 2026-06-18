@@ -2931,7 +2931,7 @@ def main():
     color   = APP_COLORS[app]
     hex_col = color.lstrip("#")
     r, g, b = int(hex_col[0:2], 16), int(hex_col[2:4], 16), int(hex_col[4:6], 16)
-    section_options = ["Morning Pulse", "Overview", "Category Mix", "Ad Set Analysis", "Adviser", "Budget"]
+    section_options = ["Morning Pulse", "Overview", "Category Mix", "Ad Set Analysis"]
     if st.session_state.get("sb_section") not in section_options:
         st.session_state["sb_section"] = section_options[0]
     section = st.session_state["sb_section"]
@@ -3014,20 +3014,6 @@ def main():
 
     if section == "Ad Set Analysis":
         adset_analysis_view(df, app=app, color=color)
-        return
-
-    if section == "Adviser":
-        cr_raw = None
-        if app in CREATIVE_QUERY_IDS:
-            try:
-                cr_raw = add_derived_metrics(fetch_creative_data(app))
-            except Exception:
-                pass
-        adviser_view(df, cr_raw, app=app, color=color)
-        return
-
-    if section == "Budget":
-        budget_allocator_view()
         return
 
     # Debug: show what app_name values are in the fetched data
