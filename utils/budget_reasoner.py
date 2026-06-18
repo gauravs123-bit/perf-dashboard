@@ -148,7 +148,11 @@ def reason(group: str, level: str, targets: dict,
         thinking={"type": "adaptive"},
         system=SYSTEM,
         messages=[{"role": "user", "content": prompt}],
-        output_config={"format": {"type": "json_schema", "schema": _SCHEMA}},
+        # effort=low keeps adaptive thinking shallow — this is a daily snap
+        # judgment over pre-computed signals, not a deep research task. Big
+        # latency win for an interactive tab.
+        output_config={"format": {"type": "json_schema", "schema": _SCHEMA},
+                       "effort": "low"},
     ) as stream:
         resp = stream.get_final_message()
 

@@ -3975,10 +3975,10 @@ def recommendations_view():
 
     ai = st.session_state.get(ai_key)
     if ai is None:
-        with st.spinner("Thinking — weighing trend vs blip, strategic intent, creative age…"):
+        with st.spinner("Thinking (~45s) — weighing trend vs blip, strategic intent, creative age…"):
             try:
                 ctx = build_reasoning_context(df, level=level, cac_tgt=cac_tgt,
-                                              unin_tgt=unin_tgt, min_daily=1000, top_n=40)
+                                              unin_tgt=unin_tgt, min_daily=1000, top_n=25)
                 data = budget_reason(group, level_label,
                                      {"cac": cac_tgt, "unin": unin_tgt}, s, ctx)
                 ai = {"data": data, "ctx": ctx}
