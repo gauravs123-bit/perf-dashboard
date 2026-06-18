@@ -13,6 +13,8 @@ import plotly.graph_objects as go
 from utils.fetcher import fetch_app_data, refresh_app_data, APP_QUERY_IDS, fetch_creative_data, CREATIVE_QUERY_IDS
 from utils.allocator import allocate, load_campaign_config, load_targets, CAMPAIGN_CONFIG_PATH, TARGETS_PATH
 from utils.predictor import train_models, predict_cac as predict_cac_model, FEATURE_LABELS
+from utils.budget_agent import recommend as budget_recommend, build_reasoning_context
+from utils.budget_reasoner import reason as budget_reason, NoAPIKey as BudgetNoAPIKey
 from utils.metrics import (
     add_derived_metrics, latest_summary, build_trend_table,
     source_split, campaign_table, adset_table, creative_table, creative_l3d,
@@ -2931,7 +2933,7 @@ def main():
     color   = APP_COLORS[app]
     hex_col = color.lstrip("#")
     r, g, b = int(hex_col[0:2], 16), int(hex_col[2:4], 16), int(hex_col[4:6], 16)
-    section_options = ["Morning Pulse", "Overview", "Category Mix", "Ad Set Analysis"]
+    section_options = ["Morning Pulse", "Overview", "Category Mix", "Ad Set Analysis", "Recommendations"]
     if st.session_state.get("sb_section") not in section_options:
         st.session_state["sb_section"] = section_options[0]
     section = st.session_state["sb_section"]
@@ -3001,6 +3003,10 @@ def main():
 
     if section == "Overview":
         overview_view()
+        return
+
+    if section == "Recommendations":
+        recommendations_view()
         return
 
     if section == "Category Mix":
@@ -3779,6 +3785,284 @@ def budget_allocator_view():
             f"<div style='font-size:0.7rem;color:#8A857D;margin-top:6px'>"
             f"Edit <code>{CAMPAIGN_CONFIG_PATH}</code> to add/update campaigns. "
             f"Changes take effect on next page load.</div>",
+            unsafe_allow_html=True)
+
+
+def recommendations_view():
+    """Budget Recommendation Agent — uninstall-constrained daily decisions."""
+
+    TTMK_SET = {"Arivu", "Vidhya", "Kali", "Nerchuko"}
+    Q_COLORS = {
+        "STAR":    "#1D9E75", "CHURNY": "#D9A41D", "PRICEY": "#E07B39",
+        "DOG":     "#E24B4A", "NO_DATA": "#8A857D",
+    }
+
+    st.markdown(
+        "<div style='font-size:0.6rem;text-transform:uppercase;letter-spacing:.12em;"
+        "color:#333;margin-bottom:2px'>BUDGET AGENT</div>"
+        "<div style='font-size:1.1rem;font-weight:700;color:#1C1A17;margin-bottom:2px'>"
+        "Daily Budget Recommendations</div>"
+        "<div style='font-size:0.72rem;color:#555;margin-bottom:16px'>"
+        "Recommend-only · L3D · holds spend flat, cuts inefficiency, protects uninstalls · "
+        "CTF (experiment) campaigns excluded</div>",
+        unsafe_allow_html=True)
+
+    # ── controls ──────────────────────────────────────────────────────────────
+    c1, c2, c3, c4 = st.columns([1.4, 1.8, 1.1, 1.1])
+    with c1:
+        group = st.pills("Group", ["TTMK", "Seekho"], default="TTMK",
+                         key="rec_group", label_visibility="collapsed")
+    with c2:
+        level_label = st.pills("Level", ["Campaign", "Ad Set", "Creative (Meta)"],
+                               default="Ad Set", key="rec_level",
+                               label_visibility="collapsed")
+    with c3:
+        cac_tgt = st.number_input("CAC ₹", min_value=0, max_value=5000, value=500,
+                                  step=50, key="rec_cac")
+    with c4:
+        unin_tgt = st.number_input("Unin %", min_value=0.0, max_value=100.0, value=15.0,
+                                   step=0.5, key="rec_unin")
+
+    group = group or "TTMK"
+    level_label = level_label or "Ad Set"
+    level = {"Campaign": "campaign", "Ad Set": "ad_set",
+             "Creative (Meta)": "ad_creative"}[level_label]
+
+    apps = sorted(TTMK_SET) if group == "TTMK" else ["Seekho"]
+
+    # ── load data ───────────────────────────────────────────────────────────────
+    frames = []
+    if level == "ad_creative":
+        for a in apps:
+            if a not in CREATIVE_QUERY_IDS:
+                continue
+            try:
+                df_a = add_derived_metrics(fetch_creative_data(a))
+            except Exception:
+                continue
+            if not df_a.empty:
+                df_a = df_a.copy(); df_a["_app"] = a; frames.append(df_a)
+        if not frames:
+            st.info("No Meta creative data available for this group.")
+            return
+    else:
+        for a in apps:
+            df_a = safe_fetch(a)
+            if not df_a.empty:
+                df_a = df_a.copy(); df_a["_app"] = a; frames.append(df_a)
+        if not frames:
+            st.warning("No data loaded. Refresh from the nav bar.")
+            return
+
+    df = pd.concat(frames, ignore_index=True)
+    res = budget_recommend(df, level=level, cac_tgt=cac_tgt, unin_tgt=unin_tgt,
+                           min_daily=1000)
+    s = res["summary"]
+    if not s:
+        st.info("Not enough data at this level (need ad units with ≥ ₹1k/day).")
+        return
+
+    # ── summary cards ─────────────────────────────────────────────────────────
+    def _card(label, val, sub="", color="#1C1A17"):
+        return (f"<div style='flex:1;background:#FFFFFF;border:1px solid #E5E0D6;"
+                f"border-radius:10px;padding:12px 16px'>"
+                f"<div style='font-size:0.6rem;text-transform:uppercase;letter-spacing:.08em;"
+                f"color:#8A857D;margin-bottom:3px'>{label}</div>"
+                f"<div style='font-size:1.3rem;font-weight:700;color:{color}'>{val}</div>"
+                f"<div style='font-size:0.66rem;color:#8A857D;margin-top:2px'>{sub}</div></div>")
+
+    cac_col = "#1D9E75" if s["blended_cac"] <= cac_tgt else "#E24B4A"
+    un_col  = "#1D9E75" if s["blended_unin"] <= unin_tgt else "#E24B4A"
+    cac_v   = f"₹{s['blended_cac']:,.0f}"
+    un_v    = f"{s['blended_unin']:.1f}%"
+    sp_v    = f"₹{s['total_daily']:,.0f}"
+    freed_v = f"₹{s['freed']:,.0f}"
+    redep_v = f"₹{s['redeployable']:,.0f}"
+    stran_v = f"₹{s['stranded']:,.0f}"
+    cac_sub = f"target ₹{cac_tgt:,}"
+    un_sub  = f"target {unin_tgt:.0f}%"
+    sp_sub  = f"{s['n_units']} units"
+    st.markdown(
+        f"<div style='display:flex;gap:10px;margin-bottom:10px'>"
+        f"{_card('Blended CAC', cac_v, cac_sub, cac_col)}"
+        f"{_card('Uninstall', un_v, un_sub, un_col)}"
+        f"{_card('Daily Spend', sp_v, sp_sub, '#1C1A17')}"
+        f"</div>"
+        f"<div style='display:flex;gap:10px;margin-bottom:18px'>"
+        f"{_card('Budget Freed', freed_v, 'from cuts + trims', '#E24B4A')}"
+        f"{_card('Safely Redeployable', redep_v, 'into clean STAR pool', '#1D9E75')}"
+        f"{_card('Stranded', stran_v, 'no efficient home → creative', '#E07B39')}"
+        f"</div>",
+        unsafe_allow_html=True)
+
+    # ── AI reasoning layer ──────────────────────────────────────────────────────
+    ai_key = f"rec_ai_{group}_{level}"
+    cols = st.columns([1.4, 4])
+    with cols[0]:
+        run_ai = st.button("🤖 Reason with Claude", key=f"btn_{ai_key}",
+                           use_container_width=True)
+    with cols[1]:
+        st.markdown("<div style='font-size:0.7rem;color:#8A857D;padding-top:8px'>"
+                    "Adds business judgment the math can't — trend vs blip, strategic "
+                    "intent, creative age. The quadrant numbers become input, not verdict.</div>",
+                    unsafe_allow_html=True)
+
+    if run_ai:
+        with st.spinner("Claude is reviewing trends, intent, and creative age…"):
+            try:
+                ctx = build_reasoning_context(df, level=level, cac_tgt=cac_tgt,
+                                              unin_tgt=unin_tgt, min_daily=1000, top_n=40)
+                ai = budget_reason(group, level_label,
+                                   {"cac": cac_tgt, "unin": unin_tgt}, s, ctx)
+                st.session_state[ai_key] = ai
+            except BudgetNoAPIKey:
+                st.session_state[ai_key] = {"_no_key": True}
+            except Exception as e:
+                st.session_state[ai_key] = {"_error": str(e)}
+
+    ai = st.session_state.get(ai_key)
+    if ai:
+        if ai.get("_no_key"):
+            st.info("Set `ANTHROPIC_API_KEY` in `.streamlit/secrets.toml` (or env) to "
+                    "enable AI reasoning. Showing the mechanical recommendation below.")
+        elif ai.get("_error"):
+            st.error(f"AI reasoning failed: {ai['_error']}")
+        else:
+            VERDICT_C = {"SCALE": "#1D9E75", "HOLD": "#378ADD", "TRIM": "#D9A41D",
+                         "CUT": "#E24B4A", "WATCH": "#8A857D", "REFRESH CREATIVE": "#E07B39"}
+            st.markdown(
+                f"<div style='background:#FFFFFF;border:1px solid #E5E0D6;border-left:3px solid "
+                f"#7F77DD;border-radius:8px;padding:14px 18px;margin:12px 0 14px'>"
+                f"<div style='font-size:0.62rem;text-transform:uppercase;letter-spacing:.08em;"
+                f"color:#7F77DD;font-weight:700;margin-bottom:6px'>Claude's read</div>"
+                f"<div style='font-size:0.84rem;color:#2A2520;line-height:1.5'>"
+                f"{ai.get('narrative','')}</div></div>",
+                unsafe_allow_html=True)
+            units = ai.get("units", [])
+            if units:
+                rows = ""
+                for u in units:
+                    vc = VERDICT_C.get(u.get("verdict", ""), "#555")
+                    rows += (
+                        f"<tr><td style='font-size:0.8rem;color:#2A2520;padding:6px 10px;"
+                        f"border-bottom:1px solid #F0EBE3'>{u.get('unit','')[:54]}</td>"
+                        f"<td style='padding:6px 10px;border-bottom:1px solid #F0EBE3'>"
+                        f"<span style='background:{vc}1A;color:{vc};font-size:0.66rem;"
+                        f"font-weight:700;padding:2px 7px;border-radius:4px'>"
+                        f"{u.get('verdict','')}</span></td>"
+                        f"<td style='font-size:0.74rem;color:#555;padding:6px 10px;"
+                        f"border-bottom:1px solid #F0EBE3'>{u.get('reason','')}</td></tr>")
+                st.markdown(
+                    f"<div style='background:#FFFFFF;border:1px solid #E5E0D6;border-radius:10px;"
+                    f"overflow:hidden;margin-bottom:20px'><table style='width:100%;border-collapse:collapse'>"
+                    f"<thead><tr><th style='text-align:left;padding:5px 10px;font-size:0.63rem;"
+                    f"color:#8A857D;font-weight:600;text-transform:uppercase;background:#F5F2ED;"
+                    f"border-bottom:1px solid #E5E0D6'>Unit</th>"
+                    f"<th style='text-align:left;padding:5px 10px;font-size:0.63rem;color:#8A857D;"
+                    f"font-weight:600;text-transform:uppercase;background:#F5F2ED;"
+                    f"border-bottom:1px solid #E5E0D6'>AI Verdict</th>"
+                    f"<th style='text-align:left;padding:5px 10px;font-size:0.63rem;color:#8A857D;"
+                    f"font-weight:600;text-transform:uppercase;background:#F5F2ED;"
+                    f"border-bottom:1px solid #E5E0D6'>Reasoning</th></tr></thead>"
+                    f"<tbody>{rows}</tbody></table></div>",
+                    unsafe_allow_html=True)
+        st.markdown("<div style='font-size:0.7rem;color:#8A857D;margin-bottom:8px'>"
+                    "↓ Mechanical quadrant math below (the AI's input)</div>",
+                    unsafe_allow_html=True)
+
+    # ── quadrant split ──────────────────────────────────────────────────────────
+    th  = ("style='text-align:right;padding:5px 10px;font-size:0.63rem;color:#8A857D;"
+           "font-weight:600;text-transform:uppercase;letter-spacing:.06em;"
+           "border-bottom:1px solid #E5E0D6;background:#F5F2ED'")
+    thl = ("style='padding:5px 10px;font-size:0.63rem;color:#8A857D;"
+           "font-weight:600;text-transform:uppercase;letter-spacing:.06em;"
+           "border-bottom:1px solid #E5E0D6;background:#F5F2ED'")
+    td  = "font-size:0.8rem;color:#2A2520;text-align:right;padding:6px 10px;border-bottom:1px solid #F0EBE3"
+    tdl = "font-size:0.8rem;color:#2A2520;padding:6px 10px;border-bottom:1px solid #F0EBE3"
+
+    q = res["quadrant"]
+    if not q.empty:
+        st.markdown("<div style='font-size:0.78rem;font-weight:700;color:#1C1A17;"
+                    "margin:4px 0 8px'>Spend by quadrant</div>", unsafe_allow_html=True)
+        rows = ""
+        for _, r in q.iterrows():
+            cac_s = f"₹{r['cac']:,.0f}" if pd.notna(r['cac']) else "—"
+            un_s  = f"{r['unin']:.0f}%" if pd.notna(r['unin']) else "—"
+            rows += (f"<tr><td style='{tdl}'><b>{r['quadrant']}</b></td>"
+                     f"<td style='{td}'>₹{r['daily_spend']:,.0f}</td>"
+                     f"<td style='{td}'>{r['pct']:.0f}%</td>"
+                     f"<td style='{td}'>{cac_s}</td>"
+                     f"<td style='{td}'>{un_s}</td>"
+                     f"<td style='{td}'>{int(r['n'])}</td></tr>")
+        st.markdown(
+            f"<div style='background:#FFFFFF;border:1px solid #E5E0D6;border-radius:10px;"
+            f"overflow:hidden;margin-bottom:20px'><table style='width:100%;border-collapse:collapse'>"
+            f"<thead><tr><th {thl}>Quadrant</th><th {th}>Daily ₹</th><th {th}>% spend</th>"
+            f"<th {th}>CAC</th><th {th}>Unin</th><th {th}>#</th></tr></thead>"
+            f"<tbody>{rows}</tbody></table></div>", unsafe_allow_html=True)
+
+    # ── action table ────────────────────────────────────────────────────────────
+    a = res["actions"]
+    st.markdown("<div style='font-size:0.78rem;font-weight:700;color:#1C1A17;"
+                "margin:4px 0 8px'>Recommended actions</div>", unsafe_allow_html=True)
+    rows = ""
+    for _, r in a.iterrows():
+        qc = Q_COLORS.get(r["quadrant"], "#555")
+        cac_s = f"₹{r['cac']:,.0f}" if pd.notna(r['cac']) else "—"
+        un_s  = f"{r['unin_rate']:.0f}%" if pd.notna(r['unin_rate']) else "—"
+        d = r["delta_rupees"]
+        if d > 0:
+            d_s = f"<span style='color:#1D9E75;font-weight:700'>+₹{d:,.0f}</span>"
+        elif d < 0:
+            d_s = f"<span style='color:#E24B4A;font-weight:700'>−₹{abs(d):,.0f}</span>"
+        else:
+            d_s = "<span style='color:#8A857D'>—</span>"
+        app_tag = (f"<span style='font-size:0.62rem;color:{APP_COLORS.get(r['app'],'#888')};"
+                   f"font-weight:700'>{r['app']}</span> " if r['app'] else "")
+        rows += (
+            f"<tr>"
+            f"<td style='{tdl}'>{app_tag}{str(r['unit'])[:48]}</td>"
+            f"<td style='padding:6px 10px;border-bottom:1px solid #F0EBE3'>"
+            f"<span style='background:{qc}1A;color:{qc};font-size:0.66rem;font-weight:700;"
+            f"padding:2px 7px;border-radius:4px'>{r['action']}</span></td>"
+            f"<td style='{td}'>{cac_s}</td>"
+            f"<td style='{td}'>{un_s}</td>"
+            f"<td style='{td}'>₹{r['daily_spend']:,.0f}</td>"
+            f"<td style='{td}'>{d_s}</td>"
+            f"<td style='{td}'>₹{r['new_daily']:,.0f}</td>"
+            f"<td style='{tdl}'><span style='font-size:0.7rem;color:#8A857D'>{r['reason']}</span></td>"
+            f"</tr>")
+    st.markdown(
+        f"<div style='background:#FFFFFF;border:1px solid #E5E0D6;border-radius:10px;"
+        f"overflow:hidden;margin-bottom:20px'><table style='width:100%;border-collapse:collapse'>"
+        f"<thead><tr><th {thl}>Unit</th><th {thl}>Action</th><th {th}>CAC</th>"
+        f"<th {th}>Unin</th><th {th}>Daily</th><th {th}>Δ</th><th {th}>New Daily</th>"
+        f"<th {thl}>Why</th></tr></thead><tbody>{rows}</tbody></table></div>",
+        unsafe_allow_html=True)
+
+    # ── creative-refresh priority list ──────────────────────────────────────────
+    cr = res["creative_refresh"]
+    if not cr.empty:
+        st.markdown(
+            "<div style='font-size:0.78rem;font-weight:700;color:#E07B39;"
+            "margin:4px 0 4px'>🎨 Creative-refresh priority (pricey but clean)</div>"
+            "<div style='font-size:0.7rem;color:#8A857D;margin-bottom:8px'>"
+            "These convert quality users (low uninstall) but cost too much — "
+            "fix with new creative, not budget cuts. Ranked by spend.</div>",
+            unsafe_allow_html=True)
+        rows = ""
+        for _, r in cr.head(20).iterrows():
+            app_tag = (f"<span style='font-size:0.62rem;color:{APP_COLORS.get(r['app'],'#888')};"
+                       f"font-weight:700'>{r['app']}</span> " if r['app'] else "")
+            rows += (f"<tr><td style='{tdl}'>{app_tag}{str(r['unit'])[:50]}</td>"
+                     f"<td style='{td}'>₹{r['cac']:,.0f}</td>"
+                     f"<td style='{td}'>{r['unin_rate']:.0f}%</td>"
+                     f"<td style='{td}'>₹{r['daily_spend']:,.0f}</td></tr>")
+        st.markdown(
+            f"<div style='background:#FFFFFF;border:1px solid #E5E0D6;border-radius:10px;"
+            f"overflow:hidden;margin-bottom:20px'><table style='width:100%;border-collapse:collapse'>"
+            f"<thead><tr><th {thl}>Unit</th><th {th}>CAC</th><th {th}>Unin</th>"
+            f"<th {th}>Daily ₹</th></tr></thead><tbody>{rows}</tbody></table></div>",
             unsafe_allow_html=True)
 
 
