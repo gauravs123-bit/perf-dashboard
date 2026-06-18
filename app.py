@@ -3820,7 +3820,7 @@ def recommendations_view():
         cac_tgt = st.number_input("CAC ₹", min_value=0, max_value=5000, value=500,
                                   step=50, key="rec_cac")
     with c4:
-        unin_tgt = st.number_input("Unin %", min_value=0.0, max_value=100.0, value=15.0,
+        unin_tgt = st.number_input("Unin %", min_value=0.0, max_value=100.0, value=16.0,
                                    step=0.5, key="rec_unin")
 
     group = group or "TTMK"
@@ -3965,13 +3965,21 @@ def recommendations_view():
     hdr = st.columns([3.5, 1])
     with hdr[0]:
         st.markdown("<div style='font-size:0.9rem;font-weight:700;color:#1C1A17;margin:6px 0 2px'>"
-                    "🧠 Recommendation</div>"
+                    "🧠 Advisor</div>"
                     "<div style='font-size:0.72rem;color:#8A857D;margin-bottom:8px'>"
-                    "Claude's judgment, using the quadrant math + trend, intent and creative age.</div>",
+                    "Reasoning with <b>your decision playbook</b> over the quadrant math, "
+                    "trend, intent and creative concentration.</div>",
                     unsafe_allow_html=True)
     with hdr[1]:
         if st.button("↻ Re-run", key=f"rerun_{ai_key}", use_container_width=True):
             st.session_state.pop(ai_key, None)
+
+    with st.expander("📓 Your decision playbook (the brain the advisor uses — edit data/advisor_playbook.md)"):
+        try:
+            with open("data/advisor_playbook.md", encoding="utf-8") as _pf:
+                st.markdown(_pf.read())
+        except Exception:
+            st.caption("Playbook file not found at data/advisor_playbook.md")
 
     ai = st.session_state.get(ai_key)
     if ai is None:
