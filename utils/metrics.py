@@ -376,11 +376,13 @@ def creative_table(df: pd.DataFrame, campaign_filter: str | None = None,
     return result
 
 
-def morning_pulse(df: pd.DataFrame, ref_date=None) -> dict:
+def morning_pulse(df: pd.DataFrame, ref_date=None, compare_date=None) -> dict:
     """
-    Compute ref_date vs prior-day summary + campaign movers.
+    Compute ref_date vs baseline-day summary + campaign movers.
     ref_date: use this date as 'today'; defaults to latest date in df.
-    Returns dict with keys: yd_date, d1_date, yd, d1, campaigns, alerts.
+    compare_date: baseline day to compare against; defaults to the day immediately
+                  before ref_date. Lets the caller compare any two days.
+    Returns dict with keys: yd_date, d1_date, yd, d1, campaigns, alerts, custom_compare.
     """
     if df.empty:
         return {}
@@ -390,12 +392,19 @@ def morning_pulse(df: pd.DataFrame, ref_date=None) -> dict:
         return {}
 
     if ref_date is not None and ref_date in dates:
-        idx = dates.index(ref_date)
+        yd = ref_date
+    else:
+        yd = dates[-1]
+
+    custom_compare = False
+    if compare_date is not None and compare_date in dates and compare_date != yd:
+        d1 = compare_date
+        custom_compare = True
+    else:
+        idx = dates.index(yd)
         if idx == 0:
             return {}
-        yd, d1 = dates[idx], dates[idx - 1]
-    else:
-        yd, d1 = dates[-1], dates[-2]
+        d1 = dates[idx - 1]
 
     yd_df = df[df["date_tz"] == yd]
     d1_df = df[df["date_tz"] == d1]
@@ -452,6 +461,7 @@ def morning_pulse(df: pd.DataFrame, ref_date=None) -> dict:
     camps["spend_share"]     = camps["spend_yd"] / (camps["spend_yd"].sum() or np.nan) * 100
 
     # auto alerts
+    vs_lbl = "vs " + str(d1) if custom_compare else "vs prior day"
     alerts = []
     cac_delta  = _delta(yd_t["cac"],       d1_t["cac"])
     unin_delta = _delta(yd_t["unin_rate"], d1_t["unin_rate"])
@@ -460,7 +470,7 @@ def morning_pulse(df: pd.DataFrame, ref_date=None) -> dict:
     if abs(cac_delta) >= 10:
         direction = "rose" if cac_delta > 0 else "dropped"
         alerts.append(("🔴" if cac_delta > 0 else "🟢",
-                        f"D0 CAC {direction} {abs(cac_delta):.0f}% vs prior day "
+                        f"D0 CAC {direction} {abs(cac_delta):.0f}% {vs_lbl} "
                         f"(₹{yd_t['cac']:.0f} vs ₹{d1_t['cac']:.0f})"))
 
     if abs(unin_delta) >= 10:
@@ -473,7 +483,7 @@ def morning_pulse(df: pd.DataFrame, ref_date=None) -> dict:
     if abs(cancel_delta) >= 10:
         direction = "rose" if cancel_delta > 0 else "dropped"
         alerts.append(("🔴" if cancel_delta > 0 else "🟢",
-                        f"Cancel rate {direction} {abs(cancel_delta):.0f}% vs prior day "
+                        f"Cancel rate {direction} {abs(cancel_delta):.0f}% {vs_lbl} "
                         f"({yd_t['cancel_rate']:.1f}% vs {d1_t['cancel_rate']:.1f}%)"))
 
     if abs(spend_delta) >= 20:
@@ -488,10 +498,10 @@ def morning_pulse(df: pd.DataFrame, ref_date=None) -> dict:
 
     for _, row in worst.iterrows():
         if row["cac_delta"] > 50:
-            alerts.append(("🔴", f"[{row['campaign'][:40]}] CAC +₹{row['cac_delta']:.0f} vs prior day"))
+            alerts.append(("🔴", f"[{row['campaign'][:40]}] CAC +₹{row['cac_delta']:.0f} {vs_lbl}"))
 
     return {
-        "yd_date": yd, "d1_date": d1,
+        "yd_date": yd, "d1_date": d1, "custom_compare": custom_compare,
         "yd": yd_t, "d1": d1_t,
         "campaigns": camps,
         "worst_camps": worst,

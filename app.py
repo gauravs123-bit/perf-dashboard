@@ -992,49 +992,63 @@ def morning_pulse_view(df: pd.DataFrame, app: str, color: str, mode: str = "unin
     all_dates   = sorted(df["date_tz"].unique())
     selectable  = [d for d in avail_dates if all_dates.index(d) > 0]
 
-    date_key = f"mp_date_{app}"
-    if date_key not in st.session_state or st.session_state[date_key] not in selectable:
-        st.session_state[date_key] = selectable[-1] if selectable else None
+    # ── compare-mode toggle: prior-day (default) vs any two days ──
+    custom_cmp = st.toggle("Compare any two days", value=False, key=f"mp_custom_{app}")
 
-    # pill-style date buttons
-    hex_col = color.lstrip("#")
-    r, g, b = int(hex_col[0:2], 16), int(hex_col[2:4], 16), int(hex_col[4:6], 16)
-    pills_html = ""
-    for d in reversed(selectable):
-        is_sel = st.session_state[date_key] == d
-        bg     = f"rgba({r},{g},{b},0.15)" if is_sel else "#F0EBE1"
-        border = color if is_sel else "#D8D3C9"
-        fc     = color if is_sel else "#7A756D"
-        fw     = "700" if is_sel else "400"
-        label  = "Today" if d == selectable[-1] else str(d)
-        pills_html += (
-            f"<span style='background:{bg};border:1px solid {border};border-radius:20px;"
-            f"padding:4px 12px;font-size:0.72rem;color:{fc};font-weight:{fw};cursor:default'>{label}</span>"
-        )
+    if custom_cmp:
+        # ── any-two-days picker ──
+        opts = list(reversed(all_dates))   # newest first
+        ca, cb = st.columns(2)
+        with ca:
+            day_a = st.selectbox("Day A (primary)", opts, index=0,
+                                 key=f"mp_dayA_{app}", format_func=str)
+        with cb:
+            default_b = 1 if len(opts) > 1 else 0
+            day_b = st.selectbox("Day B (baseline)", opts, index=default_b,
+                                 key=f"mp_dayB_{app}", format_func=str)
+        st.markdown("<div style='height:12px'></div>", unsafe_allow_html=True)
+        if day_a == day_b:
+            st.warning("Pick two different days to compare.")
+            return
+        sel_date  = day_a
+        # Kitagawa/contributor sections compare the two dates present in df_sel
+        df_sel    = df[df["date_tz"].isin([day_a, day_b])]
+        pulse     = morning_pulse(df, ref_date=day_a, compare_date=day_b)
+        is_latest = False
+    else:
+        date_key = f"mp_date_{app}"
+        if date_key not in st.session_state or st.session_state[date_key] not in selectable:
+            st.session_state[date_key] = selectable[-1] if selectable else None
 
-    btn_cols = st.columns(len(selectable) + 4)
-    for i, d in enumerate(reversed(selectable)):
-        with btn_cols[i]:
-            label = "Today" if d == selectable[-1] else str(d)
-            is_sel = st.session_state[date_key] == d
-            if is_sel:
-                st.markdown(
-                    f"<div style='background:rgba({r},{g},{b},0.15);border:1px solid {color};"
-                    f"border-radius:20px;padding:5px 0;text-align:center;"
-                    f"font-size:0.72rem;color:{color};font-weight:700'>{label}</div>",
-                    unsafe_allow_html=True,
-                )
-            else:
-                if st.button(label, key=f"mp_date_btn_{app}_{d}", use_container_width=True):
-                    st.session_state[date_key] = d
-                    st.rerun()
+        # pill-style date buttons
+        hex_col = color.lstrip("#")
+        r, g, b = int(hex_col[0:2], 16), int(hex_col[2:4], 16), int(hex_col[4:6], 16)
 
-    st.markdown("<div style='height:12px'></div>", unsafe_allow_html=True)
+        btn_cols = st.columns(len(selectable) + 4)
+        for i, d in enumerate(reversed(selectable)):
+            with btn_cols[i]:
+                label = "Today" if d == selectable[-1] else str(d)
+                is_sel = st.session_state[date_key] == d
+                if is_sel:
+                    st.markdown(
+                        f"<div style='background:rgba({r},{g},{b},0.15);border:1px solid {color};"
+                        f"border-radius:20px;padding:5px 0;text-align:center;"
+                        f"font-size:0.72rem;color:{color};font-weight:700'>{label}</div>",
+                        unsafe_allow_html=True,
+                    )
+                else:
+                    if st.button(label, key=f"mp_date_btn_{app}_{d}", use_container_width=True):
+                        st.session_state[date_key] = d
+                        st.rerun()
 
-    sel_date = st.session_state[date_key]
-    # filter df to dates up to sel_date so Kitagawa uses the right pair
-    df_sel = df[df["date_tz"] <= sel_date]
-    pulse = morning_pulse(df_sel, ref_date=sel_date)
+        st.markdown("<div style='height:12px'></div>", unsafe_allow_html=True)
+
+        sel_date = st.session_state[date_key]
+        # filter df to dates up to sel_date so Kitagawa uses the right pair
+        df_sel = df[df["date_tz"] <= sel_date]
+        pulse = morning_pulse(df_sel, ref_date=sel_date)
+        is_latest = (sel_date == selectable[-1])
+
     if not pulse:
         st.warning("Need at least 2 days of data for Morning Pulse.")
         return
@@ -1043,11 +1057,13 @@ def morning_pulse_view(df: pd.DataFrame, app: str, color: str, mode: str = "unin
     deltas  = pulse["deltas"]
     yd_date = str(pulse["yd_date"])
     d1_date = str(pulse["d1_date"])
-    is_latest = (sel_date == selectable[-1])
 
     # ── date badge ──
-    today_lbl = "Today" if is_latest else str(yd_date)
-    yday_lbl  = "Yesterday" if is_latest else str(d1_date)
+    if pulse.get("custom_compare"):
+        today_lbl, yday_lbl = "Day A", "Day B"
+    else:
+        today_lbl = "Today" if is_latest else str(yd_date)
+        yday_lbl  = "Yesterday" if is_latest else str(d1_date)
     st.markdown(
         f"<div style='display:flex;align-items:center;gap:8px;margin-bottom:20px'>"
         f"<div style='background:#FFFFFF;border:1px solid #E2DDD3;border-radius:20px;"
